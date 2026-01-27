@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Cierre del mes</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        @page {
+            size: a4 portrait;
+            @frame header_frame {           /* Static frame */
+                    -pdf-frame-content: header_content;
+                    left: 50pt; width: 750pt; top: 70pt; height: 90pt;
+            };
+            @frame footer_frame {           /* Static frame */
+                    -pdf-frame-content: footer_content;
+                    right: 50pt; width: 750pt; bottom: 15px; height: 70pt;
+            };
+            @frame content_frame {          /* Content Frame */
+                    right: 20pt; left: 20pt; top: 150pt; height: 600pt;
+            };
+        }
+
+        footer {
+            position: running(footer);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background-color: #ccc;
+            text-align: center;
+        }
+
+        .sticky-bot-footer
+        {
+            position: absolute !important;
+            bottom:0 !important;
+            width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            text-align: center !important;
+        }
+
+        .text-center {
+        text-align: center!important
+        }
+
+        .text-danger {
+            color: #dc3545!important
+        }
+
+        .text-success {
+            color: #28a745!important
+        }
+
+        .table .thead-light th {
+            color: #495057;
+            background-color: #e9ecef;
+            border-color: #dee2e6
+        }
+
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            background-color: transparent;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .table td,
+        .table th {
+                padding: .75rem;
+                vertical-align: top;
+                border-top: 1px solid #dee2e6
+        }
+
+        .table thead th {
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6
+        }
+
+        .table tbody+tbody {
+                border-top: 2px solid #dee2e6
+        }
+
+        .table .table {
+                background-color: #fff
+        }
+
+        .table-sm td,
+        .table-sm th {
+                padding: .3rem
+        }
+
+        .table-bordered {
+                border: 1px solid #dee2e6
+        }
+
+        .table-bordered td,
+        .table-bordered th {
+                border: 1px solid #dee2e6
+        }
+
+        .table-bordered thead td,
+        .table-bordered thead th {
+                border-bottom-width: 2px
+        }
+
+        .mt-5,
+        .my-5 {
+                margin-top: 3rem!important
+        }
+
+        body {
+                margin: 0;
+                font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+                font-size: 1rem;
+                font-weight: 400;
+                line-height: 1.5;
+                color: #212529;
+                text-align: left;
+                background-color: #fff
+        }
+
+        .thead-blue th
+        {
+                color: #fff;
+                background-color: #1f2e88 !important;
+                border-color: #32383e
+        }
+    </style>
+</head>
+<body>
+
+<table id="header_content">
+    <thead>
+    <tr>
+        <td style="text-align: left;"><img src="static/img-inverdata/logo_inverdata_pdf.jpg"> <br>
+            CONDOMINIO APARTHOTEL ESPARTA SUITES <br>
+            APART HOTEL ESPARTA SUITES RIF J-30456994-7
+        </td>
+        <td>
+        </td>
+    </tr>
+    </thead>
+</table>
+
+<div id="footer_content">
+    <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
+    <span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span>
+</div>
+
+<h1 class="text-center" style="font-size: 13px; padding-top: 15px;">CIERRE DEL MES DE {{mes_cierre}} DE
+    {{año_cierre}}</h1>
+
+<table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Total de gastos (BS)</th>
+        <th>Total de ingresos (BS)</th>
+        <th>Resultado neto (BS)</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        {% if t_gastos %}
+        <td> {{t_gastos.id_movimiento__monto_movimiento__sum}}</td>
+        {% else %}
+        <td> 0</td>
+        {% endif %}
+
+        {% if t_ingresos %}
+        <td> {{t_ingresos.id_movimiento__monto_movimiento__sum}}</td>
+        {% else %}
+        <td> 0</td>
+        {% endif %}
+
+        {% if Diferencia > 0 %}
+        <td class="text-success"><strong> {{Diferencia}} </strong></td>
+        {% elif Diferencia < 0 %}
+        <td class="text-danger"><strong> {{Diferencia}} </strong></td>
+        {% else %}
+        <td><strong> 0 </strong></td>
+        {% endif %}
+    </tr>
+    </tbody>
+</table>
+
+<table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Total de gastos (USD)</th>
+        <th>Total de ingresos (USD)</th>
+        <th>Resultado neto (USD)</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        {% if t_gastos_USD %}
+        <td> {{t_gastos.id_movimiento__monto_movimiento__sum}}</td>
+        {% else %}
+        <td> 0</td>
+        {% endif %}
+
+        {% if t_ingresos_USD %}
+        <td> {{t_ingresos.id_movimiento__monto_movimiento__sum}}</td>
+        {% else %}
+        <td> 0</td>
+        {% endif %}
+
+        {% if Diferencia_USD > 0 %}
+        <td class="text-success"><strong> {{Diferencia_USD}} </strong></td>
+        {% elif Diferencia_USD < 0 %}
+        <td class="text-danger"><strong> {{Diferencia_USD}} </strong></td>
+        {% else %}
+        <td><strong> 0 </strong></td>
+        {% endif %}
+    </tr>
+    </tbody>
+</table>
+
+<table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Total de gastos (EUR)</th>
+        <th>Total de ingresos (EUR)</th>
+        <th>Resultado neto (EUR)</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        {% if t_gastos_EUR %}
+        <td> {{t_gastos.id_movimiento__monto_movimiento__sum}}</td>
+        {% else %}
+        <td> 0</td>
+        {% endif %}
+
+        {% if t_ingresos_EUR %}
+        <td> {{t_ingresos.id_movimiento__monto_movimiento__sum}}</td>
+        {% else %}
+        <td> 0</td>
+        {% endif %}
+
+        {% if Diferencia_EUR > 0 %}
+        <td class="text-success"><strong> {{Diferencia_EUR}} </strong></td>
+        {% elif Diferencia_EUR < 0 %}
+        <td class="text-danger"><strong> {{Diferencia_EUR}} </strong></td>
+        {% else %}
+        <td><strong> 0 </strong></td>
+        {% endif %}
+    </tr>
+    </tbody>
+</table>
+
+{% if ingresos %}
+
+<h3 class="text-center" style="font-size: 12px; padding-top: 30px;">INGRESOS</h3>
+
+<table class="table text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Concepto</th>
+        <th>Descripción</th>
+        <th>Total (BS)</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for ingreso in ingresos %}
+    <tr>
+        <td> {{ingreso.concepto}}</td>
+        <td> {{ingreso.descripcion}}</td>
+        <td> {{ingreso.monto}} Bs</td>
+    </tr>
+    {% endfor %}
+    <tr style="background-color: #F0F0F0;">
+        <td><strong>TOTAL</strong></td>
+        <td colspan="1"></td>
+        <td>
+            <strong>{{t_ingresos.id_movimiento__monto_movimiento__sum}} Bs</strong>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+{% else %}
+
+<h3 class="text-center" style="font-size: 12px; padding-top: 30px;">INGRESOS</h3>
+
+<table class="table text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Concepto</th>
+        <th>Descripción</th>
+        <th width="25%">Total (BS)</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td colspan="3" class="text-center"><strong class="text-danger">NO SE HA RECIBIDO NINGÚN INGRESO ESTE
+            MES</strong>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+{% endif %}
+
+{% if gastos %}
+
+<h3 class="text-center" style="font-size: 12px; padding-top: 30px;">GASTOS</h3>
+
+<table class="table text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Concepto</th>
+        <th>Descripción</th>
+        <th width="25%">Total (BS)</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for gasto in gastos %}
+    <tr>
+        <td style="border-bottom: 2px solid #F0F0F0;"> {{gasto.concepto}}</td>
+        <td style="border-bottom: 2px solid #F0F0F0;"> {{gasto.descripcion}}</td>
+        <td style="border-bottom: 2px solid #F0F0F0;"> {{gasto.monto}} Bs</td>
+    </tr>
+    {% endfor %}
+    <tr style="background-color: #F0F0F0;">
+        <td><strong>TOTAL</strong></td>
+        <td colspan="1"></td>
+        <td>
+            <strong>{{t_gastos.id_movimiento__monto_movimiento__sum}} Bs</strong>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+{% else %}
+
+<h3 class="text-center" style="font-size: 12px; padding-top: 30px;">GASTOS</h3>
+
+<table class="table text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Concepto</th>
+        <th>Descripción</th>
+        <th width="25%">Total (BS)</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td colspan="3" class="text-center"><strong class="text-danger">NO SE HA REALIZADO NINGÚN GASTO ESTE
+            MES</strong>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+{% endif %}
+
+<div style="page-break-before: always;">
+
+    <h3 class="text-center" style="font-size: 11px; padding-top: 20px;">DEUDAS</h3>
+
+    <table class="table mt-3" style="font-size: 12px;">
+        <thead class="thead-blue">
+        <tr>
+            <th colspan="2">DEUDAS ACUMULADAS</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- <tr>
+            <td>POR IMPAGOS DEL CONDOMINIO</td>
+            {% if monto_deuda_condo != 0 %}
+            <td class="text-center"> {{monto_deuda_condo}} BS</td>
+            {% else %}
+            <td class="text-center"><strong class="text-success">NO SE HAN ACUMULADO DEUDAS</strong></td>
+            {% endif %}
+        </tr> -->
+        <tr>
+            <td>POR IMPAGOS DE LOS PROPIETARIOS</td>
+            {% if monto_deuda_prop != 0 %}
+            <td class="text-center"> {{monto_deuda_prop}} BS</td>
+            {% else %}
+            <td class="text-center"><strong class="text-success">NO SE HAN ACUMULADO DEUDAS</strong></td>
+            {% endif %}
+        </tr>
+        </tbody>
+    </table>
+
+    <h3 class="text-center" style="font-size: 12px; padding-top: 20px;">FONDOS</h3>
+
+    <table class="table mt-3" style="font-size: 11px;">
+        <thead class="thead-blue">
+        <tr>
+            <th colspan="2">TOTAL DE FONDOS</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>DE RESERVA</td>
+            <td class="text-center">{{fondo_reserva}}</td>
+        </tr>
+        <tr>
+            <td>OPERACIONAL</td>
+            <td class="text-center">{{fondo_operacional}}</td>
+        </tr>
+        <tr>
+            <td>OTROS FONDOS</td>
+            <td class="text-center">{{fondo_otros}}</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+    <h3 class="text-center" style="font-size: 12px; padding-top: 20px;">MONTOS ESTABLECIDOS Y PARÁMETROS</h3>
+
+    <table>
+        <tr>
+            <td>
+                <table class="table mt-3" style="font-size: 11px;">
+                    <thead class="thead-blue">
+                    <tr>
+                        <th colspan="2">PRECIOS ESTABLECIDOS</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for precio, tipo_precio in precios %}
+                    <tr>
+                        <td> {{tipo_precio}}</td>
+                        <td width="30%"> {{precio}} BS</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+
+            <td width="3%"></td>
+
+            <td>
+                <table class="table mt-3" style="font-size: 11px;">
+                    <thead class="thead-blue">
+                    <tr>
+                        <th colspan="2">RECARGOS Y DESCUENTOS</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for recargo_descuento, tipo_recargo_descuento in recargos_descuentos %}
+                    <tr>
+                        <td> {{tipo_recargo_descuento}}</td>
+                        <td width="30%"> {{recargo_descuento}}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

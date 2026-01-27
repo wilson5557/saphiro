@@ -1,0 +1,96 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="" id="inicio-admin">Inicio</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- SECCIÓN DE INICIO -->
+<div class="col-lg-4 mb-5 mb-lg-0 end-padding-left" id="InicioTasa">
+    <div class="container rounded modulo pb-2 contenedores-inicio" style="background-color: #ffffff">
+        <div class="container pt-3 pb-1 container-tasa">
+            <h3 class="text-center pb-1">Tasa del día</h3>
+            <div class="divider"></div>
+
+            {% if tasa_bs %}
+            <div class="align-center">
+                <p class="subtitle-text text-tasa mt-3 mb-3">Bs/USD (BCV): <span class="text-tasa-value">{{tasa_bs}}</span></p>
+                <p class="subtitle-text text-tasa mt-3 mb-3">Bs/EUR (BCV): <span class="text-tasa-value">{{tasa_euro}}</span></p>
+            </div>
+
+            <div class="align-center">
+                <a href="{% url 'condominio_app:admin_configuracion' type='tasa' %}" class="btn-option btn btn-sm btn-primary btn-spacing-tasa">Cambiar</a><br>
+            </div>
+            {% else %}
+            <div>
+                <h6 class="text-right text-danger">Tasas de cambio no establecidas, para establecerlas
+                    <strong><a href="{% url 'condominio_app:admin_configuracion' type='tasa' %}">haz click aquí.</a></strong></h6>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-8 mb-5 mb-lg-0 end-padding-right" id="InicioAdmin">
+    <div class="container rounded modulo pb-2 contenedores-inicio" style="background-color: #ffffff">
+        <div class="container pt-3 pb-1">
+            <h3 class="text-center pb-1">¡Bienvenido!</h3>
+            <div class="divider"></div>
+
+            {% language 'es' %}
+            {{weekend}}
+            {% endlanguage %}
+
+            <!-- INICIO -->
+            <div class="mt-3">
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6"><strong>Estado de Cuenta</strong>:
+                        {% if user.is_active == True %}
+                        <span class="text-success">
+                            Activo
+                        </span>
+                        {% else %}
+                        <span class="text-danger">
+                          Suspendido
+                        </span>
+                        {% endif %}
+                    <p class="normal-font text-dark col-sm-6"><strong>Usuario</strong>: <span>{{usuario.username}}</span></p>
+                </div>
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6"><strong>Correo Eléctronico</strong>: <br>   <span>{{usuario.email}}</span></p>
+                    </p>
+                    <p class="normal-font text-dark col-sm-6"><strong>Nivel de privilegios</strong>:
+                        {% if user.is_superuser == True %}
+                        <span class="text-primary">
+                            Súper usuario
+                        </span>
+                        {% else %}
+                        <span class="text-info">
+                            Administrador
+                        </span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="align-right object-right">
+                    <a class="btn border btn-option text-center align-right center-all" href="/password_change/">Cambiar
+                        contraseña</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FIN SECCIÓN DE INICIO -->
+{% endblock body_block %}

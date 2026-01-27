@@ -1,0 +1,100 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-usuarios">Administración de Cuentas</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO GESTION DE USUARIOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Cuentas">
+  <div class="container rounded modulo border-secondary pb-2">
+    <div class="container pt-3 pb-1">
+      <h2 class="text-center pb-3">Gestión de usuarios</h2>
+
+      <div class="divider"></div>
+
+      {% if usuarios %}
+      <div class="row pt-3">
+        <p class="normal-font text-dark col-sm-12 text-center"><strong>Usuario:</strong><br>
+          <span>{{usuarios.username}}</span>
+        </p>
+      </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Nombre:</strong> <span> {% if propietario %}{{propietarios.nombre_propietario}} {% else %} {{usuarios.username}} {% endif %}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Correo electrónico:</strong> <span>{{usuarios.email}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Estado:</strong> 
+            {% if usuarios.is_active == True %}
+              <span class="text-success">Activo</span>
+            {% else %}
+              <span class="text-danger">Suspendido</span>
+            {% endif %}</p>
+
+            <p class="normal-font text-dark col-sm-6"><strong>Privilegios de administrador:</strong> 
+            {% if usuarios.is_admin == True %}
+              <span class="text-success">SI</span>
+            {% else %}
+              <span class="text-danger">NO</span>
+            {% endif %}</p>
+          </div>
+          <!-- <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Número de cuenta:</strong> <span>{{bancos.nro_cuenta}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Tipo de moneda:</strong> <span>{{bancos.tipo_moneda}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Débitos hechos al banco:</strong> <span class="text-danger">{{bancos.debitos_banco}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Créditos hechos al banco:</strong> <span class="text-success">{{bancos.creditos_banco}}</span></p>
+          </div>
+          <div class="row pt-3">
+            {% if bancos.ultimo_debito == None %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último debido registrado:</strong> <span class="text-danger">No hay debitos recientes para este banco</span></p>
+            {% else %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último debido registrado:</strong> <span class="text-danger">{{bancos.ultimo_debito|date:"l, d/m/Y"}}</span></p>
+            {% endif %}
+
+            {% if bancos.ultimo_credito == None %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último credito registrado:</strong> <span class="text-success">No hay creditos recientes para este banco</span></p>
+            {% else %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último credito registrado:</strong> <span class="text-success">{{bancos.ultimo_credito|date:"l, d/m/Y"}}</span></p>
+            {% endif %}
+          </div> -->
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Fecha de registro:</strong> <span class="">{{usuarios.date_joined|date:"l, d/m/Y"}} a las<br>{{usuarios.last_login|date:"h:i a"}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Último inicio de sesión:</strong> <span class="">{{usuarios.last_login|date:"l, d/m/Y"}} a las<br>{{usuarios.last_login|date:"h:i a"}}</span></p>
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="row pt-3">
+            <a class="btn btn-danger col-sm-12 border text-light move-up"
+              href="/home/administrar/cuentas"><i class="fa fa-arrow-left float-left pt-1"></i>
+                r al inicio</a>
+          </div>
+
+      {% else %}
+      <div class="row pt-3">
+        <h1>NO SE HA ENCONTRADO EL REGISTRO SOLICITADO</h1>
+      </div>
+
+      <div class="d-grid pt-3" style="justify-content: right;">
+        <a class="btn btn-danger btn-cancel col-sm-6 border text-light mx-auto move-up"
+          href="/home/administrar/cuentas"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+<!-- FIN DE GESTION DE USUARIOS -->
+{% endblock body_block %}

@@ -1,0 +1,86 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="">Banco | {{bancos.nombre_banco}}</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Bancos">
+  <div class="container rounded modulo border-secondary pb-2">
+    <div class="container pt-3 pb-1">
+
+      <div class="divider"></div>
+
+      {% if bancos %}
+      <div class="row pt-3">
+        <p class="normal-font text-dark col-sm-12 text-center"><strong>Nombre del banco:</strong><br>
+          <span>{{bancos.nombre_banco}}</span>
+        </p>
+      </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Titular de la cuenta:</strong> <span>{{bancos.nombre_titular}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Identificación:</strong> <span>{{bancos.tipo_dni_titular}}-{{bancos.dni_titular}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Email:</strong> <span>{{bancos.email_titular}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Número de teléfono:</strong> <span>{{bancos.tlf_titular}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Número de cuenta:</strong> <span>{{bancos.nro_cuenta}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Tipo de moneda:</strong> <span>{{bancos.tipo_moneda}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Débitos hechos al banco:</strong> <span class="text-danger">{{bancos.debitos_banco}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Créditos hechos al banco:</strong> <span class="text-success">{{bancos.creditos_banco}}</span></p>
+          </div>
+          <div class="row pt-3">
+            {% if bancos.ultimo_debito == None %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último debido registrado:</strong> <span class="text-danger">No hay debitos recientes para este banco</span></p>
+            {% else %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último debido registrado:</strong> <span class="text-danger">{{bancos.ultimo_debito|date:"l, d/m/Y"}}</span></p>
+            {% endif %}
+
+            {% if bancos.ultimo_credito == None %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último credito registrado:</strong> <span class="text-success">No hay creditos recientes para este banco</span></p>
+            {% else %}
+              <p class="normal-font text-dark col-sm-6"><strong>Último credito registrado:</strong> <span class="text-success">{{bancos.ultimo_credito|date:"l, d/m/Y"}}</span></p>
+            {% endif %}
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Fecha de registro del banco:</strong> <span class="">{{bancos.created_at|date:"l, d/m/Y"}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Última actualización:</strong> <span class="">{{bancos.created_at|date:"l, d/m/Y"}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Saldo inicial:</strong> <span class="">{{bancos.saldo_apertura}}</span></p>
+            {% if bancos.saldo_actual > 0 %}
+            <p class="normal-font text-dark col-sm-6"><strong>Saldo actual:</strong> <span class="text-success">{{bancos.saldo_actual}}</span></p>
+            {% else %}
+            <p class="normal-font text-dark col-sm-6"><strong>Saldo actual:</strong> <span class="text-danger">{{bancos.saldo_actual}}</span></p>
+            {% endif %}
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="d-grid pt-3" style="justify-content: right;">
+            <a class="btn btn-danger btn-cancel col-sm-12 border text-light move-up"
+              href="{% url 'condominio_app:admin_configuracion' type='bancos' %}"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
+          </div>
+
+      {% else %}
+
+      {% endif %}
+      
+          
+    </div>
+  </div>
+</div>
+{% endblock body_block %}

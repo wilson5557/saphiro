@@ -1,0 +1,159 @@
+{% extends "administrador/configuracion.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block edificio_active %}
+  
+{% endblock edificio_active %}
+
+{% block precios_block %}
+  active
+{% endblock precios_block %}
+
+{% block options_admin %}
+<ul class="sidebar-spacing">
+    <li><a href="/home/administrador/" style="font-size: 12px !important;">Inicio</a></li>
+    <li>
+        <div class="dropdown d-lg-block">
+            <a class="a-sub-option not-selected" style="font-size: 12px !important;" id="dropdownMenuLink" data-toggle="dropdown">
+                Administrar <i class="fa fa-angle-down ml-2"></i>
+            </a>
+            <div class="dropdown-menu show-options" aria-labelledby="dropdownMenuLink">
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/bancos/">Bancos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/gastos/">Gastos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/ingresos/">Ingresos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/deudas/">Deudas</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/fondos/">Fondos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/propietarios/">Propietarios</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/torres/">Torres</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/noticias/">Noticias</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/cuentas/">Administradores</a>
+            </div>
+        </div>
+    </li>
+    <li>
+        <a href="/home/administrar/reportes/" style="font-size: 12px !important;" class="a-sub-option">
+            Reportes
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
+            Cierre del Mes
+        </a>
+    </li>
+    <li class="active">
+        <a href="/home/administrar/configuracion/edificio/" style="font-size: 12px !important;" class="a-sub-option">
+            Configuración
+        </a>
+    </li>
+</ul>
+{% endblock options_admin %}
+
+{% block modulo_config_block %}
+<div class="mt-3">
+    <h2 class="text-center pb-3">Establecimiento de precios</h2>
+
+    <form method="POST">
+      {% csrf_token %}
+      {% if precios %}
+        {% for precio in precios %}
+          <div class="form-group row mt-3">
+            <label for="{{precios_form.maleteros.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.maleteros.label}}:</label>
+            <div class="col-sm-5">
+              {% render_field precios_form.maleteros class="form-control text-dark" placeholder="Ingrese el precio de los maleteros en USD" name=precios_form.maleteros.name value=precio.maleteros %}
+              {% for error in precios_form.maleteros.errors %}
+                <div class="alert alert-danger mt-2">{{error}}</div>
+              {% endfor %}
+            </div>
+          </div>
+      
+          <div class="form-group row">
+            <label for="{{precios_form.mantenimiento_areas.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.mantenimiento_areas.label}}:</label>
+            <div class="col-sm-5">
+              {% render_field precios_form.mantenimiento_areas class="form-control text-dark" placeholder="Ingrese el precio del mantenimiento de las áreas comunes en USD" name=precios_form.mantenimiento_areas.name value=precio.mantenimiento_areas %}
+              {% for error in precios_form.mantenimiento_areas.errors %}
+                <div class="alert alert-danger mt-2">{{error}}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="{{precios_form.jardineria.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.jardineria.label}}:</label>
+            <div class="col-sm-5">
+              {% render_field precios_form.jardineria class="form-control text-dark" placeholder="Ingrese el precio de la jardineria en USD" name=precios_form.jardineria.name value=precio.jardineria %}
+              {% for error in precios_form.jardineria.errors %}
+                <div class="alert alert-danger mt-2">{{error}}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="{{precios_form.mantenimiento_edificio.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.mantenimiento_edificio.label}}:</label>
+            <div class="col-sm-5">
+              {% render_field precios_form.mantenimiento_edificio class="form-control text-dark" placeholder="Ingrese el precio del mantenimiento del edificio en USD" name=precios_form.mantenimiento_edificio.name value=precio.mantenimiento_edificio %}
+              {% for error in precios_form.mantenimiento_edificio.errors %}
+                <div class="alert alert-danger mt-2">{{error}}</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="form-group row mt-3">
+          <label for="{{precios_form.maleteros.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.maleteros.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field precios_form.maleteros class="form-control text-dark" placeholder="Ingrese el precio de los maleteros en USD" name=precios_form.maleteros.name %}
+            {% for error in precios_form.maleteros.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+    
+        <div class="form-group row">
+          <label for="{{precios_form.mantenimiento_areas.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.mantenimiento_areas.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field precios_form.mantenimiento_areas class="form-control text-dark" placeholder="Ingrese el precio del mantenimiento de las áreas comunes en USD" name=precios_form.mantenimiento_areas.name %}
+            {% for error in precios_form.mantenimiento_areas.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{precios_form.jardineria.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.jardineria.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field precios_form.jardineria class="form-control text-dark" placeholder="Ingrese el precio de la jardineria en USD" name=precios_form.jardineria.name %}
+            {% for error in precios_form.jardineria.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{precios_form.mantenimiento_edificio.name}}" class="col-sm-3 col-form-label text-dark">{{precios_form.mantenimiento_edificio.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field precios_form.mantenimiento_edificio class="form-control text-dark" placeholder="Ingrese el precio del mantenimiento del edificio en USD" name=precios_form.mantenimiento_edificio.name %}
+            {% for error in precios_form.mantenimiento_edificio.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      
+  
+      <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar datos</button>
+      <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio"><i class="fa fa-remove"></i> Cancelar</a>
+    </form>
+  
+</div>
+{% endblock modulo_config_block %}

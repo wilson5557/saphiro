@@ -1,0 +1,165 @@
+{% extends "layouts/base-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Apartamentos
+{% endblock title_page %}
+
+{% block aptos_active %}
+	class="active"
+{% endblock aptos_active %}
+
+{% block body_block %}
+<!-- bradcam_area_start -->
+<div class="bradcam_area breadcam_bg_1">
+	<h3>Viviendas Residenciales</h3>
+	<h4 class="mt-3 white">¿Buscas una vivienda en donde poder hospedarte? No pierdas ni un segundo mas!</h4>
+</div>
+<!-- bradcam_area_end -->
+
+{% if pagina_actual %}
+
+<!-- SECCIÓN DE APARTAMENTOS EN ALQUILER O EN VENTA -->
+<div class="offers_area padding_top">
+	<div class="container">
+		<div class="row">
+			<div class="col-xl-12">
+				<div class="section_title text-center mb-100">
+					<h3>Para Alquiler Residencial</h3>
+					<h4>Ofrecemos diferentes tipos de domicilios que se ajusten a lo que buscas</h4>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- FIN SECCIÓN DE APTOS EN ALQUILER O EN VENTA -->
+
+<!-- SECCIÓN PT 2 DE APTOS EN ALQUILER O EN VENTA (Para simular un catalogo de 6 aptos para mostrar nada más en la página principal) -->
+<div class="offers_area">
+	<div class="container">
+		<div class="row">
+			{% for data, domicilio in data_post %}
+			<div class="col-sm-12 col-md-6 col-lg-4 col-xl-4">
+				<div class="single_offers">
+					<div class="about_thumb">
+						<img src="{{ data.imagen.url }}" width="120px" height="250px" alt="imagen_post">
+					</div>
+					<h3>{{data.titulo}}</h3>
+					<ul>
+						<li>Nombre: {{domicilio.nombre_domicilio}}</li>
+						<li>Tamaño: {{domicilio.size_domicilio}}</li>
+						<li>Piso: {{domicilio.piso_domicilio}}</li>
+						<li>Estacionamientos: {{domicilio.estacionamientos}}</li>
+						<li>Ubicación: {{domicilio.id_torre.nombre_torre}}</li>
+					</ul>
+					<button class="btn-inicio" data-toggle="modal" data-target="#contacto">Contactar al propietario</button>
+				</div>
+
+				<div class="modal fade" id="contacto" tabindex="-1" role="dialog" aria-labelledby="contactoLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header" style="background-color: wheat;">
+								<h5 class="modal-title" id="contactoLabel"><strong>Datos del contacto</strong></h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<div class="row">
+									<div class="col-sm-12 col-md-12 col-lg-12 col-xl-12">
+										<strong>Propietario</strong>: {{data.id_domicilio.id_propietario.nombre_propietario}}
+									</div>
+									<div class="col-sm-12 col-md-12 col-lg-12 col-xl-12 pt-3">
+										<strong>Descripcion</strong>: {{data.descripcion}}
+									</div>
+									<div class="col-sm-12 col-md-12 col-lg-12 col-xl-12 pt-3">
+										<strong>Contacto</strong>: {{data.cod_tlf}}-{{data.contacto}}
+									</div>
+									<div class="col-sm-12 col-md-12 col-lg-12 col-xl-12 pt-3" style="text-align: center;">
+										Horario de consulta desde {{data.horario_desde}} hasta las {{data.horario_hasta}}.
+									</div>
+								</div>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-inicio" style="width: 140px;" data-dismiss="modal">Cerrar</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+
+		<!-- Mostrar los enlaces de paginación -->
+		<div class="pagination blog-pagination d-flex">
+				<span class="step-links">
+
+					{% if pagina_actual.has_previous %}
+						<a href="?pagina=1" class="pagination-action">&laquo; Primera</a>
+						<a href="?pagina={{ pagina_actual.previous_page_number }}"
+						   class="pagination-action">Anterior</a>
+					{% endif %}
+
+					{% for num in pagina_actual.paginator.page_range %}
+						{% if pagina_actual.number == num %}
+							<span class="pagination-number pagination-current">{{ num }}</span>
+						{% elif num > pagina_actual.number|add:'-3' and num < pagina_actual.number|add:'3' %}
+							<a class="pagination-number" href="?pagina={{ num }}">{{ num }}</a>
+						{% endif %}
+					{% endfor %}
+
+					{% if pagina_actual.has_next %}
+						<a href="?pagina={{ pagina_actual.next_page_number }}" class="pagination-action">Siguiente</a>
+						<a href="?pagina={{ pagina_actual.paginator.num_pages }}" class="pagination-action">&Uacute;ltima &raquo;</a>
+					{% endif %}
+				</span>
+		</div>
+	</div>
+</div>
+<!-- FIN SECCION PT 2 APTOS EN ALQUILER O EN VENTA -->
+
+{% else %}
+<div class="forQuery padding_top_100">
+	<div class="container Query_border">
+		<div class="row">
+			<div class="col-xl-12">
+				<div class="not-exists-title text-center">
+					<h3>Ahora mismo, el condominio no cuenta con viviendas residenciales disponibles</h3>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
+<!-- forQuery_start -->
+<div class="forQuery">
+	<div class="container">
+		<div class="row">
+			<div class="col-xl-12 offset-xl-0 col-md-12">
+				<div class="Query_border">
+					<div class="row align-items-center justify-content-center">
+						<div class="col-xl-5 col-md-6">
+							<div class="Query_text">
+								<p>¿Necesitas hacer una consulta?</p><br>
+								<p class="justify-content-center">¡Contactanos!</p>
+							</div>
+						</div>
+						<div class="col-xl-7 col-md-6">
+							<div class="phone_num">
+								<a class="mobile_no">+58 295-2629586</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script src="{% static '/js/main.js' %}"></script>
+<script src="{% static '/js/scripts.js' %}"></script>
+	<!-- forQuery_end-->
+{% endblock body_block %}

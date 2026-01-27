@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Recibo de Pago</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <div class="web-container">
+      <div class="page-container">
+          Pagina Nº
+          <span class="page"></span>
+          de
+          <span class="pages"></span>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img style="height: 120px;" alt="Logo" src='{% static "img-inverdata/logo_inverdata_pdf.png" %}'>
+        </div>
+
+        <table class="invoice-info-container">
+          <tr>
+            <td class="client-name">
+                Cliente: <b>{{ datosMovimiento.id_propietario.nombre_propietario }}</b>
+            </td>
+            <td>
+                {{ datosCondo.nombre_condominio }}
+            </td>
+          </tr>
+          <tr>
+              <td>
+                {% for data in datosRecibo %}
+                  {% if forloop.first %}
+                    Fecha de Recibo: <strong>{{ data.fecha_creacion }}</strong>
+                  {% endif %}
+                {% endfor %}
+              </td>
+            <td>
+              {{ datosCondo.direccion_condominio }}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              {% for data in datosRecibo %}
+                {% if forloop.first %}
+                  Hora de Recibo: <strong>{{ data.hora_creacion }}</strong>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td>
+                {{ datosCondo.email }}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              ID recibo: <strong>{{ datosMovimiento.id_movimiento }}</strong>
+            </td>
+            <td>
+            </td>
+          </tr>
+        </table>
+
+
+        <table class="line-items-container">
+          <thead>
+            <tr>
+              <th class="heading-description">Descripción</th>
+              <th class="heading-price">Precio</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for data in datosRecibo %}
+            <tr>
+              <td>{{ data.descripcion_recibo }}</td>
+              <td class="right">Bs. {{ data.monto }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+
+
+        <table class="line-items-container has-bottom-border">
+          <thead>
+            <tr>
+              <th>Información de Pago</th>
+              <th>Concepto</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="payment-info">
+                <div>
+                  Banco: <strong>{{ datosMovimiento.banco_emisor }}</strong>
+                </div>
+                <div>
+                  Nro. de Cuenta: <strong>{{ datosMovimiento.referencia_movimiento }}</strong>
+                </div>
+              </td>
+              <td>
+                <b>{{ datosMovimiento.descripcion_movimiento }}</b>
+              </td>
+              <td>
+                BsS. {{ datosMovimiento.monto_movimiento }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <div class="footer-info">
+            <span>{{ datosCondo.email }}</span> |
+            <span>{{ datosCondo.codigo_tlf_1 }}-{{ datosCondo.tlf_1 }}</span> |
+            <span>inverdata.com</span>
+          </div>
+          <div class="footer-thanks center">
+            {% if datosMovimiento.estado_movimiento == 0 %}
+            <h3><strong>Estado</strong>: <span style="font-weight: normal;"> Aprobado</span></h3>
+            {% elif datosMovimiento.estado_movimiento == 1 %}
+            <h3><strong>Estado</strong>: <span style="font-weight: normal;"> Rechazado</span></h3>
+            {% else %}
+            <h3><strong>Estado</strong>: <span style="font-weight: normal;"> Pendiente</span></h3>
+            {% endif %}
+          </div>
+        </div>
+  </div>
+</body>
+</html>

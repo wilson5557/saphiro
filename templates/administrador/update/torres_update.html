@@ -1,0 +1,57 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="" id="gestionar-deudas">Actualizar Torre</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO MAESTRO DE INGRESOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Deudas">
+    <div class="container rounded modulo border-secondary pb-2">
+        <div class="container pt-3 pb-1">
+
+            <div class="divider"></div>
+
+            <!-- FORMULARIO -->
+            <form id="AgregarTorres" method="POST">
+                {% csrf_token %}
+
+                <h3 class="text-center pt-2">Datos de la torre</h3>
+                <small id="saldoHelp" class="mt-3 form-text text-center text-muted">Registra una torre correspondiente
+                    al condominio actual.</small>
+
+                <div class="form-group row mt-2">
+                    <div class="col-sm-12">
+                        <label for="{{ torres_form.nombre_torre.name }}" class="col-sm-12 col-form-label text-dark">{{ torres_form.nombre_torre.label }}:</label>
+                        <div class="col-sm-12">
+                            {% render_field torres_form.nombre_torre class="form-control text-dark" placeholder="Ingrese el nombre de la torre" value=torre.nombre_torre %}
+                            {% for error in torres_form.nombre_torre.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success col-sm-3 mt-3 move-up"><i class="fa fa-plus"></i> Actualizar
+                </button>
+                <a href="{% url 'condominio_app:admin_configuracion' type='torres' %}" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i
+                        class="fa fa-remove"></i> Cancelar</a>
+            </form>
+
+        </div>
+    </div>
+</div>
+<!-- FIN MAESTRO DE INGRESOS -->
+{% endblock body_block %}

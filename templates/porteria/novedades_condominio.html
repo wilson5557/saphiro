@@ -1,0 +1,211 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="">Administración de Noticias</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block options_admin %}
+<ul class="sidebar-spacing">
+    <li><a href="/home/administrador/" style="font-size: 12px !important;" class="a-sub-option">Inicio</a></li>
+    <li class="active">
+        <div class="dropdown d-lg-block">
+            <a class="a-sub-option selected-option" style="font-size: 12px !important;" id="dropdownMenuLink" data-toggle="dropdown">
+                Administrar <i class="fa fa-angle-down ml-2"></i>
+            </a>
+            <div class="dropdown-menu show-options" aria-labelledby="dropdownMenuLink">
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/bancos/">Bancos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/gastos/">Gastos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/ingresos/">Ingresos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/deudas/">Deudas</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/fondos/">Fondos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/propietarios/">Propietarios</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/torres/">Torres</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/noticias/">Noticias</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/cuentas/">Administradores</a>
+            </div>
+        </div>
+    </li>
+    <li>
+        <a href="/home/administrar/reportes/" style="font-size: 12px !important;" class="a-sub-option">
+            Reportes
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
+            Cierre del Mes
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'condominio_app:admin_configuracion' type='condominio' %}" style="font-size: 12px !important;" class="a-sub-option">
+            Configuración
+        </a>
+    </li>
+</ul>
+{% endblock options_admin %}
+
+{% block body_block %}
+<!-- INICIO GESTION DE NOTICIAS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Lista-Noticias">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <div class="container pt-3 pb-1">
+            <h2 class="text-center pb-3">Noticias y Comunicados</h2>
+
+            <div class="form-group row">
+                <div class="col-sm-6 d-none" id="HideNoticia">
+                    <button class="btn-size-text btn btn-danger ml-3 move-left" onclick="ShowOrHide('HideListaNoticias')"><i
+                            class="fa fa-arrow-left pr-2"></i> Volver</button>
+                </div>
+
+                <button class="btn-option-admin mx-auto move-up" id="ShowNoticia" onclick="ShowOrHide('ShowListaNoticias')"
+                        data-toggle="popover" data-content="Haz click aquí para ver la lista de noticias"><i
+                        class="fa fa-list pr-2"></i> Lista de Noticias
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!--AGREGAR NOTICIAS-->
+            <form method="POST" id="AgregarNoticias" enctype="multipart/form-data">
+              {% csrf_token %}
+              <h3 class="text-center pt-2">Datos de la publicación</h3>
+              <p class="text-center pb-2 text-dark">Haz un anuncio para que este sea visible en la cartelera informativa de la página.</p>
+
+              <div class="form-group row">
+                <label for="id_titulo" class="col-sm-2 col-form-label text-dark">Título:</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control text-dark" id="id_titulo" name="titulo" required>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="id_descripcion" class="col-sm-2 col-form-label text-dark">Descripción:</label>
+                <div class="col-sm-9">
+                  <textarea class="form-control text-dark" id="id_descripcion" name="descripcion" rows="10" required></textarea>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                  <label for="id_imagen" class="col-sm-2 col-form-label text-dark">Imagen:</label>
+                  <div class="col-sm-9">
+                    <input type="file" class="custom-control-input" accept="image/*" name="imagen" id="id_imagen">
+                    <label class="col-sm-12 custom-file-label" for="id_imagen">Suba la referencia aquí</label>
+                  </div>
+              </div>
+
+                <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up"><i class="fa fa-plus"></i> Publicar</button>
+                <a href="/home/administrador/" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i class="fa fa-remove"></i> Cancelar</a>
+            </form>
+
+            <!--VER NOTICIAS-->
+            <div class="d-none" id="VerNoticias">
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                           id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table id="TablaNoticias"
+                       class="table table-responsive-xl table-responsive-lg table-responsive-md table-hover"
+                       width="100%">
+                    <thead class="table-header-admin">
+                    <tr>
+                        <th scope="col" class="d-none">#</th>
+                        <th scope="col">Titulo</th>
+                        <th scope="col">Descripción</th>
+                        <th scope="col">Fecha de publicación</th>
+                        <th scope="col">Fecha de actualización</th>
+                        <th scope="col">Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if noticias %}
+                    {% for noticia in noticias %}
+                    <tr>
+                        <td scope="row" class="d-none">{{noticia.id}}</td>
+                        <td class="centered-cell">{{noticia.titulo}}</td>
+                        <td class="centered-cell">{{noticia.descripcion}}</td>
+                        <td class="centered-cell">{{noticia.fecha_publicacion}}</td>
+                        <td class="centered-cell">{{noticia.fecha_actualizado}}</td>
+                        <td>
+                            <div class="horizontal-cell">
+                                <a href="{% url 'condominio_app:noticia' noticia.slug %}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                                <a href="{% url 'condominio_app:updateNoticia' noticia.slug %}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="{% url 'condominio_app:destroyNoticia' noticia.slug %}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaNoticias').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+  <!-- FIN DE GESTION DE NOTICIAS -->
+{% endblock body_block %}

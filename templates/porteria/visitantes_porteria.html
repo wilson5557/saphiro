@@ -1,0 +1,418 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="" id="gestionar-ingresos">Administración de Ingresos</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block options_admin %}
+<ul class="sidebar-spacing">
+    <li><a href="/home/administrador/" style="font-size: 12px !important;" class="a-sub-option">Inicio</a></li>
+    <li class="active">
+        <div class="dropdown d-lg-block">
+            <a class="a-sub-option selected-option" style="font-size: 12px !important;" id="dropdownMenuLink" data-toggle="dropdown">
+                Administrar <i class="fa fa-angle-down ml-2"></i>
+            </a>
+            <div class="dropdown-menu show-options" aria-labelledby="dropdownMenuLink">
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/bancos/">Bancos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/gastos/">Gastos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/ingresos/">Ingresos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/deudas/">Deudas</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/fondos/">Fondos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/propietarios/">Propietarios</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/torres/">Torres</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/noticias/">Noticias</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/cuentas/">Administradores</a>
+            </div>
+        </div>
+    </li>
+    <li>
+        <a href="/home/administrar/reportes/" style="font-size: 12px !important;" class="a-sub-option">
+            Reportes
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
+            Cierre del Mes
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'condominio_app:admin_configuracion' type='condominio' %}" style="font-size: 12px !important;" class="a-sub-option">
+            Configuración
+        </a>
+    </li>
+</ul>
+{% endblock options_admin %}
+
+{% block body_block %}
+<!-- INICIO MAESTRO DE INGRESOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Ingresos">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <div class="container pt-3 pb-1">
+            <h2 class="text-center pb-3">Administración y gestión de ingresos</h2>
+
+            <div class="form-group row">
+                <div class="col-sm-6 d-none" id="HideIngresos">
+                    <button class="btn-size-text btn btn-danger ml-3 move-left" onclick="ShowOrHide('HideListaIngresos')"><i
+                            class="fa fa-arrow-left pr-2"></i> Volver</button>
+                </div>
+
+                <button class="btn-option-admin mx-auto move-up" id="ShowIngresos" onclick="ShowOrHide('ShowListaIngresos')"
+                        data-toggle="popover" data-content="Haz click aquí para ver la lista de bancos agregados"><i
+                        class="fa fa-list pr-2"></i> Lista de Ingresos
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- FORMULARIO -->
+            <form id="AgregarIngresos" class="" method="POST">
+                {% csrf_token %}
+                <div class="form-group row mt-4">
+                    <label for="TipoMonedaIngreso" class="col-sm-3 col-form-label text-dark">Tipo de moneda:</label>
+                    <!-- BOLIVARES -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="BolivarI" name="TipoMonedaIngreso" class="custom-control-input"
+                               value="BS" onclick="CheckMoneda('Bs', 'BancosBS_INGRESO')" required>
+                        <label class="custom-control-label text-dark" for="BolivarI">BS</label>
+                    </div>
+                    <!-- DOLARES -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="DolarI" name="TipoMonedaIngreso" class="custom-control-input"
+                               value="USD" onclick="CheckMoneda('Usd', 'BancosUSD_INGRESO')" required>
+                        <label class="custom-control-label text-dark" for="DolarI">USD</label>
+                    </div>
+                    <!-- EUROS -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="EuroI" name="TipoMonedaIngreso" class="custom-control-input" value="EUR"
+                               onclick="CheckMoneda('Eur', 'BancosEUR_INGRESO')" required>
+                        <label class="custom-control-label text-dark" for="EuroI">EUR</label>
+                    </div>
+                </div>
+                <!-- TENGO QUE CAMBIAR LOS ID DE BANCOSBS A BANCOSBSINGRESO Y ASI PQ EL HTML ES MARISQUITO -->
+                <div class="form-group row d-none" id="BancosBS_INGRESO">
+                    <label for="banco_ingreso_BS" class="col-sm-3 col-form-label text-dark">Banco del cual se hizo la
+                        operación en Bolivares:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_ingreso_BS" name="banco_ingreso_BS">
+                            {% if bancos %}
+                            <option value="opcion">Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'BS' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} BS)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE MANEJEN BOLIVARES REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row d-none" id="BancosUSD_INGRESO">
+                    <label for="banco_ingreso_USD" class="col-sm-3 col-form-label text-dark">Banco del cual se hizo la
+                        operación en Dólares:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_ingreso_USD" name="banco_ingreso_USD">
+                            {% if bancos %}
+                            <option value="opcion">Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'USD' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} $)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE MANEJEN USD REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row d-none" id="BancosEUR_INGRESO">
+                    <label for="banco_ingreso_EUR" class="col-sm-3 col-form-label text-dark">Banco del cual se hizo la operación en Euros:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_ingreso_EUR" name="banco_ingreso_EUR">
+                            {% if bancos %}
+                            <option value="opcion">Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'EUR' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} EUR)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE MANEJEN EUROS REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                    <label for="fecha_ingreso" class="col-sm-3 col-form-label text-dark">Fecha del ingreso: </label>
+                    <div class="col-sm-5">
+                        <input type="date" class="form-control text-dark" id="fecha_ingreso" name="fecha_ingreso"
+                               required>
+                    </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                    <label for="{{ ingresos_form.concepto_ingreso.name }}" class="col-sm-3 col-form-label text-dark">{{ingresos_form.concepto_ingreso.label }}:</label>
+                    <div class="col-sm-8">
+                        {% render_field ingresos_form.concepto_ingreso class="form-control text-dark" placeholder="Concepto del ingreso" %}
+                        {% for error in ingresos_form.concepto_ingreso.errors %}
+                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="{{ ingresos_form.descripcion_ingreso.name }}" class="col-sm-3 col-form-label text-dark">{{ingresos_form.descripcion_ingreso.label }}:</label>
+                    <div class="col-sm-8">
+                        {% render_field ingresos_form.descripcion_ingreso class="form-control text-dark" placeholder="Descripción del ingreso" rows="5" %}
+                        {% for error in ingresos_form.descripcion_ingreso.errors %}
+                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="{{ ingresos_form.monto_ingreso.name }}" class="col-sm-3 col-form-label text-dark">{{ingresos_form.monto_ingreso.label }}:</label>
+                    <div class="col-sm-8">
+                        {% render_field ingresos_form.monto_ingreso class="form-control text-dark" placeholder="Monto del ingreso" %}
+                        {% for error in ingresos_form.monto_ingreso.errors %}
+                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="referencia" class="col-sm-3 col-form-label text-dark">Refencia bancaria:</label>
+                    <div class="col-sm-8">
+                        <input type="text" name="referencia" id="referencia"
+                               placeholder="Ingrese la referencia bancaria" class="form-control text-dark" required>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="{{ ingresos_form.tipo_ingreso.name }}" class="col-sm-3 col-form-label text-dark">{{ ingresos_form.tipo_ingreso.label }}:</label>
+                    <div class="col-sm-8">
+                      <select name="{{ ingresos_form.tipo_ingreso.name }}" id="{{ ingresos_form.tipo_ingreso.name }}" class="form-control text-dark">
+                        {% for select in ingresos_form.tipo_ingreso  %}
+                          {{select}}
+                          {% for error in ingresos_form.tipo_ingreso.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                          {% endfor %}
+                        {% endfor %}
+                      </select>
+                    </div>
+                </div>
+
+<!--                <div class="form-group row">-->
+<!--                    <label for="is_service" class="col-sm-3 col-form-label text-dark">Servicio:</label>-->
+<!--                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-4 mt-2">-->
+<!--                        <input type="radio" id="Yes" name="is_service" class="custom-control-input" value="True"-->
+<!--                               required>-->
+<!--                        <label class="custom-control-label text-dark" for="Yes">SI</label>-->
+<!--                    </div>-->
+
+<!--                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3 mt-2">-->
+<!--                        <input type="radio" id="No" name="is_service" class="custom-control-input" value="False"-->
+<!--                               required>-->
+<!--                        <label class="custom-control-label text-dark" for="No">NO</label>-->
+<!--                    </div>-->
+<!--                </div>-->
+
+                <div class="form-group row">
+                    <label for="apto_ingreso" class="col-sm-3 col-form-label text-dark">Apartamento (Opcional):</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="apto_ingreso" name="apto_ingreso">
+                            {% if propietarios %}
+                            <option value="opcion">Elige un apartamento...</option>
+                            {% for propietario in propietarios %}
+                            <option value="{{propietario.id_domicilio}}">{{ propietario.nombre_domicilio }} - {{ propietario.id_propietario.nombre_propietario }}</option>
+                            {% endfor %}
+                            {% else %}
+                            <option value="opcion" selected disabled>NO HAY PROPIETARIOS REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <input type="hidden" value="INGRESOS_POST" name="form_post" id="form_post" class="d-none">
+
+                {% if bancos %}
+                <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover"
+                        data-content="Haz click aquí para agregar el nuevo gasto a la lista"><i
+                        class="fa fa-check pr-1"></i> Aceptar
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-gray col-sm-4 mt-3 move-up" data-toggle="popover"
+                        data-content="Se debe tener registrados bancos y propietarios primero para hacer uso de esta opción!">
+                    <i class="fa fa-check pr-1" disabled aria-disabled="true"></i> Aceptar
+                </button>
+                {% endif %}
+
+                <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i class="fa fa-times pr-1"></i>
+                    Cancelar
+                </button>
+            </form>
+
+            <!-- TABLA -->
+            <div class="d-none" id="VerIngresos">
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada" id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+                       width="100%" id="TablaIngresos">
+                    <thead class="table-header-admin">
+                    <tr>
+                        <th scope="col" class="d-none">#</th>
+                        <th scope="col">Concepto</th>
+                        <th scope="col">Descripción</th>
+                        <th scope="col">Monto</th>
+                        <th scope="col">Propietario</th>
+                        <th scope="col">Banco</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if ingresos %}
+                    {% for ingreso in ingresos %}
+                    <tr style="font-size: 14px;">
+                        <td scope="row" class="d-none"> {{ ingreso.id_ingreso }}</td>
+                        <td class="centered-cell"> {{ ingreso.concepto_ingreso }}</td>
+                        <td class="centered-cell stadistics-text"> {{ ingreso.descripcion_ingreso }}</td>
+                        <td class="centered-cell"><span
+                                class="text-center text-success">{{ ingreso.monto_ingreso }}</span></td>
+                        {% for propietario in propietarios %}
+                        {% if propietario.id_domicilio == ingreso.id_domicilio_id %}
+                        <td class="centered-cell stadistics-text"> {{ propietario.id_propietario.nombre_propietario }}</td>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if not ingreso.id_domicilio_id %}
+                        <td class="centered-cell stadistics-text">-</td>
+                        {% endif %}
+
+                        {% if bancos %}
+                        {% for banco in bancos %}
+                        {% if banco.id_banco == ingreso.id_banco_id %}
+                        <td class="centered-cell stadistics-text"> {{ banco.nombre_banco }}</td>
+                        {% endif %}
+                        {% endfor %}
+                        {% endif %}
+                        {% language 'es' %}
+                        <td class="centered-cell"> {{ ingreso.fecha_ingreso|date:'d/m/Y' }}</td>
+                        {% endlanguage %}
+                        {% if cierre %}
+                        {% if ingreso.fecha_ingreso > cierre.fecha_cierre %}
+                        <td>
+                            <div class="horizontal-cell">
+                                <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                                <a href="/home/administrar/ingresos/actualizar/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="/home/administrar/ingresos/eliminar/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                            </div>
+                        </td>
+                        {% else %}
+                        <td class="center-all">
+                          <div class="horizontal-cell">
+                            <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Archivado"><i class="fa fa-eye"></i></a>
+                          </div>
+                        </td>
+                        {% endif %}
+                        {% else %}
+                        <td>
+                            <div class="horizontal-cell">
+                                <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                                <a href="/home/administrar/ingresos/actualizar/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="/home/administrar/ingresos/eliminar/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaIngresos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+<!-- FIN MAESTRO DE INGRESOS -->
+{% endblock body_block %}

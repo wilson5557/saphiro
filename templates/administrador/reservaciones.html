@@ -1,0 +1,181 @@
+{% extends "layouts/base-layout.html" %}
+
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block body_block %}
+
+  <style>
+    .payment-options {
+      display: none;
+    }
+    
+    .payment-options.active {
+      display: block;
+    }
+  </style>
+  <div class="datos">
+    <h4>Datos para la transferencia</h4>
+    <a style="display: inline-flex;" href="" class="btn btn-primary btn-option-admin border text-light button-table center-all"
+    data-toggle="modal" data-content="Ver" data-target="#dialogo">
+    <i class="fa fa-eye"></i></a>
+    <div class="modal fade" id="dialogo" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true" style="width: 100% !important;">
+      <div class="modal-content" style="margin-top: 1rem; height: 24rem;">
+      <div class="modal-header" style="width: 100% !important;">
+      <h2>Soporte de pago</h2>
+      <button type="button" class="close" data-dismiss="modal" aria-label="close" id="Close" url="">
+      <span aria-hidden="true">&times;</span>
+      </button> </div>
+      <div class="modal-dialog modal-lg" role="document" style="width: 80% !important;">
+      <div class="modal-body">
+        <div class="form-group modalDatos">
+        <label for="NumeroDeCuenta">Numero de cuenta</label><br>
+        <input type="text" name="NumeroDeCuenta" id="">
+        </div>
+        <br>
+        <div class="form-group">
+          <label for="Rif">Numero de Rif</label>
+          <input type="text" name="Rif" id="">
+        </div>
+      </div>
+      
+  </div>
+  </div> 
+  </div>
+
+  
+  <form  action="/reservacion/"method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+  
+     <div class="form-group form_reservacion"style="width:25%;margin-left: 34%;display: grid;">
+      <div class="form-group"> 
+        <h3 style="margin-top:10px; color:#009dff;">Solicitud de Reservación</h3>
+    <div class="form-group"> 
+      <input type="text" name="Nombres"pattern="{A-Za-z}+" tittle="Cedula invalida"class="form-control" placeholder="Nombre" required>
+    </div>
+    <div class="form-group"> 
+        <input type="text" name="Apellidos" class="form-control"pattern="{A-Za-z}+" tittle="Cedula invalida" placeholder="Apellido" required>
+    </div>
+    <div class="form-group"> 
+      <input type="number" name="Cedula" class="form-control" placeholder="Cedula/rif/pasaporte" required>
+    </div>
+    <div class="form-group"> 
+      <input type="text" name="txtId_alquiler" value="{{ alquiler.id_alquiler }}" class="form-control" placeholder="" readonly hidden>
+    </div>
+    <div class="form-group">
+      <input type="number" name="Telefono" class="form-control"pattern="{12}" placeholder="Telefono de contacto" required></div>
+      <br>
+        <label for="payment-type">Tipo de Pago:</label>
+        <select id="payment-type" class="form-control">
+          <option value="seleccionar">Seleccionar</option>
+          <option value="foreign">Moneda Extranjera</option>
+          <option value="local">Moneda Nacional</option>
+        </select>
+        
+        <div class="payment-options" id="foreign-payment">
+          <h3 style="margin-top:10px; color:#009dff;">Moneda Extranjera</h2>
+          <ul>
+            <li>
+              <label for="Correo del pago"> Correo/pago</label>    
+            <input type="email" name="correo_pago" id="foreign-payment" class="form-control" placeholder="E-mail">
+              
+            </li>
+            <li>
+              <input type="radio" name="Banco" id="zelle" value="zelle">
+              <label for="zelle">Zelle</label>
+            </li>
+            <li>
+              <input type="radio" name="Banco" id="bofa" value="bofa">
+              <label for="bofa">BOFA</label>
+            </li>
+            <li>
+              <input type="radio" name="Banco" id="paypal" value="paypal">
+              <label for="paypal">Paypal</label>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="payment-options" id="local-payment">
+          <h3 style="margin-top:10px; color:#009dff;">Moneda nacional</h3>
+          <ul>
+            <li>
+              <input type="radio" id="Venezuela" name="Banco" value="venezuela">
+              <label for="venezuela">Banco de Venezuela</label>
+            </li>
+            <li>
+              <input type="radio" name="Banco" id="bofa" value="Mercantil">
+              <label for="Mercantil">Mercantil</label>
+            </li>
+            <li>
+              <input type="radio" name="Banco" id="paypal" value="Banesco">
+              <label for="Banesco">Banesco</label>
+            </li>
+            <li> 
+              <label for="Id_Titular">Cedula / Rif del titular</label>
+              <input type="text" name="idTitular" class="form-control"pattern="{A-Za-z}+" tittle="Cedula invalida"pattern="{10,11}" placeholder="" required>
+            </li>
+            <li> 
+              <label for="Referencia"> Referencia bancaria </label>
+              <input type="number" name="Referencia_bancaria" class="form-control" placeholder="" required>
+              
+            </li>
+            </ul>
+            </div>
+            </div>
+            <label for="date-input">Fecha de entrada:</label>
+            <input type="date" id="date-input" name="Fecha_entrada" class="form-control" min={{hoy}}>
+            <label for="date-input">Fecha de salida:</label>
+            <input type="date" id="date-input" name="Fecha_salida" class="form-control"> 
+            <br><div class="form-group row">
+              <div class="col-sm-9" style="display: contents";>
+                <input type="file" class="custom-control-input" accept="image/*" name="soporte_pago" id="soporte_pago" required>
+                <label for="Imagen del alquiler">Imagen del alquiler</label>
+                <label class="col-sm-12 custom-file-label" for="soporte_pago">Suba la referencia aquí</label>
+                <br>
+                <input  type="submit" style="display: block; margin: auto;" class="btn btn-success col-sm-8 mt-3 move-up"></div>
+           </div>
+          </div>
+          </div>
+        </div>
+      </div>
+      
+ 
+    </div>
+    
+    <script>
+      const paymentTypeSelect = document.getElementById('payment-type');
+      const foreignPaymentOptions = document.getElementById('foreign-payment');
+      const localPaymentOptions = document.getElementById('local-payment');
+  
+      paymentTypeSelect.addEventListener('change', function() {
+        if (this.value === 'foreign') {
+          foreignPaymentOptions.classList.add('active');
+          localPaymentOptions.classList.remove('active');
+        } else if (this.value === 'local') {
+          localPaymentOptions.classList.add('active');
+          foreignPaymentOptions.classList.remove('active');
+        } else {
+          foreignPaymentOptions.classList.remove('active');
+          localPaymentOptions.classList.remove('active');
+        }
+        });
+        </script>
+        </div>
+        </div>
+ 
+
+    </div>
+   </form>
+ <style>
+.popup_box {
+    background: #fff;
+    display: none;
+    z-index: 0;
+    width: 681px;
+    padding: 60px 40px;
+    border-radius: 5px;
+}
+</style>
+{% endblock %}

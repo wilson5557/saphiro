@@ -1,0 +1,210 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="">Cierre del Mes</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block clase_adicional %}
+d-none
+{% endblock %}
+
+{% block col_adicional %}
+col-lg-12
+{% endblock %}
+
+{% block body_block %}
+<div class="col-lg-3 mb-3 container rounded modulo"
+     style="border: 1px solid green !important; background-color: #e3fae4;">
+    <div class="container end-padding-left end-padding-right pt-3">
+        <div class="row">
+            <div class="col-2">
+                <i class="material-icons stadistics-icon"
+                   style="font-size: 30px; background-color: green;">trending_up</i>
+            </div>
+            <div class="col-10">
+                <div class="margin-left-20">
+                    <p class="stadistics-text">Ingresos mensuales registrados</p>
+                </div>
+                <div class="margin-left-20">
+                    {% if resultado_ingreso.exists %}
+                    <p class="stadistics-number">{{ resultado_ingreso.count }}</p>
+                    {% else %}
+                    <p class="stadistics-number">0</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 mb-3 container rounded modulo"
+     style="border: 1px solid red !important; background-color: #ffeae6;">
+    <div class="container end-padding-left end-padding-right pt-3">
+        <div class="row">
+            <div class="col-2">
+                <i class="material-icons stadistics-icon" style="font-size: 30px; background-color: red;">payments</i>
+            </div>
+            <div class="col-10">
+                <div class="margin-left-20">
+                    <p class="stadistics-text">Gastos mensuales registrados</p>
+                </div>
+                <div class="margin-left-20">
+                    {% if resultado_gasto.exists %}
+                    <p class="stadistics-number">{{ resultado_gasto.count }}</p>
+                    {% else %}
+                    <p class="stadistics-number">0</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 mb-3 container rounded modulo"
+     style="border: 1px solid orange !important; background-color: #f9fac0;">
+    <div class="container end-padding-left end-padding-right pt-3">
+        <div class="row">
+            <div class="col-2">
+                <i class="material-icons stadistics-icon"
+                   style="font-size: 30px; background-color: orange;">money_off</i>
+            </div>
+            <div class="col-10">
+                <div class="margin-left-20">
+                    <p class="stadistics-text">Deudas Acumuladas</p>
+                </div>
+                <div class="margin-left-20">
+                    {% if deudas.exists %}
+                    <p class="stadistics-number">{{ deudas.count }}</p>
+                    {% else %}
+                    <p class="stadistics-number">0</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-4 mb-5 mb-lg-0 end-padding-left">
+    <div class="container cierre-height rounded modulo pb-2">
+        <div class="container pt-3 pb-1">
+            <h4 class="text-center pb-1">RESUMEN DEL MES</h4>
+            <div class="divider"></div>
+
+            <!-- INFORMACION -->
+            {% if resultado_ingreso.exists %}
+            <p class="content-text">- Se han registrado {{ resultado_ingreso.count }} ingresos</p>
+            {% else %}
+            <p class="content-text">- No se han registrado ingresos</p>
+            {% endif %}
+            {% if resultado_gasto.exists %}
+            <p class="content-text">- Se han registrado {{ resultado_gasto.count }} gastos</p>
+            {% else %}
+            <p class="content-text">- No se han registrado gastos</p>
+            {% endif %}
+            {% if resultado_fondo.exists %}
+            <p class="content-text">- Se han registrado {{ resultado_fondo.count }} fondos</p>
+            {% else %}
+            <p class="content-text">- No se han registrado fondos</p>
+            {% endif %}
+            {% if deudas.exists %}
+            <p class="content-text">- Tiene un total de {{ deudas.count }} deudas</p>
+            {% else %}
+            <p class="content-text">- No cuenta con deudas</p>
+            {% endif %}
+            {% if deudas_prop.exists %}
+            <p class="content-text">- {{ deudas_prop.count }} propietarios no han pagado sus deudas</p>
+            {% else %}
+            <p class="content-text">- Todos los propietarios están solventes</p>
+            {% endif %}
+        </div>
+        <form style="text-align: center;" method="POST">
+            {% csrf_token %}
+            {% if resultado_ingreso.exists and resultado_gasto.exists %}
+            <button type="submit" class="btn btn-option-admin btn-success mt-3 move-up" data-toggle="popover"
+                    data-content="Haz click aquí para cerrar el mes según los datos visualizados en la ventana"><i
+                    class="fa fa-get-pocket pr-1"></i>
+                Cerrar el mes
+            </button>
+            {% else %}
+            <button type="button" class="btn-option btn btn-gray mt-3 move-up" data-toggle="popover"
+                    data-content="Se debe tener registrados al menos un ingreso y un gasto primero, para así poder hacer uso de esta opción">
+                <i class="fa fa-get-pocket pr-1" disabled aria-disabled="true"></i> Cerrar el mes
+            </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="col-lg-8 end-padding-right graphics modulo">
+    <div class="margenes-grafico">
+        <canvas class="graphic rounded" style="font-family: 'Helvetica', sans-serif !important; width: 95%;
+        " id="grafico"></canvas>
+    </div>
+</div>
+
+<script>
+    // Obtén la referencia al elemento canvas y crea el contexto
+    var canvas = document.getElementById('grafico');
+    var ctx = canvas.getContext('2d');
+    var ingreso_monto = {{ingreso_monto|safe}};
+    var gasto_monto = {{gasto_monto|safe}};
+    var meses_graficos = {{meses_graficos|safe}}
+
+    // Define los datos del gráfico
+    var data = {
+        labels: meses_graficos,
+        datasets: [{
+            label: "Ingresos",
+            data: ingreso_monto,
+            fill: false,
+            borderColor: 'rgba(0, 255, 8, 1)',
+            backgroundColor: 'green',
+            tension: 0.1
+        },
+        {
+          label: "Gastos",
+          data: gasto_monto,
+          fill: false,
+          borderColor: 'red',
+          backgroundColor: 'rgba(84, 3, 3, 1)',
+          tension: 0.1
+        }]
+    };
+
+    // Define las opciones del gráfico
+    var options = {
+        plugins: {
+            title: {
+                display: true,
+                text: 'TOTAL DE INGRESOS Y GASTOS EN LOS ULTIMOS 6 MESES',
+                color: 'black',
+                font: {
+                    size: 17,
+                    family: 'Helvetica',
+                    color: 'red'
+                }
+            }
+        }
+    };
+
+    // Crea el gráfico de líneas
+    var lineChart = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: options
+    });
+</script>
+{% endblock body_block %}
+

@@ -1,0 +1,360 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="" id="gestionar-deudas">Fondos</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO MAESTRO DE INGRESOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Fondos">
+    <div class="container rounded modulo pb-2">
+        <div class="container pt-3 pb-1">
+
+            <div class="form-group row">
+                <button class="btn-option mx-auto move-up d-none" id="HideFondos" onclick="ShowOrHide('HideListaFondos')" data-toggle="popover" data-content="Haz click aquí para agregar un fondo"><i class="bx bx-plus pr-2"></i> Agregar Fondos</button>
+
+                <button class="btn-option mx-auto move-up" id="ShowFondos" onclick="ShowOrHide('ShowListaFondos')" data-toggle="popover" data-content="Haz click aquí para ver la lista de los fondos"><i class="fa fa-list pr-2"></i> Lista de Fondos</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- FORMULARIO -->
+            <form id="AgregarFondos" class="" method="POST">
+                {% csrf_token %}
+
+                <div class="form-group row mt-4">
+                    <label for="TipoMoneda" class="col-sm-3 col-form-label text-dark">Tipo de moneda:</label>
+                    <!-- BOLIVARES -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="BolivarI" name="TipoMoneda" class="custom-control-input"
+                               value="BS" onclick="CheckMoneda('Bs', 'BancosBS_FONDO')" required>
+                        <label class="custom-control-label text-dark" for="BolivarI">BS</label>
+                    </div>
+                    <!-- DOLARES -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="DolarI" name="TipoMoneda" class="custom-control-input"
+                               value="USD" onclick="CheckMoneda('Usd', 'BancosUSD_FONDO')" required>
+                        <label class="custom-control-label text-dark" for="DolarI">USD</label>
+                    </div>
+                    <!-- EUROS -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="EuroI" name="TipoMoneda" class="custom-control-input" value="EUR"
+                               onclick="CheckMoneda('Eur', 'BancosEUR_FONDO')" required>
+                        <label class="custom-control-label text-dark" for="EuroI">EUR</label>
+                    </div>
+                </div>
+                <!-- TENGO QUE CAMBIAR LOS ID DE BANCOSBS A BANCOSBSINGRESO Y ASI PQ EL HTML ES MARISQUITO -->
+                <div class="form-group row d-none" id="BancosBS_FONDO">
+                    <label for="banco_BS" class="col-sm-3 col-form-label text-dark">Banco del cual se hizo la
+                        operación en Bolivares:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_BS" name="banco_BS">
+                            {% if bancos %}
+                            <option value="" disabled selected>Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'BS' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} BS)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE ESTEN ASOCIADOS COMO FONDOS EN BOLIVARES</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row d-none" id="BancosUSD_FONDO">
+                    <label for="banco_USD" class="col-sm-3 col-form-label text-dark">Banco del cual se hizo la
+                        operación en Dólares:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_USD" name="banco_USD">
+                            {% if bancos %}
+                            <option value="" disabled selected>Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'USD' and banco.tipo_banco == "FONDO" %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} $)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE ESTEN ASOCIADOS COMO FONDOS EN DOLARES</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row d-none" id="BancosEUR_FONDO">
+                    <label for="banco_EUR" class="col-sm-3 col-form-label text-dark">Banco del cual se hizo la operación en Euros:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_EUR" name="banco_EUR">
+                            {% if bancos %}
+                            <option value="" disabled selected>Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'EUR' and banco.tipo_banco == "FONDO" %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} EUR)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE ESTEN ASOCIADOS COMO FONDOS EN EUROS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                    <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del fondo: </label>
+                    <div class="col-sm-5">
+                        <input type="date" class="form-control text-dark" id="fecha_movimiento" name="fecha_movimiento"
+                               required>
+                    </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                    <label for="{{ fondos_form.tipo_fondo.name }}" class="col-sm-3 col-form-label text-dark">{{ fondos_form.tipo_fondo.label }}:</label>
+                    <div class="col-sm-8">
+                        {% render_field fondos_form.tipo_fondo class="form-control text-dark" name=fondos_form.tipo_fondo.name %}
+                        {% for error in fondos_form.tipo_fondo.errors %}
+                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                  <label for="{{ movimiento_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.concepto_movimiento.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.concepto_movimiento class="form-control text-dark" placeholder="Concepto del fondo" %}
+                    {% for error in movimiento_form.concepto_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ movimiento_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.descripcion_movimiento.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.descripcion_movimiento class="form-control text-dark" placeholder="Descripción del fondo" rows="5" %}
+                    {% for error in movimiento_form.descripcion_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ movimiento_form.monto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.monto_movimiento.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.monto_movimiento class="form-control text-dark" placeholder="Ingrese el monto del fondo realizado" %}
+                    {% for error in movimiento_form.monto_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="nombre_titular" class="col-sm-3 col-form-label text-dark">{{ datos_transaccion_form.nombre_titular.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field datos_transaccion_form.nombre_titular class="form-control text-dark" placeholder="Ingrese el nombre del titular" %}
+                    {% for error in datos_transaccion_form.nombre_titular.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ datos_transaccion_form.tipo_dni_titular.name }}" class="col-sm-3 col-form-label text-dark">Identificación del receptor:</label>
+                  <div class="col-sm-2">
+                    <select name="{{ datos_transaccion_form.tipo_dni_titular.name }}" id="{{ datos_transaccion_form.tipo_dni_titular.name }}" class="form-control text-dark">
+                      {% for select in datos_transaccion_form.tipo_dni_titular  %}
+                        {{select}}
+                        {% for error in datos_transaccion_form.tipo_dni_titular.errors %}
+                          <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-6">
+                    {% render_field datos_transaccion_form.dni_titular class="form-control text-dark" name=datos_transaccion_form.dni_titular.name placeholder="Ingrese el número de identificación del titular" %}
+                    {% for error in datos_transaccion_form.dni_titular.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ datos_transaccion_form.codigo_area.name }}" class="col-sm-3 col-form-label text-dark">Teléfono del receptor:</label>
+                  <div class="col-sm-2">
+                    <select name="{{ datos_transaccion_form.codigo_area.name }}" id="{{ datos_transaccion_form.codigo_area.name }}" class="form-control text-dark">
+                      {% for select in datos_transaccion_form.codigo_area  %}
+                        {{select}}
+                        {% for error in datos_transaccion_form.codigo_area.errors %}
+                          <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-6">
+                    {% render_field datos_transaccion_form.telefono_titular class="form-control text-dark" name=datos_transaccion_form.telefono_titular.name placeholder="Ingrese el número de teléfono del titular" %}
+                    {% for error in datos_transaccion_form.telefono_titular.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                  <label for="{{ fondos_form.metodo_pago.name }}" class="col-sm-3 col-form-label text-dark">Método de Pago:</label>
+                  <div class="col-sm-5">
+                      <select name="{{ fondos_form.metodo_pago.name }}"
+                      id="{{ fondos_form.metodo_pago.name }}" class="form-control">
+                      <option value="" disabled selected>Seleccione un método de pago</option>
+                      {% for select in fondos_form.metodo_pago %}
+                      {{select}}
+                      {% for error in fondos_form.metodo_pago.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                      {% endfor %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group row mt-3" id="num_factura">
+                  <label for="factura" class="col-sm-3 col-form-label text-dark">Número de factura: </label>
+                  <div class="col-sm-5">
+                    {% render_field fondos_form.factura class="form-control" id=fondos_form.factura.name placeholder="Número de Factura (si aplica)" %}
+                  </div>
+                </div>
+
+                <div class="form-group row" id="divReferencia">
+                  <label for="referencia" class="col-sm-3 col-form-label text-dark">Referencia bancaria:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.referencia_movimiento class="form-control text-dark" id="referencia" placeholder="Ingrese la referencia bancaria" %}
+                    {% for error in movimiento_form.referencia_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="imgFondo" class="col-sm-3 col-form-label text-dark">Imagen Referencial:</label>
+                  <div class="col-sm-8">
+                    <input type="file" class="custom-control-input" accept="image/*" name="imgFondo" id="imgFondo">
+                    <label class="col-sm-12 custom-file-label" for="imgFondo">Suba la referencia aquí</label>
+                  </div>
+                </div>
+
+                <input type="hidden" value="FONDO_POST" name="form_post" id="form_post" class="d-none">
+
+                <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover"
+                        data-content="Haz click aquí para agregar una nueva deuda a la lista"><i
+                        class="fa fa-check pr-1"></i> Aceptar
+                </button>
+
+                <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i class="fa fa-times pr-1"></i>
+                    Cancelar
+                </button>
+            </form>
+
+            <!-- TABLA -->
+            <div class="d-none" id="VerFondos">
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                           id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+                       width="100%" id="TablaFondos">
+                    <thead class="table-header">
+                    <tr>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Concepto</th>
+                        <th scope="col">Monto</th>
+                        <th scope="col">Banco</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if fondos %}
+                    {% for fondo in fondos %}
+                    <tr>
+                        <td class="centered-cell"> {{ fondo.id_movimiento.fecha_movimiento }}</td>
+                        <td class="centered-cell"> {{ fondo.tipo_fondo }}</td>
+                        <td class="centered-cell"> {{ fondo.id_movimiento.concepto_movimiento }}</td>
+                        <td class="centered-cell"> {{ fondo.id_movimiento.monto_movimiento }}</td>
+                        <td class="centered-cell"> {{ fondo.id_movimiento.id_banco.nombre_banco }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  var metodo_pago = document.getElementById('metodo_pago');
+  var divFactura = document.getElementById('num_factura');
+  var i_referencia = document.getElementById('referencia');
+  var divReferencia = document.getElementById('divReferencia');
+
+  metodo_pago.addEventListener('change', function () {
+    if (metodo_pago.value == 0) {
+      i_referencia.required = false;
+      divReferencia.classList.add('d-none');
+
+      divFactura.classList.remove('d-none');
+    } else {
+      i_referencia.required = true
+      divReferencia.classList.remove('d-none');
+
+      divFactura.classList.add('d-none');
+    }
+  })
+</script>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaFondos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          }
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+<!-- FIN MAESTRO DE INGRESOS -->
+{% endblock body_block %}

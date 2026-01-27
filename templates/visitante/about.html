@@ -1,0 +1,113 @@
+{% extends "layouts/base-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Sobre Nosotros
+{% endblock title_page %}
+
+{% block informacion_active %}
+	class="active"
+{% endblock informacion_active %}
+
+{% block body_block %}
+
+  <!-- bradcam_area_start -->
+  <div class="bradcam_area breadcam_bg">
+    <h3>Sobre nosotros</h3>
+  </div>
+  <!-- bradcam_area_end -->
+  
+  <!-- about_area_start -->
+	<div class="about_area">
+		<div class="container">
+			<div class="row">
+				<div class="col-xl-5 col-lg-5">
+					<div class="about_info">
+						<div class="section_title mb-20px">
+							<span>Sobre nosotros</span>
+							<h3>Ciudad Chinita</h3>
+						</div>
+						<p>Encuentra todo lo que buscas en el CC. Ciudad Chinita, ubicado en el casco central de maracaibo, frente a la antigua panorama</p>
+						<a href="#info" class="line-button">Learn More</a>
+					</div>
+				</div>
+				<div class="col-xl-7 col-lg-7">
+					<div class="about_thumb d-flex">
+						<div class="img_1">
+							<img src="{% static '/img/about/about_1.png' %}" alt="">
+						</div>
+						<div class="img_2">
+							<img src="{% static '/img/about/about_2.png' %}" alt="">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- about_area_end -->
+
+	<!-- about_info_area_start -->
+	<div class="about_info_area">
+		<div class="about_active owl-carousel">
+			<div class="single_slider about_bg_1"></div>
+			<div class="single_slider about_bg_1"></div>
+			<div class="single_slider about_bg_1"></div>
+			<div class="single_slider about_bg_1"></div>
+		</div>
+	</div>
+	<!-- about_info_area_start -->
+
+	<!-- about_main_info_start -->
+	<div class="about_main_info" id="info">
+		<div class="container">
+			<div class="row">
+				<div class="col-xl-6 col-md-6">
+					<div class="single_about_info">
+						<h3>[Descripción 1]</h3>
+						<p>Suscipit libero pretium nullam potenti. Interdum, blandit phasellus consectetuer dolor ornare
+							dapibus enim ut tincidunt  rhoncus tellus sollicitudin pede nam maecenas, dolor sem.  Neque
+							sollicitudin enim. Dapibus lorem feugiat facilisi  faucibus et. Rhoncus.
+						</p>
+					</div>
+				</div>
+				<div class="col-xl-6 col-md-6">
+					<div class="single_about_info">
+						<h3>[Descripción 2]</h3>
+						<p>Suscipit libero pretium nullam potenti. Interdum, blandit <br> phasellus consectetuer dolor ornare
+							dapibus enim ut tincidunt <br> rhoncus tellus sollicitudin pede nam maecenas, dolor sem. <br> Neque
+							sollicitudin enim. Dapibus lorem feugiat facilisi <br> faucibus et. Rhoncus.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- about_main_info_end -->
+
+	<!-- forQuery_start -->
+	<div class="forQuery">
+		<div class="container">
+			<div class="row">
+				<div class="col-xl-12 offset-xl-0 col-md-12">
+					<div class="Query_border">
+						<div class="row align-items-center justify-content-center">
+							<div class="col-xl-5 col-md-6">
+								<div class="Query_text">
+									<p>¿Tienes alguna duda? Contactanos!</p>
+								</div>
+							</div>
+							<div class="col-xl-7 col-md-6">
+								<div class="phone_num">
+									<a href="#" class="mobile_no">+58 295-2629586</a>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- forQuery_end-->
+{% endblock body_block %}

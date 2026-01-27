@@ -1,0 +1,112 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-bancos">Actualizar Banco</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+  <!-- INICIO MAESTRO DE BANCOS -->
+  <div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Bancos">
+    <div class="container rounded modulo border-secondary pb-2">
+      <div class="container pt-3 pb-1">
+
+        <div class="divider"></div>
+
+        <!-- FORMULARIO PARA AGREGAR NUEVAS MENSUALIDADES -->
+        <form id="AgregarBancos" class="" method="POST">
+          {% csrf_token %}
+          <div class="form-group row">
+            <label for="{{ bancos_form.nombre_titular.name }}" class="col-sm-3 col-form-label text-dark">{{ bancos_form.nombre_titular.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field bancos_form.nombre_titular class="form-control text-dark" placeholder="Ingrese el nombre del titular de la cuenta bancaria" value=bancos.nombre_titular %}
+              {% for error in bancos_form.nombre_titular.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="{{ bancos_form.dni_titular.name }}" class="col-sm-3 col-form-label text-dark">{{ bancos_form.dni_titular.label }}:</label>
+            <div class="col-sm-2">
+              <select name="{{ bancos_form.tipo_dni_titular.name }}" id="{{ bancos_form.tipo_dni_titular.name }}" class="form-control text-dark">
+                {% for select in bancos_form.tipo_dni_titular  %}
+                  {{select}}
+                  {% for error in bancos_form.tipo_dni_titular.errors %}
+                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                  {% endfor %}
+                {% endfor %}
+                
+              </select>
+            </div>
+            <div class="col-sm-6">
+              {% render_field bancos_form.dni_titular class="form-control text-dark" name=bancos_form.dni_titular.name placeholder="Ingrese el número de identificación del titular" value=bancos.dni_titular %}
+              {% for error in bancos_form.dni_titular.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="{{ bancos_form.nro_cuenta.name }}" class="col-sm-3 col-form-label text-dark">{{ bancos_form.nro_cuenta.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field bancos_form.nro_cuenta class="form-control text-dark" placeholder="Ingrese el número de cuenta del banco" name=bancos_form.nro_cuenta.name  maxlength="24" value=bancos.nro_cuenta %}
+              {% for error in bancos_form.nro_cuenta.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          
+            <div class="form-group row">
+              <label for="{{ bancos_form.email_titular.name }}" class="col-sm-3 col-form-label text-dark">{{ bancos_form.email_titular.label }}:</label>
+              <div class="col-sm-8">
+                {% render_field bancos_form.email_titular class="form-control text-dark" placeholder="Ingrese el correo electrónico del titular" name=bancos_form.email_titular.name value=bancos.email_titular %}
+                {% for error in bancos_form.email_titular.errors %}
+                  <div class="alert alert-danger mt-2">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label for="{{ bancos_form.tlf_titular.name }}" class="col-sm-3 col-form-label text-dark">{{ bancos_form.tlf_titular.label }}:</label>
+
+              <div class="col-sm-2">
+                <select name="{{ cod_tlf.cod_tlf.name }}" id="{{ cod_tlf.cod_tlf.name }}" class="form-control text-dark">
+                  {% for select in cod_tlf.cod_tlf  %}
+                    {{select}}
+                    {% for error in cod_tlf.cod_tlf.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  {% endfor %}
+                  
+                </select>
+              </div>
+
+              <div class="col-sm-6">
+                {% render_field bancos_form.tlf_titular type='number' class="form-control text-dark" placeholder="Ingrese el número de teléfono del titular" name=bancos_form.tlf_titular value=tlf %}
+                {% for error in bancos_form.tlf_titular.errors %}
+                  <div class="alert alert-danger mt-2">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up"><i class="fa fa-plus"></i> Actualizar Banco</button>
+
+            <a type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" href="{% url 'condominio_app:admin_configuracion' type='bancos' %}"><i class="fa fa-remove"></i> Cancelar</a>
+        </form>
+
+      </div>
+    </div>
+  </div>
+  <!-- FIN MAESTRO DE BANCOS -->
+{% endblock body_block %}

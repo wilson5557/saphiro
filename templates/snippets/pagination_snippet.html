@@ -1,0 +1,35 @@
+<nav class="blog-pagination justify-content-center d-flex">
+  <ul class="pagination">
+    {% if noticias.has_previous %}
+      <li class="page-item">
+        <a href="?{% if query %}q={{query}}&{% endif %}page={{ noticias.previous_page_number }}" class="page-link" aria-label="Previous">
+          <i class="ti-angle-left"></i>
+        </a>
+      </li>
+    {% endif %}
+    
+    {% for i in noticias.paginator.page_range %}
+      {% if noticias.number == i %}
+        <li class="page-item active"><a class="page-link">{{ i }}</a></li>
+      {% else %}
+        <li class="page-item" ><a class="page-link" href="?{% if query %}q={{query}}&{% endif %}page={{ i }}">{{ i }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if noticias.has_next %}
+    <!-- NEXT -->
+      <li class="page-item">
+        <a href="?{% if query %}q={{query}}&{% endif %}page={{ noticias.next_page_number }}" class="page-link" aria-label="Next">
+          <i class="ti-angle-right"></i>
+        </a>
+      </li>
+      <!-- LAST -->
+      <li class="page-item">
+        <a href="?{% if query %}q={{query}}&{% endif %}page={{ noticias.paginator.num_pages }}" class="page-link" aria-label="Next">
+          <i class="ti-angle-double-right"></i>
+        </a>
+      </li>
+    {% endif %}
+    
+  </ul>
+</nav>

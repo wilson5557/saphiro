@@ -1,0 +1,181 @@
+{% extends "layouts/admin-layout.html" %}
+
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+{% block modulo_label %}
+  <span class="">Solicitudes de reservacion</span>
+{% endblock modulo_label %}
+
+{% block body_block %}
+
+
+
+<table class="table table-striped table-hover">
+    <thead class="thead-dark" style="font-size:12px;">
+      <tr>
+        <th scope="col">Estado</th>
+        <th scope="col">Id A</th>
+        <th scope="col">Apellido</th>
+        <th scope="col">Identificacion</th>
+        <th scope="col">Telefono</th>
+        <th scope="col">Inmueble</th>
+        <th scope="col">Pago/Banco</th>
+        <th scope="col">Cedula titular</th>
+        <th scope="col">Referencia</th>
+        <th scope="col">Entrada</th>
+        <th scope="col">Salida</th>
+        <!--<th scope="col">Soporte de pago</th>-->
+        <th scope="col"></th>
+       
+        
+          </tr>
+    </thead>
+   
+    <tbody style="font-size:12px;">
+      <div class="pagination-alq">
+        {% for dato  in datos  %} 
+
+        <img src="{{dato.soporte_pago}}" alt="">
+            <tr {% if dato.estado == False %} style="background-color: rgba(250, 249, 175, 0.842); border-color: white;" {% endif %}>
+            <td>{% if dato.estado == True %}  
+              ✅ Aprobado {% else %} ❗ Pendiente
+              {% endif %} </td>
+             <!-- Inmueble -->
+            <td>{{dato.id_reservacion}}</td> <!-- Nombre(Agregar) -->
+            <td>{{dato.apellido}}</td> <!-- Apellido(Agregar) -->
+            <td>{{ dato.cedula }}</td> <!-- Cedula -->
+            <td>{{ dato.telefono }}</td> <!-- Telefono -->
+            <td>{{dato.id_alquiler.get_id_alquiler}}</td> <!-- Inmueble -->
+            <td>{{dato.Banco}}</td> <!-- Inmueble -->
+            <td>{{dato.cedula}}</td> <!-- Cedula titular de cuenta (agregar) -->
+
+            <td><a style="display: inline-flex;" href="{{ dato.soporte_pago.url }}" class="btn btn-primary btn-option-admin border text-light button-table center-all"
+            data-toggle="modal" data-content="Ver" data-target="#dialogo{{ dato.id_reservacion }}">
+            <i class="fa fa-eye"></i></a>
+            <!-- Inicio Modal -->
+            <div class="modal fade" id="dialogo{{ dato.id_reservacion }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ dato.id_reservacion }}" aria-hidden="true" style="width: 100% !important;">
+            <div class="modal-content" style="margin-top: 1rem; height: 24rem;">
+            <div class="modal-header" style="width: 100% !important;">
+            <h2>Soporte de pago</h2>
+            <button type="button" class="close" data-dismiss="modal" aria-label="close" id="Close" url="">
+            <span aria-hidden="true">&times;</span>
+            </button> </div>
+            <div class="modal-dialog modal-lg" role="document" style="width: 80% !important;">
+            <div class="modal-body"><img src="{{ dato.soporte_pago.url }}" alt="Soporte de pago" width="720px"></div>
+            </div></div></div> </td> <!-- Fin de td -->
+            <td>{{dato.Fecha_entrada}}</td> <!-- Entrada -->
+            <td>{{dato.Fecha_salida}}</td> <!-- Salida -->
+
+            <td style="display: flex;";>
+              <a href="/update_view/{{dato.id_reservacion}}"class="btn btn-primary btn-option-admin border text-light button-table center-all" data-content="Confirmar"><i class="fa fa-pencil-square-o"></i></a>
+            <a href=""class="btn btn-primary btn-option-admin border text-light button-table center-all"
+            data-content="Ver"><i class="fa fa-trash-o"></i></a></td>
+          </tr> 
+
+         
+         {% endfor %}
+
+          <span class="step-links">
+         {% if alq.has_previous %}
+             <a href="?page=1">&laquo; primera</a>
+             <a href="?page={{ alq.previous_page_number }}">anterior</a>
+         {% endif %}
+ 
+         <span class="current">
+             Página {{ alq.number }} de {{ alq.paginator.num_pages }}.
+         </span>
+ 
+         {% if alq.has_next %}
+             <a href="?page={{ alq.next_page_number }}">siguiente</a>
+             <a href="?page={{ alq.paginator.num_pages }}">última &raquo;</a>
+         {% endif %}
+          </span>
+      </div>
+
+        
+    </tbody>
+   
+
+  
+  <!-- <div class="modal fade" id="consultar" tabindex="-1" role="dialog" aria-labelledby="consultarLabel" aria-hidden="true" style="width: 100%">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="consultarLabel">Confirmar</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div id="text_aprobar">¿Esta seguro que desea aprobar el movimiento?</div>
+                    <div id="text_rechazar">¿Esta seguro que desea rechazar el movimiento?</div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" id="btn_respuesta" class="btn btn-primary">Aceptar</button>
+                  </div>
+                </div>
+              </div>
+            </div> -->    
+
+
+ <style> 
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+  
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    margin-top: 1rem;
+    height: 42rem!important;
+    width: 37rem;
+}
+  
+
+ </style>
+
+ <script> 
+  // Get the modal
+var modal = document.getElementById("myModal");
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks the button, open the modal
+btn.onclick = function() {
+  modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+ </script>
+
+ </table>
+
+{% endblock %}

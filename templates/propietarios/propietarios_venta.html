@@ -1,0 +1,135 @@
+{% extends "layouts/propietario-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Propietarios
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="">Venta</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO VENTA -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="container pt-3 pb-1">
+                <h2 class="text-center pb-3">Venta de Apartamentos</h2>
+
+                <div class="divider"></div>
+
+                <h3 class="text-center pt-2">Datos de Contacto</h3>
+                <p class="text-center pb-2">El teléfono será mostrado en tu publicación.</p>
+
+                <div class="form-group">
+                    <small class="form-text text-muted pb-2">Los datos marcados con un <strong
+                            class="text-danger">*</strong> son obligatorios</small>
+
+                    <label class="text-dark" for="aptoVentaPhoneContact">Número de Télefono <strong
+                            class="text-danger">*</strong></label>
+                    <input type="number" class="form-control col-sm-12 col-lg-4" id="aptoVentaPhoneContact"
+                           placeholder="Ingresa tu número de télefono" pattern="[0-9]{4}-[0-9]{3}-[0-9]{4}" required
+                           minlength="11" maxlength="11" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="text-dark">Horario de Contacto <strong class="text-danger">*</strong></label>
+
+                    <div class="form-group row">
+                        <label for="fromHour" class="col-sm-2 col-form-label text-dark">Desde las</label>
+                        <div class="col-sm-3">
+                            <input type="time" class="form-control" min="08:00" max="20:00" required>
+                        </div>
+                        <label for="untilHour" class="col-sm-2 col-form-label text-dark">Hasta las</label>
+                        <div class="col-sm-3">
+                            <input type="time" class="form-control" min="08:00" max="20:00" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3 class="text-center pt-2">Datos del Apartamento</h3>
+                <p class="text-center pb-2">Describe tu inmueble.</p>
+
+                <div class="form-group row">
+                    <label for="aptoVentaSize" class="col-sm-3 col-form-label text-dark">Tamaño: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control" id="aptoVentaSize" required>
+                    </div>
+                    <p class="col-sm-1 col-form-label text-dark">m²</p>
+                </div>
+
+                <div class="form-group row">
+                    <label for="aptoVentaBedrooms" class="col-sm-3 col-form-label text-dark">Habitaciones: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control" id="aptoVentaBedrooms" required>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="aptoVentaBathrooms" class="col-sm-3 col-form-label text-dark">Baños: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control" id="aptoVentaBathrooms" required>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="aptoVentaParking" class="col-sm-3 col-form-label text-dark">Estacionamientos: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control" id="aptoVentaParking" required>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3 class="text-center pt-2">Datos de la publicación</h3>
+                <p class="text-center pb-2">Agrega los últimos datos de tu publicación.</p>
+
+                <div class="form-group row">
+                    <label for="aptoVentaTitle" class="col-sm-2 col-form-label text-dark">Título: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control" id="title" required>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="aptoVentaDescription" class="col-sm-2 col-form-label text-dark">Descripción: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="col-sm-8">
+                        <textarea class="form-control" id="aptoVentaDescription" rows="3" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="aptoVentaImg" class="col-sm-2 col-form-label text-dark pr-3">Imagen: <strong
+                            class="text-danger">*</strong></label>
+                    <div class="custom-file col-sm-9 pl-3">
+
+                        <input type="file" class="custom-file-input" id="aptoVentaImg">
+                        <label class="custom-file-label" for="aptoVentaImg">Sube una foto aquí</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary col-sm-2 mt-3">Publicar</button>
+                <button type="reset" class="btn btn-danger col-sm-2 mt-3">Cancelar</button>
+
+            </div>
+        </form>
+    </div>
+</div>
+<!-- FIN VENTA -->
+{% endblock body_block %}

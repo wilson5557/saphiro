@@ -1,0 +1,154 @@
+{% extends "layouts/base-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+Esparta Suites - Inicio
+{% endblock title_page %}
+
+{% block home_active %}
+class="active"
+{% endblock home_active %}
+
+{% block body_block %}
+
+
+
+<div class="bradcam_area breadcam_bg_2">
+    <h3> ALQUILERES </h3>    
+</div>
+<!-- slider_area_end -->
+
+<!-- Mensaje de bienvenida -->
+<a href="/contacto/">
+<div class="publicity"> <img src="{% static '/img/icons/EnterpriseIcon.png' %}">  </div>
+</a>
+<a href="/contacto/"> 
+<div class="publicity publicity-2"> <img src="{% static '/img/icons/EnterpriseIcon2.png' %}">  </div>
+</a>
+<div class="row mensaje-bienvenida-other">
+    
+    <div class="section-header-other"> 
+        <h3>Propiedades vacacionales </h3>
+        <h1> Informacion </h1>
+        <p class="text012">La informacion mostrada en esta seccion se refiere a los alquileres vacacionales o propiedades en venta </p>
+        
+    </div>
+    <img src="{% static '/img/icons/IconosContacto/InformacionIcon.png' %}">
+</div>
+
+
+
+<body>
+    
+    <div class="propiedades">
+        <div class="row inmuebles inmuebles-other">
+            <h1 class="subtitulo col-sm-12">Alquileres vacacionales</h1>
+            <div class="col-md-3 col-sm-12 col-12 inmueble">
+                <img  src="{% static '/img-aptos/piscina.jpg' %}" alt="Inmuebles" class="img-rarrusel" style="width:80%;">
+                <div class="caja-apartamento" style="align-items:left !important;">
+                    <strong><h3 class="nombre-apto">Titulo 1</h3></strong>
+                    <ul class="data-apartamento">
+                        <li>Tamaño: 10x10</li>
+                        <li>Habitaciones: 3</li>
+                        <li>Baños: 3</li>
+                        <li>Estacionamientos:</li>
+                    </ul>
+                </div>
+                  
+                <div class="button-contact-container">
+                    <button class="button-contact" id="button-contact-1">Contactar</button>
+                </div>
+            
+              
+            </div>
+        </div>
+
+    
+    
+           
+    <!-- about_area_start -->
+   <div class="about_area">
+     <div class="container row">
+            <div class="col-xl-5 col-lg-5 container-about-info">
+                <div class="about_info">
+                    <div class="section_title-other">
+                        
+                        <h2 class="about-us-tittle">Sobre nosotros</h2>
+
+                        <p>CENTRO COMERCIAL CIUDAD CHINITA <br>
+                            🛍El Centro Comercial que reúne a la familia <br>
+                            ⏰Todos los días | 8:00am - 6:00pm <br>
+                            📍Avenida Las Delicias, Maracaibo. <a href="/sobre-nosotros/" class="aSectionHome">Ver mas</a></p> <br>
+                            <div class="img_1">
+                                <img src="{% static '/img-inverdata/Inverdata-Logo.png' %}" alt="" style="width:72px;">
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+
+         <div class="corporaciones">
+            
+            <h1 class="subtitulo-2 col-sm-12">Propiedades en alquiler</h1>
+            <div class="inmuebles">
+                {% for alquiler in alq %}
+                {% if alquiler.imagen %}
+                <div class="col-md-3 col-sm-12 col-12 inmueble2">
+                    <img src="{{ alquiler.imagen.url }}" alt="" class="img-rarrusel2" style="width:100%">
+                        <div class="caja-apartamento" style="align-items:left !important;">
+                            <strong><h6 class="nombre-apto-2">{{ alquiler.titulo }}</h6></strong>
+                            <ul class="data-apartamento-2">
+                            <li>Tamaño:</li>
+                            <li>Habitaciones:</li>
+                            <li>Baños:</li>
+                            <li>Estacionamientos:</li>
+                            </ul>
+                        </div>
+                  <button class="button-contact">Contactar</button>
+                    
+                </div>
+                {% else %}
+                <p>No hay alquileres</p>
+                {% endif %}
+                {% endfor %}
+             
+                     <section class="paginacion"> 
+                    <ul>                    
+                    <li><a href="#" class="active">1</a></li>
+                    <li><a href="#">2</a></li>
+                    <li><a href="#">3</a></li>
+                    </ul>
+                    </section> 
+                 <!-- about_area_end -->
+                </div>    
+                 <!-- forQuery_start -->
+                    <div class="forQuery">
+                        <div class="container">
+                          <div class="row">
+                                <div class="col-xl-12 offset-xl-0 col-md-12 container-contact">
+                                    <div class="Query_border">
+                                        <div class="row align-items-center justify-content-center">
+                                            <div class="col-xl-7 col-md-6"> </div>
+                                                <div class="Query_text">
+                                                    <h3>¿Necesitas hacer una consulta? <a class="contactanos-home" href="/contacto/" target="_blank">Contactanos</a></h3>
+                                                </div>    
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <div>
+                    </div>
+                </div>
+            </div>
+       </div>
+    </div>
+    
+
+<!-- forQuery_end -->
+</body>
+</div>
+
+{% endblock body_block %}

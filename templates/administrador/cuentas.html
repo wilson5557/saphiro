@@ -1,0 +1,195 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-usuarios">Cuentas</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO GESTION DE USUARIOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Cuentas">
+  <div class="container rounded modulo pb-2">
+    <div class="container pt-3 pb-1">
+
+      <div class="form-group row">
+        <button class="btn-option mx-auto move-up d-none" id="HideUsuarios" onclick="ShowOrHide('HideUsuarios')" data-toggle="popover" data-content="Haz click aquí para agregar un usuario"><i class="bx bx-plus pr-2"></i> Agregar Usuario</button>
+
+        <button class="btn-option mx-auto move-up" id="ShowUsuarios" onclick="ShowOrHide('ShowUsuarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de usuarios"><i class="fa fa-list pr-2"></i> Lista de Usuarios</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- FORMULARIO PARA AGREGAR NUEVAS MENSUALIDADES -->
+      <form id="AgregarUsuarios" method="POST" class="mt-4">
+        {% csrf_token %}
+
+        <div class="form-group row">
+          <label for="username" class="col-sm-3 col-form-label text-dark">Nombre completo:</label>
+          <div class="col-sm-6">
+            <input type="text" class="form-control text-dark" id="nombre_propietario" name="nombre_propietario" required placeholder="Nombre del administrador">
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="status" class="col-sm-3 col-form-label text-dark">Identificación:</label>
+          <div class="col-sm-3">
+            <select class="form-control text-dark" id="tipo_dni" name="tipo_dni">
+              <option value="V">Venezolano</option>
+              <option value="J">Juridico</option>
+              <option value="E">Extranjero</option>
+              <option value="P">Pasaporte</option>
+            </select>
+          </div>
+          <div class="col-sm-3">
+            <input type="number" name="dni" id="dni" class="form-control text-dark" placeholder="Identificación">
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ user_form.email.name }}" class="col-sm-3 col-form-label text-dark">{{ user_form.email.label }}:</label>
+          <div class="col-sm-6">
+            {% render_field user_form.email class="form-control text-dark" name=user_form.email.name id=user_form.email.name placeholder="Ingrese el correo electrónico del propietario" %}
+            {% for error in user_form.email.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ user_form.username.name }}" class="col-sm-3 col-form-label text-dark">{{ user_form.username.label }}:</label>
+          <div class="col-sm-6">
+            {% render_field user_form.username class="form-control text-dark" name=user_form.username.name id=user_form.username.name placeholder="Ingrese el nombre de usuario" %}
+            {% for error in user_form.username.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ user_form.password1.name }}" class="col-sm-3 col-form-label text-dark">{{ user_form.password1.label }}:</label>
+          <div class="col-sm-6">
+            {% render_field user_form.password1 class="form-control text-dark" name=user_form.password1.name id=user_form.password1.name placeholder="Contraseña" %}
+            {% for error in user_form.password1.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="password2" class="col-sm-3 col-form-label text-dark">Confirmar contraseña:</label>
+          <div class="col-sm-6">
+            <input type="password" class="form-control text-dark" id="password2" name="password2" required minlength="8" maxlength="16" placeholder="Confirmar contraseña">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up"><i class="fa fa-save pr-2"></i> Agregar nuevo usuario</button>
+        <a class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" href="/home/administrador"><i class="fa fa-times pr-2"></i> Cancelar</a>
+      </form>
+
+        <div class="d-none" id="VerUsuarios">
+            <br>
+            <div class="input-div input-group">
+                <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                       id="search_table">
+                <div class="input-group-append">
+                    <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                </div>
+            </div>
+
+            <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md"
+                   width="100%" id="TablaUsuarios">
+                <thead class="table-header">
+                <tr>
+                    <th scope="col" class="d-none">#</th>
+                    <th scope="col">Usuario</th>
+                    <th scope="col">Correo</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Acción</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% if usuarios %}
+                {% for usuario in usuarios %}
+                <tr>
+                    <td scope="row" class="d-none"> {{ usuario.id }}</td>
+                    <td class="centered-cell"> {{ usuario.username }}</td>
+                    <td class="centered-cell"> {{ usuario.email }}</td>
+                    {% if usuario.is_active == True %}
+                    <td class="centered-cell text-success">Activo</td>
+                    {% else %}
+                    <td class="centered-cell text-danger">Suspendido</td>
+                    {% endif %}
+                    <td>
+                        <div class="horizontal-cell">
+                            <a href="/home/administrar/cuentas/ver/{{ usuario.id }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                            <a href="/home/administrar/cuentas/actualizar/{{ usuario.id }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="/home/administrar/cuentas/eliminar/{{ usuario.id }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaUsuarios').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        table.columns.adjust();
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+<!-- FIN DE GESTION DE USUARIOS -->
+{% endblock body_block %}

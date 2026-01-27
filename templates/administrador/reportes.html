@@ -1,0 +1,314 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="">Reportes</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" >
+  <div class="container rounded modulo pb-2">
+    <div class="container pt-3 pb-1" id="botones-reporte">
+
+      <!-- REPORTE GASTOS E INGRESOS -->
+      <div class="row col-sm-12 mx-auto mt-3 center-all div_btn" style="width: 100%;">
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteGastos" aria-expanded="false" aria-controls="reporteGastos">
+          Gastos
+        </button>
+
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteIngresos" aria-expanded="false" aria-controls="reporteIngresos">
+          Ingresos
+        </button>
+      </div>
+
+      <!-- CONSULTA DE MOVIMIENTOS Y ESTADOS DE CUENTA -->
+      <div class="row col-sm-12 mx-auto mt-4 center-all div_btn" style="width: 100%;">
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteMovimientos" aria-expanded="false" aria-controls="reporteMovimientos">
+          Consulta de movimientos de bancos
+        </button>
+
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteBancos" aria-expanded="false" aria-controls="reporteBancos">
+          Estado de cuenta de bancos
+        </button>
+      </div>
+
+      <!-- REPORTE DE PROPIETARIOS Y CIERRE DE MES -->
+      <div class="row col-sm-12 mx-auto mt-4 mb-3 center-all div_btn" style="width: 100%;">
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reportePropietarios" aria-expanded="false" aria-controls="reportePropietarios">
+          Propietarios
+        </button>
+
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#cierreMes" aria-expanded="false" aria-controls="cierreMes">
+          Cierre de mes
+        </button>
+      </div>
+
+      <div class="divider mt-2 mb-2"></div>
+
+      <!-- REPORTE DE GASTOS -->
+      <div class="collapse" id="reporteGastos" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Reporte de Gastos</h4>
+          <h6 class="text-center">Indique el rango de fechas en el que desee visualizar su reporte.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio" name="fecha_inicio" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="fecha_fin" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin" name="fecha_fin" required>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="GASTOS">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de gastos según las fechas ingresadas"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- REPORTE DE INGRESOS -->
+      <div class="collapse" id="reporteIngresos" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Reporte de Ingresos</h4>
+          <h6 class="text-center">Indique el rango de fechas en el que desee visualizar su reporte.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio" name="fecha_inicio" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="fecha_fin" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin" name="fecha_fin" required>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="INGRESOS">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de ingresos según las fechas ingresadas"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- REPORTE ESTADO DE CUENTA -->
+      <div class="collapse" id="reporteBancos" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Consulta de estados de cuenta</h4>
+          <h6 class="text-center">Indique el rango de fechas en el que desee visualizar su reporte.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio" name="fecha_inicio" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="fecha_fin" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin" name="fecha_fin" required>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label for="banco_select" class="col-sm-3 col-form-label text-dark">Banco:</label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="banco_select" name="banco_select">
+                  {% if bancos %}
+                    <option value="" disabled selected>Elige un banco...</option>
+                    {% for banco in bancos %}
+                      <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} - {{ banco.nro_cuenta }} (Saldo: {{ banco.saldo_actual }} {{ banco.tipo_moneda }}) </option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled selected>NO HAY BANCOS REGISTRADOS</option>
+                  {% endif %}
+                </select>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="BANCOS">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el estado de cuenta del banco seleccionado"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- REPORTE DE MOVIMIENTOS -->
+      <div class="collapse" id="reporteMovimientos" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Consulta de movimientos</h4>
+          <h6 class="text-center">Indique el rango de fechas en el que desee visualizar su reporte.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio" name="fecha_inicio" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="fecha_fin" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin" name="fecha_fin" required>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label for="banco_select" class="col-sm-3 col-form-label text-dark">Banco:</label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="banco_select" name="banco_select">
+                  {% if bancos %}
+                    <option value="" disabled selected>Elige un banco...</option>
+                    {% for banco in bancos %}
+                      <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} - {{ banco.nro_cuenta }} (Saldo: {{ banco.saldo_actual }} {{ banco.tipo_moneda }}) </option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" selected disabled>NO HAY BANCOS REGISTRADOS</option>
+                  {% endif %}
+                </select>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="MOVIMIENTOS">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar la consulta de los movimientos"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- REPORTE DE PROPIETARIOS -->
+      <div class="collapse" id="reportePropietarios" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Reporte de Propietarios</h4>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+
+            <input type="hidden" name="reporte" id="reporte" value="PROPIETARIOS">
+            <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de los propietarios"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- CIERRE DE MES -->
+      <div class="collapse" id="cierreMes" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Cierre de Mes</h4>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            {% if cierre %}
+            <div class="form-group row mt-4">
+              <label for="cierre" class="col-sm-5 col-form-label text-dark">Indique que tipo de cierre desea ver: </label>
+              <div class="col-sm-5">
+                <select class="form-control" id="cierre" name="cierre">
+                  <option value="CONDOMINIO">Condominio</option>
+                  <option value="PROPIETARIO">Propietario</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4 d-none" id="select_prop">
+              <label for="cierre_prop" class="col-sm-5 col-form-label text-dark">Seleccione el propietario: </label>
+              <div class="col-sm-5">
+                <select class="form-control" id="propietario_seleccionado" name="propietario_seleccionado" disabled>
+                  {% for domicilio in propietarios %}
+                  <option value="{{domicilio.id_propietario_id}}">{{domicilio.nombre_domicilio}} - {{domicilio.id_propietario.nombre_propietario}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="cierre_condo" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
+              <div class="col-sm-5">
+                <select class="form-control" id="cierre_del_mes" name="cierre_del_mes" required>
+                  <option value="" disabled selected>Seleccione un cierre...</option>
+                  {% for id, pdf in cierre %}
+                  <option value="{{id}}">{{pdf}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="CIERRE_MES">
+            <input type="hidden" name="seleccion" id="seleccion" value="" disabled>
+            <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte del cierre mensual realizado."><i class="fa fa-download pr-1"></i> Generar Cierre de mes</button>
+            {% else %}
+            <div class="form-group row mt-4">
+              <label for="cierre" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
+              <div class="col-sm-5">
+                <select class="form-control" id="cierre" name="cierre" required>
+                  <option value="" disabled>NO SE HA REALIZADO NINGÚN CIERRE</option>
+                </select>
+              </div>
+            </div>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var contenedor_botones = document.querySelectorAll('#botones-reporte .center-all')
+  var collapse = document.querySelectorAll('#botones-reporte .collapse')
+
+  contenedor_botones.forEach(contenedor => {
+    var botones = contenedor.querySelectorAll('.btn')
+    botones.forEach(boton => {
+      boton.addEventListener('click', function () {
+        collapse.forEach(content => {
+          content.classList.remove('show')
+        })
+      })
+    })
+  }) 
+</script>
+
+<script>
+  var bancos_botones = document.querySelectorAll('#banco_select')
+
+  bancos_botones.forEach(boton => {
+    boton.required = true;
+  }) 
+</script>
+
+<script>
+  $(document).on('change', '#cierre', function () {
+    var tipo_reporte_cierre = document.getElementById('cierre').value
+    if (tipo_reporte_cierre == "CONDOMINIO") {
+      document.getElementById('propietario_seleccionado').disabled = true;
+      document.getElementById('select_prop').classList.add('d-none')
+    } else {
+      document.getElementById('propietario_seleccionado').disabled = false;
+      document.getElementById('select_prop').classList.remove('d-none')
+    }
+  });
+
+  $(document).on('change', '#cierre_del_mes', function () {
+    var cierre = document.getElementById('cierre_del_mes').value
+    document.getElementById('seleccion').value = cierre;
+  });
+</script>
+{% endblock body_block %}
+

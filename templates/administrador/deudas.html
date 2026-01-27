@@ -1,0 +1,424 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-deudas">Deudas</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+  <!-- INICIO MAESTRO DE DEUDAS -->
+  <div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Deudas">
+    <div class="container rounded modulo pb-2">
+      <div class="container pt-3 pb-1">
+
+          <div class="form-group d-flex" style="justify-content: center;">
+              <!-- <div class="float-left d-none" id="HideDeudas">
+                  <button class="btn-size-text btn btn-danger ml-3 move-left" onclick="ShowOrHide('HideListaDeudas')"><i
+                          class="fa fa-arrow-left pr-2"></i> Volver
+                  </button>
+              </div> -->
+
+              <div>
+                  <div class="d-flex">
+                      <div class="spacing-area">
+                          <button class="btn-option mx-auto move-up d-none" id="HideDeudas" onclick="ShowOrHide('HideListaDeudas')" data-toggle="popover" data-content="Haz click aquí para ver la lista de propietarios que deben."><i class="bx bx-plus pr-2"></i> Agregar Deuda</button>
+                      </div>
+                      <!-- <div class="spacing-area">
+                          <button class="btn-option mx-auto move-up" id="ShowDeudas"
+                                  onclick="ShowOrHide('ShowListaDeudas')" data-toggle="popover"
+                                  data-content="Haz click aquí para ver la lista de deudas pendientes"><i class="fa fa-minus-circle"></i> Por Condominio
+                          </button>
+                      </div> -->
+                      
+                        <div class="spacing-area">
+                      <button class="btn-option mx-auto move-up" id="ShowMorosoPropietarios" onclick="ShowOrHide('ShowMoroPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de propietarios que deben."><i class="fa fa-minus-circle"></i> Morosos</button>
+                      </div>
+                    
+                  </div>
+              </div>
+          </div>
+
+        <div class="divider"></div>
+
+        <!-- FORMULARIO -->
+        <form id="AgregarDeudas" class="pt-4" method="POST">
+          {% csrf_token %}
+            <div class="form-group row">
+                <label for="tipo_deuda" class="col-sm-3 col-form-label text-dark">{{ deudas_form.tipo_moneda.label }}:</label>
+                <div class="col-sm-8">
+                    {% render_field deudas_form.tipo_moneda %}
+                    {% for error in deudas_form.tipo_moneda.errors %}
+                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                    </div>
+            </div>
+
+            <div class="form-group row">
+                <label for="tipo_deuda" class="col-sm-3 col-form-label text-dark">La deuda será registrada a:</label>
+                <div class="col-sm-8">
+                    <select name="tipo_deuda" id="tipo_deuda" class="form-control text-dark">
+                        <option value="" disabled selected>Seleccione...</option>
+                        <!-- <option value="1">CONDOMINIO</option> -->
+                        <option value="2">PROPIETARIO</option>
+                    </select>
+                </div>
+            </div>
+
+
+            <div class="form-group row d-none" id="prop_seleccionado">
+                <label for="apto_deudor" class="col-sm-3 col-form-label text-dark">Seleccione un propietario:</label>
+                <div class="col-sm-8">
+                    <select class="form-control text-dark" id="apto_deudor" name="apto_deudor">
+                        {% if propietarios %}
+                        <option value="opcion" selected disabled>Elige un propietario...</option>
+                        {% for propietario in propietarios %}
+                        <option value="{{propietario.id_domicilio}}">{{propietario.nombre_domicilio}} - {{ propietario.id_propietario.nombre_propietario }}</option>
+                        {% endfor %}
+                        {% else %}
+                        <option value="opcion" selected disabled>NO HAY PROPIETARIOS REGISTRADOS</option>
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group row mt-4">
+            <label for="{{ deudas_form.concepto_deuda.name }}" class="col-sm-3 col-form-label text-dark">{{ deudas_form.concepto_deuda.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field deudas_form.concepto_deuda class="form-control text-dark" placeholder="Concepto de la deuda" %}
+              {% for error in deudas_form.concepto_deuda.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row mt-4">
+            <label for="{{ deudas_form.descripcion_deuda.name }}" class="col-sm-3 col-form-label text-dark">{{ deudas_form.descripcion_deuda.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field deudas_form.descripcion_deuda class="form-control text-dark" placeholder="Descripción de la deuda" %}
+              {% for error in deudas_form.descripcion_deuda.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row mt-4">
+            <label for="fecha_deuda" class="col-sm-3 col-form-label text-dark">Fecha de la deuda: </label>
+            <div class="col-sm-5">
+              <input type="date" class="form-control text-dark" id="fecha_deuda" name="fecha_deuda" required>
+            </div>
+          </div>
+
+          <div class="form-group row mt-4">
+            <label for="{{ deudas_form.monto_deuda.name }}" class="col-sm-3 col-form-label text-dark">{{ deudas_form.monto_deuda.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field deudas_form.monto_deuda class="form-control text-dark" placeholder="Monto de la deuda" %}
+              {% for error in deudas_form.monto_deuda.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <input type="hidden" value="DEUDA_POST" name="form_post" id="form_post" class="d-none">
+
+          {% if propietarios %}
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para agregar una nueva deuda a la lista"><i class="fa fa-check pr-1"></i> Aceptar</button>
+          {% else %}
+            <button type="button" class="btn btn-gray col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Se debe tener registrados al menos un gasto primero, para así poder hacer uso de esta opción"><i class="fa fa-check pr-1" disabled aria-disabled="true"></i> Aceptar</button>
+          {% endif %}
+          
+          <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i class="fa fa-times pr-1"></i> Cancelar</button>
+        </form>
+
+        <!-- TABLA - PROPIETARIO-->
+          <div class="d-none" id="VerPropietariosMorosos">
+              <br>
+              <div class="input-div input-group">
+                  <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                         id="search_table">
+                  <div class="input-group-append">
+                      <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                  </div>
+              </div>
+
+              <table class="table table-hover mt-3 table-responsive-xl table-responsive-lg table-responsive-md"
+                     width="100%" id="TablaPropietariosMorosos">
+                  <thead class="table-header">
+                  <tr>
+                      <th scope="col">Propietario</th>
+                      <th scope="col">DNI</th>
+                      <th scope="col">Acción</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {% for deuda in deudas_prop %}
+                  {% if deuda.tipo_deuda == "2" %}
+                  <tr>
+                      <td class="centered-cell"> {{ deuda.id_domicilio.id_propietario.nombre_propietario }}</td>
+                      <td class="centered-cell"> {{ deuda.id_domicilio.id_propietario.tipo_dni }}-{{ deuda.id_domicilio.id_propietario.dni }}</td>
+                      <td class="center-all">
+                          <div class="horizontal-cell">
+                              {% csrf_token %}
+                             <button type="button" class="btn btn-primary btn-option-admin border text-light button-table center-all btnDeudaModal" value="{{deuda.id_domicilio.id_propietario_id}}" data-target="#miModal" data-toggle="modal" data-content="Ver"><i class="fa fa-eye"></i>
+                             </button>
+                            
+                             <div class="modal fade" id="miModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel1" aria-hidden="true" style="width: 100% !important;">
+                              <div class="modal-content " style="width: 80% !important;">
+                               <div class="modal-header" style="width: 100% !important;">
+                                <h2>DEUDAS PENDIENTES</h2>
+                                <button type="button" class="close" data-dimiss="modal" aria-label="close" id="Close">
+                                  <span aria-hidden="true">&times; </span></button> </div> 
+                                  <!--ventana modal <div class="modal-body" style="width: 100% !important;"> -->  
+                                    <div class="modal-dialog modal-lg"  role="document" style="width: 80% !important;">
+                          
+                                    <div class="modal-body">
+                                      <table class="tabla-reportes table-responsive-lg1 table table-hover mt-3 table-responsive-xl1" id="tabla-reportes"> 
+                                        <thead>
+                                            <tr>
+                                              <th>Concepto</th>   
+                                              <th>Descripcion</th> 
+                                              <th>Monto</th> 
+                                              <th>Moroso</th>
+                                              <th>Fecha</th>
+                                              <th>Domicilio</th>
+                                              <th>Categoria</th>
+                                              <th>Tipo de moneda</th>
+                                            </tr>
+                                        </thead>
+                                        
+                                        <tbody id="body-modal-deudas">
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                      
+                                    </div>  
+                                    <!-- <form method="post" action="/recibo_total_deuda/{{deuda.id_domicilio.id_propietario_id}}">
+                                    <div class="container-btn-impr"> 
+                                      {% csrf_token  %}
+                                    <button type="submit" class="btn-impr btn-size-text btn  ml-3" id="btn-impr" target="_blank"> Imprimir </button>
+                                  </div> 
+                                    </form> -->
+                                  </div>
+                                </div>
+                               </div>
+                            </div>
+                          </div>     
+                                
+                                  
+                                                                        
+                                   
+                                           
+                             
+                            <!-- <a href="/home/administrar/deudas/ver/propietario/{{ deuda.id_domicilio_id }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>--> <!--### boton ### <a> -->
+                          </div>
+                      </td>
+                  </tr>
+                  {% endif %}
+                  {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+         
+
+        <!-- TABLA - CONDOMINIO-->
+          <div class="d-none" id="VerDeudas">
+              <br>
+              <div class="input-div input-group">
+                  <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                         id="search_table2">
+                  <div class="input-group-append">
+                      <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                  </div>
+              </div>
+
+              <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+                     width="100%" id="TablaDeudas">
+                  <thead class="table-header">
+                  <tr>
+                      <th scope="col">Concepto</th>
+                      <th scope="col">Descripción</th>
+                      <th scope="col">Monto</th>
+                      <th scope="col">Fecha</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Acción</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {% for deuda in deudas_condo %}
+                  {% if deuda.tipo_deuda == "1" %}
+                  <tr>
+                      <td class="centered-cell"> {{ deuda.concepto_deuda }}</td>
+                      <td class="centered-cell"> {{ deuda.descripcion_deuda }}</td>
+                      <td class="centered-cell text-danger"> {{ deuda.monto_deuda }}</td>
+                      <td class="centered-cell"> {{ deuda.fecha_deuda }}</td>
+                      {% if deuda.is_active %}
+                      <td class="centered-cell"> Activa</td>
+                      <td>
+                          <div class="horizontal-cell">
+                            <a href="/home/administrar/deudas/abonar/{{ deuda.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Abonar"><i class="fa fa-credit-card"></i></a>
+                            <a href="/home/administrar/deudas/actualizar/{{ deuda.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="/home/administrar/deudas/eliminar/{{ deuda.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                        </div>
+                      </td>
+                      {% else %}
+                      <td class="centered-cell text-success"> Liquidada</td>
+                      <td class="center-all">
+                          <div class="horizontal-cell">
+                            <a href="/home/administrar/deudas/abonar/{{ deuda.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                        </div>
+                      </td>
+                      {% endif %}
+                  </tr>
+                  {% endif %}
+                  {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+    var select_prop_deuda = document.getElementById("tipo_deuda");
+    var prop_seleccionado = document.getElementById('prop_seleccionado');
+
+    if (select_prop_deuda)
+    {
+      select_prop_deuda.addEventListener('change',function () {
+          if (select_prop_deuda.value == "2")
+          {
+            prop_seleccionado.classList.remove('d-none');
+          } else {
+            prop_seleccionado.classList.add('d-none');
+          };
+      });
+    };
+</script>
+
+<script>
+  var btnDeudaModal = document.querySelectorAll(".btnDeudaModal");
+  btnDeudaModal.forEach(boton => {
+    boton.addEventListener("click", function () {
+      $.ajax({
+          url: '/deudas_list/',
+          data: {
+              'id': boton.value
+          },
+          success: function(response) {
+            var DeudaModal = document.getElementById("body-modal-deudas");
+            var content = ""
+            for (i = 0; i < response.deudas.length; i++) {
+                content += '<tr>' +
+                              '<td>' + response.deudas[i].concepto_deuda + '</td>' +
+                              '<td>' + response.deudas[i].descripcion_deuda + '</td>' +
+                              '<td>' + response.deudas[i].monto_deuda + '</td>' +
+                              '<td>' + response.deudas[i].is_moroso + '</td>' +
+                              '<td>' + response.deudas[i].fecha_deuda + '</td>' +
+                              '<td>' + response.deudas[i].domicilio + '</td>' +
+                              '<td>' + response.deudas[i].categoria_deuda + '</td>' +
+                              '<td>' + response.deudas[i].tipo_moneda + '</td>' +
+                          '</tr>'
+            }
+
+            DeudaModal.innerHTML = content;
+          },
+          error: function() {
+              // Manejo de errores
+              alert('Error al obtener los datos');
+          }
+      });
+    });
+  });
+</script>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaPropietariosMorosos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+
+        var table2 = $('#TablaDeudas').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table2').on( 'keyup', function () {
+            table2.search( this.value ).draw();
+        });
+    });
+</script>
+
+  <!-- FIN MAESTRO DE INGRESOS -->
+{% endblock body_block %}

@@ -1,0 +1,134 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+
+{% block modulo_label %}
+<span class="">Deudas</span>
+{% endblock modulo_label %}
+
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Bancos">
+  <div class="container rounded modulo border-secondary pb-2">
+    <div class="container pt-3 pb-1">
+      <h2 class="text-center pb-3">Deudas del Propietario</h2>
+
+        <div class="form-group row">
+              <div class="col-sm-3" id="HideModuloDeudas">
+                  <a class="btn-size-text btn btn-danger ml-3 move-left" href="/home/administrar/deudas/"><i
+                          class="fa fa-arrow-left pr-2"></i> Volver al inicio</a>
+              </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div id="VerDeudaProp">
+              <br>
+              <div class="input-div input-group">
+                  <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                         id="search_table">
+                  <div class="input-group-append">
+                      <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                  </div>
+              </div>
+
+              <table class="table table-hover mt-3 table-responsive-xl table-responsive-lg table-responsive-md"
+                     width="100%" id="TablaPropietariosMorosos">
+                  <thead class="table-header-admin">
+                  <tr>
+                      <th scope="col">Apartamento</th>
+                      <th scope="col">Concepto</th>
+                      <th scope="col">Tipo de Deuda</th>
+                      <th scope="col">Monto</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Acción</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {% for deudas in deudas_prop %}
+                  <tr>
+                      <td> {{ deudas.id_domicilio.nombre_domicilio }}</td>
+                      <td> {{ deudas.concepto_deuda }}</td>
+                      <td> {{ deudas.tipo_deuda }}</td>
+                      <td> {{ deudas.monto_deuda }}</td>
+                      {% if deudas.is_active %}
+                      <td>Activa</td>
+                      <td>
+                          <div class="horizontal-cell">
+                            <a href="/home/administrar/deudas/abonar/{{ deudas.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Abonar"><i class="fa fa-credit-card"></i></a>
+                            <a href="/home/administrar/deudas/actualizar/{{ deudas.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="/home/administrar/deudas/eliminar/{{ deudas.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                        </div>
+                      </td>
+                      {% else %}
+                      <td class="text-success">Liquidada</td>
+                      <td>
+                          <div class="horizontal-cell">
+                            <a href="/home/administrar/deudas/abonar/{{ deudas.id_deuda }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                        </div>
+                      </td>
+                      {% endif %}
+                  </tr>
+                  {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+          
+    </div>
+  </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaPropietariosMorosos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+{% endblock body_block %}

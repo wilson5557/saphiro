@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% load mathfilters %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<title>Consulta de movimientos de {{nombre_banco}} del {{inicio}} a el {{fin}}</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<style>
+		@page {
+			size: a4 landscape;
+			@frame header_frame {           /* Static frame */
+					-pdf-frame-content: header_content;
+					left: 50pt; width: 750pt; top: 70pt; height: 90pt;
+			};
+			@frame content_frame {          /* Content Frame */
+					left: 50pt; width: 750pt; top: 140pt; height: 425pt;
+			};
+    }
+		
+		.sticky-bot-footer
+		{
+			position: absolute !important; 
+			bottom:0 !important;
+			width: 100% !important;
+			margin-left: auto !important;
+			margin-right: auto !important;
+			text-align: center !important;
+		}
+
+		.text-center {
+    	text-align: center!important
+		}	
+
+		.text-danger {
+    color: #dc3545!important
+		}
+
+		.text-success {
+    color: #28a745!important
+		}
+
+		.table .thead-light th {
+    color: #495057;
+    background-color: #e9ecef;
+    border-color: #dee2e6
+		}
+
+		.table {
+    width: 100%;
+    max-width: 98%;
+    margin-bottom: 1rem;
+    background-color: transparent;
+    margin-left: auto;
+    margin-right: auto;
+		}
+
+		.table td,
+		.table th {
+				padding: .75rem;
+				vertical-align: top;
+				border-top: 1px solid #dee2e6
+		}
+
+		.table thead th {
+				vertical-align: bottom;
+				border-bottom: 2px solid #dee2e6
+		}
+
+		.table tbody+tbody {
+				border-top: 2px solid #dee2e6
+		}
+
+		.table .table {
+				background-color: #fff
+		}
+
+		.table-sm td,
+		.table-sm th {
+				padding: .3rem
+		}
+
+		.table-bordered {
+				border: 1px solid #dee2e6
+		}
+
+		.table-bordered td,
+		.table-bordered th {
+				border: 1px solid #dee2e6
+		}
+
+		.table-bordered thead td,
+		.table-bordered thead th {
+				border-bottom-width: 2px
+		}
+
+		.mt-5,
+		.my-5 {
+				margin-top: 3rem!important
+		}
+
+		body {
+				margin: 0;
+				font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+				font-size: 1rem;
+				font-weight: 400;
+				line-height: 1.5;
+				color: #212529;
+				text-align: left;
+				background-color: #fff
+		}
+
+		.thead-blue th
+		{
+				color: #fff;
+				background-color: #1f2e88 !important;
+				border-color: #32383e
+		}
+	</style>
+</head>
+<body>
+
+	<table id="header_content">
+		<thead>
+			<tr>
+				<td style="text-align: left;" ><img src="static/img-inverdata/logo_inverdata_pdf.jpg"> <br>
+					CONDOMINIO APARTHOTEL ESPARTA SUITES <br>
+					APART HOTEL ESPARTA SUITES RIF J-30456994-7</td>
+				<td style="text-align: right;"> <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
+					<span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span></td>
+			</tr>
+		</thead>
+	</table>
+	
+  <h2 class="text-center" style="padding-top: 15px;">CONSULTA DE MOVIMIENTOS</h2>
+	<h2 class="text-center">{{nombre_banco}}</h2>
+	<h2 class="text-center">{{numero_cuenta}}</h2>
+	<h3 class="text-center">Desde {{inicio}} Hasta {{fin}}</h3>
+
+
+	<h3 class="mt-5">Ingresos</h3>
+    <table class="table table-bordered text-center" style="font-size: 12px;">
+      <thead class="thead-blue">
+        <tr>
+					<th>Fecha</th>
+          <th>Referencia</th>
+          <th>Concepto</th>
+					<th>Descripcion</th>
+          <th>Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+				{% if ingresos %}
+          {% for ingreso in ingresos %}
+            <tr>
+              {% language 'es' %}
+              <td> {{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }} </td>
+              {% endlanguage %}
+
+              {% if ingreso.id_movimiento.referencia_movimiento %}
+							<td> {{ ingreso.id_movimiento.referencia_movimiento }} </td>
+							{% else %}
+							<td> - </td>
+							{% endif %}
+							<td> {{ ingreso.id_movimiento.concepto_movimiento }} </td>
+							<td> {{ ingreso.id_movimiento.descripcion_movimiento }} </td>
+							<td> {{ ingreso.id_movimiento.monto_movimiento }} </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <h3 class="mt-5">Gastos</h3>
+    <table class="table table-bordered text-center" style="font-size: 12px;">
+      <thead class="thead-blue">
+        <tr>
+					<th>Fecha</th>
+          <th>Referencia</th>
+          <th>Factura</th>
+					<th>Concepto</th>
+					<th>Descripcion</th>
+          <th>Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+				{% if gastos %}
+          {% for gasto in gastos %}
+            <tr>
+              {% language 'es' %}
+              <td> {{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }} </td>
+              {% endlanguage %}
+
+							{% if gasto.id_movimiento.referencia_movimiento %}
+							<td> {{ gasto.id_movimiento.referencia_movimiento }} </td>
+							{% else %}
+							<td> - </td>
+							{% endif %}
+
+							{% if gasto.factura %}
+							<td> {{ gasto.factura }} </td>
+							{% else %}
+							<td> - </td>
+							{% endif %}
+
+							<td> {{ gasto.id_movimiento.concepto_movimiento }} </td>
+							<td> {{ gasto.id_movimiento.descripcion_movimiento }} </td>
+							<td> {{ gasto.id_movimiento.monto_movimiento }} </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+	
+</body>
+</html>

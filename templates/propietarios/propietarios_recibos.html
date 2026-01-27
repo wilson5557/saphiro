@@ -1,0 +1,137 @@
+{% extends "layouts/propietario-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Propietarios
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="">Recibos de Pago</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+
+
+<!-- RECIBOS DE PAGO -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <div class="container pt-3 pb-1">
+
+            <div class="" id="VerRecibos">
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada" id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search-prop"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table id="TablaRecibos" class="table table-hover table-responsive-xl mb-lg-0 col-mb-7 col-lg-7" width="100%">
+                    <thead class="table-header">
+                        <tr>
+                            <th scope="col">Referencia</th>
+                            <th scope="col">Descripción</th>
+                            <th scope="col">Monto</th>
+                            <th scope="col">Plataforma</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos %}
+                        <tr>
+                            <td class="centered-cell">{{movimiento.referencia_movimiento}}</td>
+                            <td class="centered-cell">{{movimiento.descripcion_movimiento}}</td>
+                            <td class="centered-cell">{{movimiento.monto_movimiento}}</td>
+                            <td class="centered-cell">{{movimiento.banco_emisor}}</td>
+                            <td class="centered-cell">{{movimiento.fecha_movimiento}}</td>
+                            {% if movimiento.estado_movimiento == 0 %}
+                            <td class="centered-cell text-success">Aprobado</td>
+                            {% elif movimiento.estado_movimiento == 1 %}
+                            <td class="centered-cell text-danger">Rechazado</td>
+                            {% else %}
+                            <td class="centered-cell">Pendiente</td>
+                            {% endif %}
+                            <td class="center-all">
+                                <div class="horizontal-cell">
+                                    <a target="_blank" href="/home/propietarios/recibos/pdf/{{movimiento.id_movimiento}}"
+                                       class="btn btn-primary btn-option border text-light button-table center-all"
+                                       title="Imprimir" data-toggle="popover"><i class="fa fa-print"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% for cierre in cierres %}
+                        <tr>
+                            <td class="centered-cell">CIERRE</td>
+                            <td class="centered-cell">Cierre de {{cierre.fecha_cierre|date:"F"}} de {{cierre.fecha_cierre|date:"Y"}}</td>
+                            <td class="centered-cell">-</td>
+                            <td class="centered-cell">-</td>
+                            <td class="centered-cell"></td>
+                            <td class="centered-cell text-danger">Cerrado</td>
+                            <td class="center-all">
+                                <div class="horizontal-cell">
+                                    <form method="POST" id="cierres_realizados">
+                                        {% csrf_token %}
+                                        <button type="submit" name="cierre" value={{cierre.id_cierre}} class="btn btn-primary btn-option border text-light button-table center-all" title="Imprimir" data-toggle="popover"><i class="fa fa-print"></i></a>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- FIN RECIBOS DE PAGO -->
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaRecibos').DataTable( {
+          "processing": true,
+          "order": [[ 4, "desc" ]],
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+{% endblock body_block %}

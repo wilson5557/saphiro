@@ -1,0 +1,143 @@
+{% extends "layouts/propietario-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Propietarios
+{% endblock title_page %}
+
+{% block options_prop %}
+<ul style="font-size: 10.4px !important;">
+    <li class="active"><a href="/home/propietarios/">Inicio</a></li>
+    <li><a href="/home/propietarios/publicaciones/" class="a-sub-option">Publicaciones</a></li>
+    <li><a href="/home/propietarios/pagos/" class="a-sub-option">Pagar</a></li>
+    <li><a href="/home/propietarios/recibos/" class="a-sub-option">Recibos</a></li>
+</ul>
+{% endblock options_prop %}
+
+{% block modulo_label %}
+<span class="" id="ver-inicio">Inicio</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- SECCIÓN DE INICIO -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Inicio">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <div class="container pt-3 pb-1">{% if propietario %}
+            <div class="mt-3">
+                <p class="text-center box pb-1 normal-font">Aquí verás tu información personal y la vista previa de
+                    algunas
+                    notificaciones hechas por la administración.</p> <br>
+                <h3 class="col-sm-12 text-left">Información Personal</h3>
+                <div class="divider"></div>
+                <div class="row text-center pt-3">
+                    <p class="normal-font text-dark text-content col-sm-3"><strong>Identificación: </strong><span>{{propietario.tipo_dni}}-{{propietario.dni}}</span></p><br>
+                    <p class="normal-font text-dark text-content col-sm-3"><strong>Residente: </strong><span>{{propietario.pais_residencia}}</span></p>
+                    <p class="normal-font text-dark text-content col-sm-3"><strong>Género: </strong><span>{% if propietario.genero == "M" %} Masculino
+                            {% else %}
+								Femenino
+							{% endif %}</span></p>
+                    <p class="normal-font text-dark text-content col-sm-3"><strong>Estado</strong>:
+                    {% if user.is_active == True %}
+                    <span class="text-success">
+									Activo
+							{% else %}
+								<span class="text-danger">
+									Suspendido
+							{% endif %}
+								</span>
+							</span>
+                    </p>
+                    <p class="normal-font text-dark text-content col-sm-2"><strong>Contactos:</strong></p>
+                    <p class="normal-font text-dark text-content col-sm-5"><span>{{propietario.codigo_tlf_movil}}-{{propietario.telefono_movil}}</span></p>
+                    <p class="normal-font text-dark text-content col-sm-5"><span>{{propietario.codigo_tlf_hab}}-{{propietario.telefono_hab}}</span></p>
+                </div>
+                <div class="align-right">
+                    <a class="btn border btn-option text-center" onclick="Perfil('Profile')">Ver Perfil</a>
+                </div>
+                {% endif %}
+
+                <br>
+
+                <div class="mt-3">
+                    <h3 class="col-sm-12 text-left">Atención a los propietarios</h3>
+                    <div class="divider"></div>
+                    <br>
+                    <div class="col-sm-12 text-center">
+                        <img src="{% static '/img-aptos/camion-de-agua.jpg' %}" alt=""
+                             class="img-post rounded border border-dark">
+                    </div>
+                    <div class="col-sm-12 mt-sm-20 text-justify">
+
+                        <p class="generic-blockquote text-dark post-font">Breve descripción de la notificación de que se
+                            va
+                            a
+                            comprar un camión de agua porque no tenemos agua desde hace 1 mes ya y los tanques están
+                            secos,
+                            entonces la sra fulanita consiguió un número de un cisterna de agua que vale 30$ entre todos
+                            salimos
+                            a 1$, favor de comunicarse con la administración para más información.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- FIN SECCIÓN DE INICIO -->
+
+<!-- SECCIÓN PERFIL -->
+<div class="col-lg-9 mb-5 mb-lg-0">
+    <div class="container rounded modulo border border-secondary pb-2 d-none" id="ViewUserProfile">
+        <div class="container pt-3 pb-1">
+
+            <div class="mt-3">
+                <h2 class="text-center pb-1">Perfil de Cuenta</h2>
+                <div class="divider"></div>
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6"><strong>Correo Eléctronico:</strong>
+                        <span>{{usuario.email}}</span>
+                    </p>
+                    <p class="normal-font text-dark col-sm-6"><strong>Usuario:</strong> <span>{{propietario.nombre_propietario}}</span>
+                    </p>
+                </div>
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6"><strong>Dirección:</strong> <span>Av. C2. Barrio Buena
+											Vista. Edificio Macuto</span></p>
+                    <p class="normal-font text-dark col-sm-6"><strong>Número de teléfono:</strong>
+                        <span>0424-6820193</span>
+                    </p>
+                </div>
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6"><strong>Piso:</strong> <span>{{propietario.piso}}</span>
+                    </p>
+                    <p class="normal-font text-dark col-sm-6"><strong>Apartamento:</strong>
+                        <span>{{propietario.apto}}</span>
+                    </p>
+                </div>
+                <div class="row pt-3">
+                    {% if propietario.estado_deuda %}
+                    <p class="normal-font text-dark col-sm-6"><strong>Estado:</strong> <span
+                            class="text-warning"><b>Endeudado</b></span></p>
+                    {% else %}
+                    <p class="normal-font text-dark col-sm-6"><strong>Estado:</strong> <span
+                            class="text-success"><strong>Solvente</strong></span></p>
+                    {% endif %}
+                </div>
+                <div class="row pt-3">
+                    <a class="btn btn-primary col-sm-12 border text-light" id="CambiarUserPass"
+                       href="/password_change/">Cambiar contraseña</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- FIN DE SECCIÓN DE PERFIL -->
+
+
+{% endblock body_block %}

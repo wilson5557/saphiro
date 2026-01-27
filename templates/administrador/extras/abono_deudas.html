@@ -1,0 +1,272 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-deudas">Abonar a la Deuda</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+  <!-- INICIO ABONO -->
+  <div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Deudas">
+    <div class="container rounded modulo border-secondary pb-2">
+      <div class="container pt-3 pb-1">
+
+        <div class="divider"></div>
+
+        <!-- FORMULARIO -->
+        <form id="AbonarDeuda" method="POST">
+          {% csrf_token %}
+            {% if deuda_condo %}
+            {% for deuda in deuda_condo %}
+
+            {% if deuda.tipo_moneda == "BS" %}
+
+            <div class="text-center mt-4">
+                <label for="deuda_actual" class="col-form-label text-dark pr-5">Monto de la deuda: <strong><span class="text-danger">{{deuda.monto_deuda}}BS</span></strong></label>
+                {% if conf.saldo_edificio > 0 %}
+                <label for="saldo_actual" class="col-form-label text-dark">Saldo actual del condominio: <strong><span class="text-success">{{conf.saldo_edificio}}</span></strong></label>
+                {% else %}
+                <label for="saldo_actual" class="col-form-label text-dark">Saldo actual del condominio: <strong><span class="text-danger">{{conf.saldo_edificio}}</span></strong></label>
+                {% endif %}
+            </div>
+
+            {% if deuda.monto_deuda > conf.saldo_edificio  %}
+            <input type="number" id="max_value" name="max_value" value="{{ conf.saldo_edificio }}" hidden="hidden">
+
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.monto_deuda }}" hidden="hidden">
+
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+            <div class="text-left pl-3 pb-2">
+                <small id="Message" class="form-text text-muted">El monto debe de ser igual o menor que el
+                    saldo actual. Además, no puede ser mayor que el monto total de la deuda</small>
+            </div>
+
+            {% elif deuda.tipo_moneda == "USD" %}
+
+            <div class="text-center mt-4">
+                <label for="deuda_actual" class="col-form-label text-dark pr-5">Monto de la deuda: <strong><span class="text-danger">{{deuda.monto_deuda}}$</span></strong></label>
+                {% if conf.saldo_edificio_usd > 0 %}
+                <label for="saldo_actual" class="col-form-label text-dark">Saldo actual del condominio: <strong><span class="text-success"> {{conf.saldo_edificio_usd}}</span></strong></label>
+                {% else %}
+                <label for="saldo_actual" class="col-form-label text-dark">Saldo actual del condominio: <strong><span class="text-danger"> {{conf.saldo_edificio_usd}}</span></strong></label>
+                {% endif %}
+            </div>
+
+            {% if deuda.monto_deuda > conf.saldo_edificio_usd  %}
+            <input type="number" id="max_value" name="max_value" value="{{ conf.saldo_edificio_usd }}" hidden="hidden">
+
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.monto_deuda }}" hidden="hidden">
+
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+            <div class="text-left pl-3 pb-2">
+                <small id="Message" class="form-text text-muted">El monto debe de ser igual o menor que el
+                    saldo actual. Además, no puede ser mayor que el monto total de la deuda</small>
+            </div>
+
+            {% else %}
+
+            <div class="text-center mt-4">
+                <label for="deuda_actual" class="col-form-label text-dark pr-5">Monto de la deuda: <strong><span class="text-danger">{{deuda.monto_deuda}}€</span></strong></label>
+                {% if conf.saldo_edificio_eur > 0 %}
+                <label for="saldo_actual" class="col-form-label text-dark">Saldo actual del condominio: <strong><span class="text-success">{{conf.saldo_edificio_eur}}</span></strong></label>
+                {% else %}
+                <label for="saldo_actual" class="col-form-label text-dark">Saldo actual del condominio: <strong><span class="text-danger">{{conf.saldo_edificio_eur}}</span></strong></label>
+                {% endif %}
+            </div>
+
+            {% if deuda.monto_deuda > conf.saldo_edificio_eur  %}
+            <input type="number" id="max_value" name="max_value" value="{{conf.saldo_edificio_eur }}" hidden="hidden">
+
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.monto_deuda }}" hidden="hidden">
+
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+            <div class="text-left pl-3 pb-2">
+                <small id="Message" class="form-text text-muted">El monto debe de ser igual o menor que el
+                    saldo actual. Además, no puede ser mayor que el monto total de la deuda</small>
+            </div>
+
+            {% endif %}
+
+            {% endfor %}
+            {% else %}
+            {% for deuda in deuda_prop %}
+
+            {% if deuda.tipo_moneda == "BS" %}
+
+            <div class="text-center mt-4">
+                <label for="deuda_actual" class="col-form-label text-dark pr-5">Monto de la deuda: <strong><span class="text-danger">{{deuda.monto_deuda}} BS</span></strong></label>
+                {% if deuda.id_domicilio.saldo > 0 %}
+                <label for="saldo_actual" class="col-form-label text-dark pl-5">Saldo actual del propietario: <strong><span class="text-success">{{deuda.id_domicilio.saldo}} BS</span></strong></label>
+                {% else %}
+                <label for="saldo_actual" class="col-form-label text-dark pl-5">Saldo actual del propietario: <strong><span class="text-danger">{{deuda.id_domicilio.saldo}} BS</span></strong></label>
+                {% endif %}
+            </div>
+            {% if deuda.monto_deuda > deuda.id_domicilio.saldo  %}
+
+            {% if deuda.id_domicilio.saldo < 0 %}
+            <input type="hidden" id="max_value" name="max_value" value="0" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01" max="{{ deuda.id_domicilio.id_propietario.saldo }}">
+            </div>
+            {% else %}
+            <input type="hidden" id="max_value" name="max_value" value="{{ deuda.id_domicilio.saldo }}" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01" max="{{ deuda.id_domicilio.id_propietario.saldo }}">
+            </div>
+            {% endif %}
+
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.monto_deuda }}" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+            <div class="text-left pl-3 pb-2">
+                <small id="Message" class="form-text text-muted">El monto debe de ser igual o menor que el
+                    saldo actual. Además, no puede ser mayor que el monto total de la deuda</small>
+            </div>
+
+            {% elif deuda.tipo_moneda == "USD" %}
+
+            <div class="text-center mt-4">
+                <label for="deuda_actual" class="col-form-label text-dark pr-5">Monto de la deuda: <strong><span class="text-danger">{{deuda.monto_deuda}}</span></strong></label>
+                {% if deuda.id_domicilio.saldo_usd > 0 %}
+                <label for="saldo_actual" class="col-form-label text-dark pl-5">Saldo actual del propietario: <strong><span class="text-success">{{deuda.id_domicilio.saldo_usd}}$</span></strong></label>
+                {% else %}
+                <label for="saldo_actual" class="col-form-label text-dark pl-5">Saldo actual del propietario: <strong><span class="text-danger">{{deuda.id_domicilio.saldo_usd}}$</span></strong></label>
+                {% endif %}
+            </div>
+            {% if deuda.monto_deuda > deuda.id_domicilio.saldo_usd  %}
+
+            {% if deuda.id_domicilio.saldo_usd < 0 %}
+            <input type="hidden" id="max_value" name="max_value" value="0" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01" max="{{ deuda.id_domicilio.id_propietario.saldo_usd }}">
+            </div>
+            {% else %}
+            <input type="hidden" id="max_value" name="max_value" value="{{ deuda.id_domicilio.saldo_usd }}" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01" max="{{ deuda.id_domicilio.id_propietario.saldo_usd }}">
+            </div>
+            {% endif %}
+
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.monto_deuda }}" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+            <div class="text-left pl-3 pb-2">
+                <small id="Message" class="form-text text-muted">El monto debe de ser igual o menor que el
+                    saldo actual. Además, no puede ser mayor que el monto total de la deuda</small>
+            </div>
+
+            {% else %}
+
+            <div class="text-center mt-4">
+                <label for="deuda_actual" class="col-form-label text-dark pr-5">Monto de la deuda: <strong><span class="text-danger">{{deuda.monto_deuda}}</span></strong></label>
+                {% if deuda.id_domicilio.saldo_eur > 0 %}
+                <label for="saldo_actual" class="col-form-label text-dark pl-5">Saldo actual del propietario: <strong><span class="text-success">{{deuda.id_domicilio.saldo_eur}}€</span></strong></label>
+                {% else %}
+                <label for="saldo_actual" class="col-form-label text-dark pl-5">Saldo actual del propietario: <strong><span class="text-danger">{{deuda.id_domicilio.saldo_eur}}€</span></strong></label>
+                {% endif %}
+            </div>
+            {% if deuda.monto_deuda > deuda.id_domicilio.saldo_eur  %}
+
+            {% if deuda.id_domicilio.saldo_eur < 0 %}
+            <input type="text" id="max_value" name="max_value" value="0" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.id_domicilio.saldo_eur }}" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+
+            {% else %}
+            <input type="text" id="max_value" name="max_value" value="{{ deuda.monto_deuda }}" hidden>
+            <div class="text-center pb-1 mt-4">
+                <input type="number" name="abono" class="form-control text-dark" min="0"
+                       placeholder="Ingrese el monto correspondiente al abono que se desea realizar" id="input_abono" step="0.01">
+            </div>
+            {% endif %}
+            <div class="text-left pl-3 pb-2">
+                <small id="Message" class="form-text text-muted">El monto debe de ser igual o menor que el
+                    saldo actual. Además, no puede ser mayor que el monto total de la deuda</small>
+            </div>
+
+            {% endif %}
+
+            {% endfor %}
+            {% endif %}
+
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para abonar a la deuda"><i class="fa fa-check pr-1"></i> Aceptar</button>
+
+            <a href="/home/administrar/deudas/" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i class="fa fa-times pr-1"></i> Cancelar</a>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+  $(document).ready(function() {
+    var max_value = document.getElementById('max_value');
+    var input_abono = document.getElementById('input_abono');
+
+    if(input_abono) {
+        input_abono.max = max_value.value.replace(/\s/g,"").replace(".","").replace(",",".");
+        input_abono.value = max_value.value.replace(/\s/g,"").replace(".","").replace(",",".");
+    }
+  });
+</script>
+  <!-- FIN ABONO -->
+{% endblock body_block %}

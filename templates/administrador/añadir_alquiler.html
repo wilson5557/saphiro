@@ -1,0 +1,133 @@
+{% extends "layouts/admin-layout.html" %}
+
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+{% block modulo_label %}
+  <span class="">AÑADIR ALQUILERES</span>
+{% endblock modulo_label %}
+{% load crispy_forms_tags %}
+{% block body_block %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Añadir alquiler</title>
+</head>
+<body>
+
+   
+     <div style="display: grid; align-items: center;">
+       <!-- {% if 'ok' in request.GET %}
+        <div class="alert alert-success mt-5" role="alert">
+            <strong>El alquiler se ha resgistrado correctamente</strong>
+        </div>
+    
+        {%endif%}
+    
+        {% if 'error' in request.GET %}
+        <div class="alert alert-danger mt-5" role="alert">
+            <strong>Hay errores en el formulario</strong>
+        </div>
+        {%endif%}-->
+        
+
+        <div class="alquileres">
+            <h2>Alquileres</h2>
+            {% for alquiler in alq %}
+                {% if alquiler.imagen %}
+                <img  src="{{ alquiler.imagen.url }}" alt="{{ alquiler.titulo }}" class="img-rarrusel" style="width:100%;">
+                <br>
+                {% else %}
+            <p>No hay alquileres</p>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="form-control mt-5 form-alquileres" style="
+         width: 50rem;">
+    <form action="añadir_alquiler" method="POST" enctype="multipart/form-data">
+       {% csrf_token %}
+
+
+        <label for="Tipo post"> Tipo de post </label>
+        <select name="txtTipoPost" id="" class="form-control select-alquiler">
+            <option value="0" class="form-control">Alquiler</option>
+            <option value="1">Venta</option>
+        </select>
+        </label>
+        <br>
+        <label for="Categoria Post">Categoria Post</label>
+        <select name="txtCatPost" id="" class="form-control select-alquiler">
+            <option value="0">Residencial</option>
+            <option value="1">Vacacional</option>
+        </select>
+        <br>
+        <label for="Titulo">Titulo</label>
+        <input type="text" name="txtTitulo" id="" placeholder="Ingrese el titulo del (validar)" class="form-control select-alquiler"> </label>
+        <br>
+        <label for="Descripcion">Descripcion de (.validar.)</label>
+        <textarea name="txtDescripcion" id="" placeholder="Descripcion" class="form-control descripcion-alquiler"></textarea>
+
+        <label for="">Codigo de area</label>
+        <select class="form-control select-alquiler"name="txtCodigo" id="">
+            <option value="58">+58(Venezuela)</option>
+        </select>     
+
+        <label for="">Telefono de contacto</label>
+        <input type="text" name="txtContacto" id="" class="form-control select-alquiler">
+    
+        <br>
+        <label for="Desde">Desde</label>
+        <input type="time" name="txtDesde" id="" class="form-control">
+        <input type="time" name="txtHasta" id="" class="form-control">
+
+        <label for="Esta activo">Esta Disponible</label>
+       <select name="txtIsActive" id="" class="form-control select-alquiler">
+        <option value="False">Reservado</option>
+       </select>
+       <br>
+       <input type="file" name="txtImgAlquiler" accept="image/*" id="">
+        </div>
+
+
+
+       <!--{{ publicaciones_form|crispy }}-->
+        <div class="container-button">
+        <input class="btn btn-success col-sm-3 mt-3 move-up" type="submit" value="Registrar">
+        <br>
+        <input class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" type="reset" value="Cancelar">
+        </div>
+    </form>
+</div>
+</body>
+</html>
+
+</form>
+<style>
+
+.select-alquiler{
+    width: 25%;
+}
+.descripcion-alquiler{
+    width: 45%;
+    height: 9rem;
+}
+.container-button {
+    display: flex;
+
+}
+.alquileres {
+    width: 240px;
+    height: 240px;
+}
+
+
+</style>
+
+
+
+
+{% endblock %}

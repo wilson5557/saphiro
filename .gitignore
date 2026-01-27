@@ -1,0 +1,13 @@
+**/__pycache__/
+__pycache__
+.vscode/
+/venv
+*.xml
+**/.idea/condominio.iml
+**/.idea/misc.xml
+.iws
+.idea
+workspace.xml
+tasks.xml
+/staticfiles/
+/media/

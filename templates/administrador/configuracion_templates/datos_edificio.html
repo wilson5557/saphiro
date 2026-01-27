@@ -1,0 +1,418 @@
+{% extends "administrador/configuracion.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block edificio_active %}
+  active
+{% endblock edificio_active %}
+
+{% block options_admin %}
+<ul class="sidebar-spacing">
+    <li><a href="/home/administrador/" style="font-size: 12px !important;">Inicio</a></li>
+    <li>
+        <div class="dropdown d-lg-block">
+            <a class="a-sub-option not-selected" style="font-size: 12px !important;" id="dropdownMenuLink" data-toggle="dropdown">
+                Administrar <i class="fa fa-angle-down ml-2"></i>
+            </a>
+            <div class="dropdown-menu show-options" aria-labelledby="dropdownMenuLink">
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/bancos/">Bancos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/gastos/">Gastos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/ingresos/">Ingresos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/deudas/">Deudas</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/fondos/">Fondos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/propietarios/">Propietarios</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/torres/">Torres</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/noticias/">Noticias</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/cuentas/">Administradores</a>
+            </div>
+        </div>
+    </li>
+    <li>
+        <a href="/home/administrar/reportes/" style="font-size: 12px !important;" class="a-sub-option">
+            Reportes
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
+            Cierre del Mes
+        </a>
+    </li>
+    <li class="active">
+        <a href="/home/administrar/configuracion/edificio/" style="font-size: 12px !important;" class="a-sub-option">
+            Configuración
+        </a>
+    </li>
+</ul>
+{% endblock options_admin %}
+
+{% block modulo_config_block %}
+{% if conf %}
+<div id="EdificioInfo" class="end-padding-right end-padding-left">
+  <div class="row pt-3">
+    <p class="normal-font text-dark col-sm-12 text-center"><strong>{{conf.nombre_condominio}}</strong></p><br>
+  </div>
+  <div class="row pt-3">
+    <p class="normal-font text-dark col-sm-3"><strong>Saldo del condominio:</strong></p><br>
+    <p class="normal-font text-dark col-sm-3">BS:
+      {% if conf.saldo_edificio < 0 %}
+      <span class="text-danger"><strong>{{conf.saldo_edificio|floatformat:"2"}}Bs</strong></span>
+      {% else %}
+      <span class="text-success">{{conf.saldo_edificio|floatformat:"2"}}Bs</span>
+      {% endif %}
+
+    </p>
+    <p class="normal-font text-dark col-sm-3">USD:
+      {% if saldos.saldo_usd < 0 %}
+      <span class="text-danger"><strong>{{conf.saldo_edificio_usd|floatformat:"2"}}$</strong></span>
+      {% else %}
+      <span class="text-success">{{conf.saldo_edificio_usd|floatformat:"2"}}$</span>
+      {% endif %}
+    </p>
+    <p class="normal-font text-dark col-sm-3">EUR:
+      {% if saldos.saldo_eur < 0 %}
+      <span class="text-danger"><strong>{{conf.saldo_edificio_eur|floatformat:"2"}}€</strong></span>
+      {% else %}
+      <span class="text-success">{{conf.saldo_edificio_eur|floatformat:"2"}}€</span>
+      {% endif %}
+    </p>
+  </div>
+  <div class="row">
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>Tipo de Inmuebles:</strong> <span>{{conf.tipo_condominio}}</span></p>
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>RIF:</strong> <span>{{conf.rif_condominio}}</span></p>
+  </div>
+  <div class="row">
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>Número de teléfono #1:</strong> <span>{{conf.codigo_tlf_1}} {{conf.tlf_1}}</span>
+    </p>
+    {% if conf.codigo_tlf_2 %}
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>Número de teléfono #2:</strong> <span>{{conf.codigo_tlf_2}} {{conf.tlf_2}}</span>
+    </p>
+    {% else %}
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>Número de teléfono #2:</strong> <span>No establecido</span></p>
+    {% endif %}
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>Correo Eléctronico:</strong>
+      <span>{{conf.email}}</span>
+    </p>
+    <p class="normal-font text-dark col-sm-6 pt-1"><strong>Dirección:</strong> <span>{{conf.direccion_condominio}}</span>
+    </p>
+  </div>
+  <div class="row pt-3">
+    <a class="btn btn-primary col-sm-12 border move-up text-light" id="EditEdificioInfo"
+       onclick="ShowOrHide('EditEdificioInfo')">Actualizar datos del edificio</a>
+  </div>
+</div>
+{% else %}
+<div id="EdificioInfo">
+  <div class="alert alert-danger text-center mt-5">
+    <strong class="text-center">No se ha encontrado ningún dato, para establecerlos haz click en el botón de
+      abajo.</strong>
+  </div>
+
+  <div class="row pt-3">
+    <a class="btn btn-primary col-sm-12 border move-up text-light mx-auto" id="EditEdificioInfo"
+       onclick="ShowOrHide('EditEdificioInfo')">Establecer datos básicos del condominio</a>
+  </div>
+</div>
+{% endif %}
+              
+<!-- Formulario para cambiar la informacion del edificio -->
+<div class="form-style-12 col-sm-12 mt-3 end-padding-right end-padding-left d-none" id="FormEdificioInfo">
+  {% if conf %}
+    <h2 class="text-center pb-3">Modificar datos del edificio</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="section mb-3"><span>1</span>Información del condominio</div>
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.nombre_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.nombre_condominio.label}}:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.nombre_condominio class="form-control text-dark" placeholder="Nombre del condominio" name=config_form.nombre_condominio.name value=conf.nombre_condominio %}
+            {% for error in config_form.nombre_condominio.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-6 row">
+          <label for="{{config_form.tipo_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.tipo_condominio.label}}:</label>
+          <div class="col-sm-12">
+            <select name="{{ config_form.tipo_condominio.name }}" id="{{ config_form.tipo_condominio.name }}" class="form-control text-dark opTipoUnidad">
+              {% for radio in config_form.tipo_condominio %}
+              {{radio}}
+              {% for error in config_form.tipo_unidad.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              <label for="{{ radio.id_for_label }}" class="ml-5 text-dark">{{ radio.label }}</label>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group col-sm-6 row">
+          <label for="{{config_form.rif_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.rif_condominio.label}}:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.rif_condominio class="form-control text-dark" placeholder="Nombre del condominio" name=config_form.nombre_condominio.name value=conf.rif_condominio %}
+            {% for error in config_form.rif_condominio.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="section"><span>2</span>Datos de contacto</div>
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-6 row">
+          <label for="{{ config_form.codigo_tlf_1.name }}" class="col-sm-12 col-form-label text-dark">{{ config_form.tlf_1.label }}:</label>
+          <div class="col-sm-5">
+            <select name="{{ config_form.codigo_tlf_1.name }}" id="{{ config_form.codigo_tlf_1.name }}"
+                    class="form-control text-dark">
+              {% for select in config_form.codigo_tlf_1 %}
+              {{select}}
+              {% for error in config_form.codigo_tlf_1.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-7">
+            {% render_field config_form.tlf_1 class="form-control text-dark" placeholder="Ingrese un número de teléfono" name=config_form.tlf_1.name value=conf.tlf_1 %}
+            {% for error in config_form.tlf_1.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group col-sm-6 row">
+          <label for="{{ config_form.codigo_tlf_2.name }}" class="col-sm-12 col-form-label text-dark">{{ config_form.tlf_2.label }}:</label>
+          <div class="col-sm-5">
+            <select name="{{ config_form.codigo_tlf_2.name }}" id="{{ config_form.codigo_tlf_2.name }}"
+                    class="form-control text-dark">
+              {% for select in config_form.codigo_tlf_2 %}
+              {{select}}
+              {% for error in config_form.codigo_tlf_2.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-7">
+            {% render_field config_form.tlf_2 class="form-control text-dark" placeholder="Ingrese un número de teléfono" name=config_form.tlf_2.name value=conf.tlf_2 %}
+            {% for error in config_form.tlf_2.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.email.name}}"
+                 class="col-sm-12 col-form-label text-dark">{{config_form.email.label}}:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.email class="form-control text-dark" placeholder="Ingrese el correo electrónico" name=config_form.email.name value=conf.email %}
+            {% for error in config_form.email.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.direccion_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.direccion_condominio.label}}:</label>
+          <div class="col-sm-12">
+            <textarea name="{{config_form.direccion_condominio.name}}" id="{{config_form.direccion_condominio.name}}"
+                      cols="30" rows="5" class="form-control text-dark" placeholder="Ingrese la dirección">{{conf.direccion_condominio}}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar cambios</button>
+      <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
+    </form>
+
+  {% else %}
+    <h2 class="text-center pb-3">Establecer datos del edificio</h2>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="section mb-3"><span>1</span>Información del condominio</div>
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.nombre_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.nombre_condominio.label}}:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.nombre_condominio class="form-control text-dark" placeholder="Nombre del condominio" name=config_form.nombre_condominio.name %}
+            {% for error in config_form.nombre_condominio.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-6 row">
+          <label for="{{config_form.tipo_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.tipo_condominio.label}}:</label>
+          <div class="col-sm-12">
+            <select name="{{ config_form.tipo_condominio.name }}" id="{{ config_form.tipo_condominio.name }}" class="form-control text-dark opTipoUnidad">
+              {% for radio in config_form.tipo_condominio %}
+              {{radio}}
+              {% for error in config_form.tipo_unidad.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              <label for="{{ radio.id_for_label }}" class="ml-5 text-dark">{{ radio.label }}</label>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group col-sm-6 row">
+          <label for="{{config_form.rif_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.rif_condominio.label}}:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.rif_condominio class="form-control text-dark" placeholder="Nombre del condominio" name=config_form.nombre_condominio.name %}
+            {% for error in config_form.rif_condominio.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="section"><span>2</span>Datos de contacto</div>
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-6 row">
+          <label for="{{ config_form.codigo_tlf_1.name }}" class="col-sm-12 col-form-label text-dark">{{ config_form.tlf_1.label }}:</label>
+          <div class="col-sm-5">
+            <select name="{{ config_form.codigo_tlf_1.name }}" id="{{ config_form.codigo_tlf_1.name }}"
+                    class="form-control text-dark">
+              {% for select in config_form.codigo_tlf_1 %}
+              {{select}}
+              {% for error in config_form.codigo_tlf_1.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-7">
+            {% render_field config_form.tlf_1 class="form-control text-dark" placeholder="Ingrese un número de teléfono" name=config_form.tlf_1.name %}
+            {% for error in config_form.tlf_1.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group col-sm-6 row">
+          <label for="{{ config_form.codigo_tlf_2.name }}" class="col-sm-12 col-form-label text-dark">{{ config_form.tlf_2.label }}:</label>
+          <div class="col-sm-5">
+            <select name="{{ config_form.codigo_tlf_2.name }}" id="{{ config_form.codigo_tlf_2.name }}"
+                    class="form-control text-dark">
+              {% for select in config_form.codigo_tlf_2 %}
+              {{select}}
+              {% for error in config_form.codigo_tlf_2.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-7">
+            {% render_field config_form.tlf_2 class="form-control text-dark" placeholder="Ingrese un número de teléfono" name=config_form.tlf_2.name %}
+            {% for error in config_form.tlf_2.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.email.name}}"
+                 class="col-sm-12 col-form-label text-dark">{{config_form.email.label}}:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.email class="form-control text-dark" placeholder="Ingrese el correo electrónico" name=config_form.email.name %}
+            {% for error in config_form.email.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.direccion_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.direccion_condominio.label}}:</label>
+          <div class="col-sm-12">
+            <textarea name="{{config_form.direccion_condominio.name}}" id="{{config_form.direccion_condominio.name}}"
+                      cols="30" rows="5" class="form-control text-dark" placeholder="Ingrese la dirección"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+
+        <label class="col-sm-12 col-form-label text-dark">Saldos del Condominio:</label>
+        <small class="col-sm-12 text-muted text-center">En caso de que algunos saldos no correspondan con la economia del condominio o simplemente no se cuenten con los fondos,
+          <br> indique con un 0 en esos campos</small>
+
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.saldo_edificio.name}}" class="col-sm-12 text-dark">BS:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.saldo_edificio class="form-control text-dark" placeholder="Ingrese el saldo del condominio" name=config_form.saldo_edificio.name value=conf.saldo_edificio %}
+            {% for error in config_form.saldo_edificio.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.saldo_edificio_usd.name}}" class="col-sm-12 text-dark">USD:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.saldo_edificio_usd class="form-control text-dark" placeholder="Ingrese el saldo del condominio" name=config_form.saldo_edificio_usd.name value=conf.saldo_edificio_usd %}
+            {% for error in config_form.saldo_edificio_usd.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group col-sm-12 row">
+          <label for="{{config_form.saldo_edificio_eur.name}}" class="col-sm-12 text-dark">EUR:</label>
+          <div class="col-sm-12">
+            {% render_field config_form.saldo_edificio_eur class="form-control text-dark" placeholder="Ingrese el saldo del condominio" name=config_form.saldo_edificio_eur.name value=conf.saldo_edificio_eur %}
+            {% for error in config_form.saldo_edificio_eur.errors %}
+            <div class="alert alert-danger mt-2">
+              {{error}}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar cambios</button>
+      <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
+    </form>
+  {% endif %}
+
+
+</div>
+{% endblock modulo_config_block %}
+

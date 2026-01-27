@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Cierre del mes</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        @page {
+            size: a4 portrait;
+            @frame header_frame {           /* Static frame */
+                    -pdf-frame-content: header_content;
+                    left: 50pt; width: 750pt; top: 65pt; height: 140pt;
+            };
+            @frame footer_frame {           /* Static frame */
+                    -pdf-frame-content: footer_content;
+                    right: 50pt; width: 750pt; bottom: 15px; height: 70pt;
+            };
+            @frame content_frame {          /* Content Frame */
+                    right: 20pt; left: 20pt; top: 150pt; height: 600pt;
+            };
+        }
+
+        footer {
+            position: running(footer);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background-color: #ccc;
+            text-align: center;
+        }
+
+        .sticky-bot-footer
+        {
+            position: absolute !important;
+            bottom:0 !important;
+            width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            text-align: center !important;
+        }
+
+        .text-center {
+        text-align: center!important
+        }
+
+        .text-danger {
+            color: #dc3545!important
+        }
+
+        .text-success {
+            color: #28a745!important
+        }
+
+        .table .thead-light th {
+            color: #495057;
+            background-color: #e9ecef;
+            border-color: #dee2e6
+        }
+
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            background-color: transparent;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .table td,
+        .table th {
+                padding: .75rem;
+                vertical-align: top;
+                border-top: 1px solid #dee2e6
+        }
+
+        .table thead th {
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6
+        }
+
+        .table tbody+tbody {
+                border-top: 2px solid #dee2e6
+        }
+
+        .table .table {
+                background-color: #fff
+        }
+
+        .table-sm td,
+        .table-sm th {
+                padding: .3rem
+        }
+
+        .table-bordered {
+                border: 1px solid #dee2e6
+        }
+
+        .table-bordered td,
+        .table-bordered th {
+                border: 1px solid #dee2e6
+        }
+
+        .table-bordered thead td,
+        .table-bordered thead th {
+                border-bottom-width: 2px
+        }
+
+        .mt-5,
+        .my-5 {
+                margin-top: 3rem!important
+        }
+
+        body {
+                margin: 0;
+                font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+                font-size: 1rem;
+                font-weight: 400;
+                line-height: 1.5;
+                color: #212529;
+                text-align: left;
+                background-color: #fff
+        }
+
+        .thead-blue th
+        {
+                color: #fff;
+                background-color: #1f2e88 !important;
+                border-color: #32383e
+        }
+    </style>
+</head>
+<body>
+
+<table id="header_content" class="invoice-info-container">
+    <thead>
+    <tr>
+        <td style="text-align: left;"><img src="static/img-inverdata/logo_inverdata_pdf.jpg"></td>
+        <td>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+    <tr>
+        <td style="text-align: left;">CONDOMINIO: {{datos_condominio.nombre_condominio}}</td>
+        <td>
+            Propietario: {{datos_propietario.nombre_propietario}}
+        </td>
+    </tr>
+    <tr>
+        <td style="text-align: left;">{{datos_condominio.direccion_condominio}} RIF {{datos_condominio.rif_condominio}}
+        </td>
+        <td>
+            {{datos_propietario.tipo_dni}}-{{datos_propietario.dni}} {{datos_propietario.id_usuario.email}}
+        </td>
+    </tr>
+    {% if datos_domicilio %}
+    <tr>
+        <td></td>
+        <td>Inmuebles:
+        {% for domicilio in datos_domicilio %}
+        {{domicilio.nombre_domicilio}} 
+        {% endfor %}
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td><strong class="text-danger">No posee inmuebles</strong>
+        </td>
+    </tr>
+    {% endif %}
+    </thead>
+</table>
+
+<div id="footer_content">
+    <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
+    <span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span>
+</div>
+
+<h1 class="text-center" style="font-size: 13px; padding-top: 20px;">CIERRE DEL MES DEL PROPIETARIO {{datos_propietario.nombre_propietario}} DE {{mes_cierre}} DEL
+    {{año_cierre}}</h1>
+
+<h3 class="text-center" style="font-size: 12px; padding-top: 5px;">MOVIMIENTOS REALIZADOS</h3>
+
+<table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Fecha</th>
+        <th>Descripción</th>
+        <th>Referencia</th>
+        <th>Monto</th>
+        <th>Banco</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% if movimientos %}
+    <tr>
+        {% for movimiento in movimientos %}
+        <td> {{movimiento.fecha_movimiento}}</td>
+        <td> {{movimiento.descripcion_movimiento}}</td>
+        <td> {{movimiento.referencia_movimiento}}</td>
+        <td> {{movimiento.monto_movimiento}}</td>
+        <td> {{movimiento.id_banco.nombre_banco}}</td>
+        {% endfor %}
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="5" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong>
+        </td>
+    </tr>
+    {% endif %}
+    </tbody>
+</table>
+
+<h3 class="text-center" style="font-size: 12px; padding-top: 30px;">DEUDAS</h3>
+
+<table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+    <thead class="thead-blue">
+    <tr>
+        <th>Fecha</th>
+        <th>Concepto</th>
+        <th>Descripción</th>
+        <th>Monto</th>
+        <th>Inmueble</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% if deudas %}
+    <tr>
+        {% for deuda in deudas %}
+        <td> {{deuda.fecha_deuda}}</td>
+        <td> {{deuda.concepto_deuda}}</td>
+        <td> {{movimiento.descripcion_deuda}}</td>
+        <td> {{movimiento.monto_deuda}}</td>
+        <td> {{movimiento.id_domicilio.nombre_domicilio}}</td>
+        {% endfor %}
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="5" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong>
+        </td>
+    </tr>
+    {% endif %}
+    </tbody>
+</table>

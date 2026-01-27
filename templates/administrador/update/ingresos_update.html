@@ -1,0 +1,161 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-bancos">Actualizar Ingreso</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+  <!-- INICIO MAESTRO DE INGRESOS -->
+  <div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Ingresos">
+    <div class="container rounded modulo border-secondary pb-2">
+      <div class="container pt-3 pb-1">
+
+        <div class="form-group row">
+          <div class="col-sm-6 d-none" id="HideIngresos">
+            <button class="btn btn-danger ml-3 move-left" onclick="ShowOrHide('HideListaIngresos')"><i class="fa fa-arrow-left pr-2"></i> Volver</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <form id="AgregarIngresos" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="form-group row mt-4">
+            <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del ingreso: </label>
+            <div class="col-sm-5">
+              <input type="date" class="form-control text-dark" id="fecha_movimiento" name="fecha_movimiento" value="{{ingresos.id_movimiento.fecha_movimiento|date:'Y-m-d'}}" required>
+            </div>
+          </div>
+
+          <div class="form-group row mt-4">
+            <label for="{{ movimientos_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimientos_form.concepto_movimiento.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field movimientos_form.concepto_movimiento class="form-control text-dark" placeholder="Concepto del gasto" value=ingresos.id_movimiento.concepto_movimiento %}
+              {% for error in movimientos_form.concepto_movimiento.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="{{ gastos_form.id_movimiento.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimientos_form.descripcion_movimiento.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field movimientos_form.descripcion_movimiento class="form-control text-dark" id=movimientos_form.descripcion_movimiento.name placeholder="Descripción del gasto" rows="5" %}
+              {% for error in movimientos_form.descripcion_movimiento.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="{{ datos_mov_form.dni_titular.name }}" class="col-sm-3 col-form-label text-dark">Identificación del receptor:</label>
+            <div class="col-sm-2">
+                {% render_field tipo_dni.tipo_dni_titular class="form-control metodo_pago" id="tipo_dni_titular" name="tipo_dni_titular" %}
+            </div>
+            <div class="col-sm-6">
+              {% render_field datos_mov_form.dni_titular class="form-control text-dark" name=datos_mov_form.dni_titular.name placeholder="Ingrese el número de identificación del titular" value=identificacion.1 %}
+              {% for error in datos_mov_form.dni_titular.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row mt-2">
+              <label for="{{metodo_pago.metodo_pago.name}}" class="col-sm-3 col-form-label text-dark">{{metodo_pago.metodo_pago.label}}:</label>
+              <div class="col-sm-5">
+                  {% render_field metodo_pago.metodo_pago id=metodo_pago.metodo_pago.name class="form-control metodo_pago" name=metodo_pago.metodo_pago.name %}
+              </div>
+          </div>
+
+          <div class="form-group row mt-2" id="num_factura">
+            <label for="factura" class="col-sm-3 col-form-label text-dark">Número de factura: </label>
+            <div class="col-sm-5">
+              {% render_field ingresos_form.factura class="form-control" id="factura" placeholder="Número de Factura (si aplica)" value=ingresos.factura %}
+              {% for error in gastos_form.factura.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group row" id="divReferencia">
+            <label for="referencia" class="col-sm-3 col-form-label text-dark">Referencia bancaria:</label>
+            <div class="col-sm-8">
+              <input type="text" name="referencia" id="referencia" placeholder="Ingrese la referencia bancaria" class="form-control text-dark" value="{{ingresos.referencia_gasto}}">
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="imgIngreso" class="col-sm-3 col-form-label text-dark">Imagen Referencial:</label>
+            <div class="col-sm-8">
+              <input type="file" class="custom-control-input" accept="image/*" name="imgIngreso" id="imgIngreso">
+              <label class="col-sm-12 custom-file-label" for="imgIngreso">Suba la referencia aquí</label>
+            </div>
+          </div>
+
+          <input type="hidden" value="INGRESOS_POST" name="form_post" id="form_post" class="d-none">
+
+          <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para agregar el nuevo gasto a la lista"><i class="fa fa-check pr-1"></i> Aceptar</button>
+
+          <a type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" href="/home/administrar/ingresos"><i class="fa fa-times pr-1"></i> Cancelar</a>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+  var metodo_pago = document.getElementById('metodo_pago');
+  var divFactura = document.getElementById('num_factura');
+  var i_referencia = document.getElementById('referencia');
+  var divReferencia = document.getElementById('divReferencia');
+
+  metodo_pago.addEventListener('change', function () {
+    if (metodo_pago.value == 0) {
+      i_referencia.required = false;
+      divReferencia.classList.add('d-none');
+
+      divFactura.classList.remove('d-none');
+    } else {
+      i_referencia.required = true
+      divReferencia.classList.remove('d-none');
+
+      divFactura.classList.add('d-none');
+    }
+  })
+</script>
+
+<script>
+  $(document).ready(function() {
+    var descripcion_input = document.getElementById('descripcion_movimiento');
+    var descripcion_value = "{{ingresos.id_movimiento.descripcion_movimiento}}"
+
+    descripcion_input.innerHTML = descripcion_value;
+
+    var metodo = "{{ingresos.metodo_pago}}"
+    var num_factura = document.getElementById('num_factura');
+    var divReferencia = document.getElementById('divReferencia');
+
+    if (metodo == 0) {
+        num_factura.classList.remove('d-none');
+        divReferencia.classList.add('d-none');
+    } else {
+        num_factura.classList.add('d-none');
+        divReferencia.classList.remove('d-none');
+    }
+
+  });
+</script>
+  <!-- FIN MAESTRO DE INGRESOS -->
+{% endblock body_block %}

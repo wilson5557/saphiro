@@ -1,0 +1,393 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+
+{% block modulo_label %}
+<span class="" id="gestionar-propietarios">Administrar Propietarios</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="d-none"
+{% endblock opc_panel_class %}
+
+{% block options_admin %}
+<ul class="sidebar-spacing">
+    <li><a href="/home/administrador/" style="font-size: 12px !important;">Inicio</a></li>
+    <li>
+        <div class="dropdown d-lg-block">
+            <a class="a-sub-option not-selected" style="font-size: 12px !important;" id="dropdownMenuLink" data-toggle="dropdown">
+                Administrar <i class="fa fa-angle-down ml-2"></i>
+            </a>
+            <div class="dropdown-menu show-options" aria-labelledby="dropdownMenuLink">
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/bancos/">Bancos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/gastos/">Gastos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/ingresos/">Ingresos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/deudas/">Deudas</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/fondos/">Fondos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/propietarios/">Propietarios</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/torres/">Torres</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/noticias/">Noticias</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/cuentas/">Administradores</a>
+            </div>
+        </div>
+    </li>
+    <li>
+        <a href="/home/administrar/reportes/" style="font-size: 12px !important;" class="a-sub-option">
+            Reportes
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
+            Cierre del Mes
+        </a>
+    </li>
+    <li class="active">
+        <a href="/home/administrar/configuracion/edificio/" style="font-size: 12px !important;" class="a-sub-option">
+            Configuración
+        </a>
+    </li>
+</ul>
+{% endblock options_admin %}
+
+{% block body_block %}
+<!-- INICIO MAESTRO DE PROPIETARIOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Propietarios">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <div class="container pt-3 pb-1">
+            <h2 class="text-center pb-3">Administrar Propietarios</h2>
+
+            <div class="divider"></div>
+
+            <!-- FORMULARIO PARA AGREGAR UN NUEVO PROPIETARIO -->
+            <div class="form-style-10 col-sm-12" id="AgregarPropietarios">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="section mb-3"><span>1</span>Información del propietario</div>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-12">
+                            <label for="{{ propietarios_form.nombre_propietario.name }}" class="col-sm-12 text-dark">{{ propietarios_form.nombre_propietario.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.nombre_propietario class="form-control text-dark" placeholder="Ingrese el nombre completo del propietario" %}
+                                {% for error in propietarios_form.nombre_propietario.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-4">
+                            <label for="{{ propietarios_form.pais_residencia.name }}" class="col-sm-12 text-dark">{{ propietarios_form.pais_residencia.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.pais_residencia.name }}"
+                                        id="{{ propietarios_form.pais_residencia.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.pais_residencia %}
+                                    {{select}}
+                                    {% for error in propietarios_form.pais_residencia.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-2">
+                            <label for="{{ propietarios_form.genero.name }}" class="col-sm-3 text-dark">{{ propietarios_form.genero.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.genero.name }}"
+                                        id="{{ propietarios_form.genero.name }}" class="form-control text-dark">
+                                    {% for select in propietarios_form.genero %}
+                                    {{select}}
+                                    {% for error in propietarios_form.genero.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-2">
+                            <label for="{{ propietarios_form.tipo_dni.name }}" class="col-sm-12 text-dark">{{ propietarios_form.tipo_dni.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.tipo_dni.name }}"
+                                        id="{{ propietarios_form.tipo_dni.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.tipo_dni %}
+                                    {{select}}
+                                    {% for error in propietarios_form.tipo_dni.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-4">
+                            <label for="{{ propietarios_form.dni.name }}" class="col-sm-12 text-dark">{{ propietarios_form.dni.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.dni class="form-control text-dark" name=propietarios_form.dni.name placeholder="Ingrese el número de su documento" %}
+                                {% for error in propietarios_form.dni.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inner-wrap form-row">
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.codigo_tlf_hab.name }}" class="col-sm-12 text-dark">{{ propietarios_form.codigo_tlf_hab.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.codigo_tlf_hab.name }}"
+                                        id="{{ propietarios_form.codigo_tlf_hab.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.codigo_tlf_hab %}
+                                    {{select}}
+                                    {% for error in propietarios_form.codigo_tlf_hab.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.telefono_hab.name }}" class="col-sm-12 text-dark">{{ propietarios_form.telefono_hab.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.telefono_hab class="form-control text-dark" name=propietarios_form.telefono_hab.name placeholder="Número de teléfono de habitación" %}
+                                {% for error in propietarios_form.telefono_hab.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.codigo_tlf_movil.name }}" class="col-sm-12 text-dark">{{ propietarios_form.codigo_tlf_movil.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.codigo_tlf_movil.name }}"
+                                        id="{{ propietarios_form.codigo_tlf_movil.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.codigo_tlf_movil %}
+                                    {{select}}
+                                    {% for error in propietarios_form.codigo_tlf_movil.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.telefono_movil.name }}" class="col-sm-12 text-dark">{{ propietarios_form.telefono_movil.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.telefono_movil class="form-control text-dark" name=propietarios_form.telefono_movil.name placeholder="Número de teléfono móvil" %}
+                                {% for error in propietarios_form.telefono_movil.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section"><span>2</span>Información de apartamento</div>
+                    <div id="form_domicilio" class="form_domicilio">
+                        <h4 class="name_section form-text text-center text-muted mt-3 col-sm-12">Apartamento 1</h4>
+                        <div class="inner-wrap form-row">
+                            <div class="form-group col-sm-6">
+                                <label for="torres" class="col-sm-12 text-dark">Torre:</label>
+                                <div class="col-sm-12">
+                                    <select name="torres" class="select_torre form-control text-dark" id="select_torre0">
+                                        {% if torres %}
+                                        <option value="0">Seleccione una torre...</option>
+                                        {% for t in torres %}
+                                        <option value={{t.id_torre}}>{{t.nombre_torre}}</option>
+                                        {% endfor %}
+                                        {% else %}
+                                        <option value="">No hay torres disponibles</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="piso_torre" class="col-sm-12 text-dark">Piso de la vivienda:</label>
+                                <div class="col-sm-12">
+                                    <select name="piso_torre" class="select_piso form-control text-dark" id="select_piso0" disabled>
+                                        <option value="0">Selecciona una torre primero...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inner-wrap form-row">
+                            <div class="form-group col-12 col-sm-6 col-md-6 col-lg-4">
+                                <label class="text-dark col-sm-12">{{ domicilio_form.size_domicilio.label }}:</label>
+                                <div id="size" class="size col-sm-12">
+                                    {% render_field domicilio_form.size_domicilio class="form-control text-dark" name=domicilio_form.size_domicilio.name placeholder="Ingrese el tamaño del apartamento" %}
+                                    {% for error in domicilio_form.size_domicilio.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="form-group col-12 col-sm-6 col-md-6 col-lg-4 mb-1">
+                                <label class="text-dark col-sm-12">{{ domicilio_form.alicuota_domicilio.label }}:</label>
+                                <div id="alicuota" class="alicuota col-sm-12">
+                                    {% render_field domicilio_form.alicuota_domicilio class="form-control text-dark" name=domicilio_form.alicuota_domicilio.name placeholder="Ingrese la alicuota del apartamento." %}
+                                    {% for error in domicilio_form.alicuota_domicilio.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="form-group col-12 col-sm-6 col-md-6 col-lg-4 mb-1">
+                                <label class="text-dark col-sm-12">{{ domicilio_form.nombre_domicilio.label }}:</label>
+                                <div id="apto" class="apto col-sm-12">
+                                    {% render_field domicilio_form.nombre_domicilio class="form-control text-dark" name=domicilio_form.nombre_domicilio.name placeholder="Ingrese el número del apartamento. Ej: 01A" %}
+                                    {% for error in domicilio_form.nombre_domicilio.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inner-wrap form-row">
+                            <div class="form-group col-sm-6">
+                                <label for="{{ domicilio_form.tipo_domicilio.name }}" class="col-sm-12 text-dark">{{ domicilio_form.tipo_domicilio.label }}:</label>
+                                <div class="col-sm-12">
+                                    <select name="{{ domicilio_form.tipo_domicilio.name }}"
+                                            id="{{ domicilio_form.tipo_domicilio.name }}"
+                                            class="form-control text-dark">
+                                        {% for select in domicilio_form.tipo_domicilio %}
+                                        {{select}}
+                                        {% for error in domicilio_form.tipo_domicilio.errors %}
+                                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="{{ domicilio_form.estacionamientos.name }}" class="col-sm-12 text-dark">{{ domicilio_form.estacionamientos.label }}:</label>
+                                <div class="col-sm-12">
+                                    {% render_field domicilio_form.estacionamientos class="form-control text-dark" name=domicilio_form.estacionamientos.name placeholder="Ingrese el número del apartamento. Ej: 01A" %}
+                                    {% for error in domicilio_form.estacionamientos.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inner-wrap form-row">
+                            <div class="form-group col-sm-12">
+                                <label class="col-sm-12 text-dark">Saldos del domicilio:</label>
+
+                                <small id="saldoHelp" class="form-text text-center text-muted col-sm-12">Si el propietario
+                                    tiene saldo negativo indiquelo con el signo negativo. Ej: -100. <br> Si no tiene nada
+                                    entonces coloque 0</small>
+                                <br>
+
+                                <div class="col-sm-12">
+
+                                    <div class="text-dark col-sm-1">
+                                        <label><strong>BS:</strong></label>
+                                    </div>
+
+                                    <div class="col-sm-11">
+                                        {% render_field domicilio_form.saldo class="form-control text-dark saldo" name=domicilio_form.saldo.name id=domicilio_form.saldo.name value="0.00" placeholder="0" %}
+                                        {% for error in domicilio_form.saldo.errors %}
+                                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <br>
+
+                                    <div class="text-dark col-sm-1">
+                                        <label><strong>USD:</strong></label>
+                                    </div>
+
+                                    <div class="col-sm-11">
+                                        {% render_field domicilio_form.saldo_usd class="form-control text-dark saldo_usd" name=domicilio_form.saldo_usd.name value="0.00" placeholder="0" %}
+                                        {% for error in domicilio_form.saldo_usd.errors %}
+                                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <br>
+
+                                    <div class="text-dark col-sm-1">
+                                        <label><strong>EUR:</strong></label>
+                                    </div>
+
+                                    <div class="col-sm-11">
+                                        {% render_field domicilio_form.saldo_eur class="form-control text-dark saldo_eur" name=domicilio_form.saldo_eur.name value="0.00" placeholder="0" %}
+                                        {% for error in domicilio_form.saldo_eur.errors %}
+                                        <div class="alert alert-danger mt-2">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <br>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-sm-12" id="item-add">
+                        <p style="padding-top: 0.25rem;">
+                            <button type="button" class="btn border btn-option-admin"
+                                    style="width: 60px !important; height: 40px !important;" onclick="add();">
+                                <span class="material-symbols-outlined">add</span>
+                            </button>
+                        </p>
+                    </div>
+
+                    <div class="section"><span>3</span>Información de cuenta</div>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-12">
+                            <label for="{{ user_form.email.name }}" class="col-sm-12 text-dark">{{ user_form.email.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field user_form.email class="form-control text-dark" name=user_form.email.name id=user_form.email.name placeholder="Ingrese el correo electrónico del propietario" %}
+                                {% for error in user_form.email.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                                <input type="hidden" name="password1" id="password1"
+                                       value="La contraseña se generará automaticamente" readonly>
+                            </div>
+                            <small id="emailHelp" class="form-text text-muted col-sm-12">Se le enviará un correo al
+                                propietario indicandole su usuario y contraseña para su posterior ingreso al
+                                sistema.</small>
+                        </div>
+                    </div>
+
+                    <div class="button-section mx-auto">
+                        <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover"
+                                data-content="Haz click aquí para agregar el nuevo gasto a la lista"><i
+                                class="fa fa-check pr-1"></i> Aceptar
+                        </button>
+                        <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i
+                                class="fa fa-times pr-1"></i> Cancelar
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- FIN MAESTRO DE PROPIETARIOS -->
+{% endblock body_block %}

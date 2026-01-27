@@ -1,0 +1,58 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+
+{% block modulo_label %}
+{% for deuda in deudas %}
+  <span class="">Deuda | {{deuda.concepto_deuda}}</span>
+{% endfor %}
+{% endblock modulo_label %}
+
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Bancos">
+  <div class="container rounded modulo border-secondary pb-2">
+    <div class="container pt-3 pb-1">
+
+      <div class="divider"></div>
+
+      {% if deudas %}
+      {% for deuda in deudas %}
+      <div class="row pt-3">
+      </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Concepto de la deuda:</strong> <span>{{deuda.concepto_deuda}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Descripción de la deuda:</strong> <span>{{deuda.descripcion_deuda}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Fecha de la deuda:</strong> <span>{{deuda.fecha_deuda}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Monto de la deuda:</strong> <span class="text-success">{{deuda.monto_deuda}}</span></p>
+          </div>
+          <div class="row pt-3">
+              {% if deuda.is_active %}
+              <p class="normal-font text-dark col-sm-12"><strong>Estado de la deuda:</strong> <span>Activa</span></p>
+              {% else %}
+              <p class="normal-font text-dark col-sm-12 text-center"><strong>Estado de la deuda:<span class="text-success"> Liquidada</span></strong></p>
+              {% endif %}
+          </div>
+      {% endfor %}
+          <div class="d-grid pt-3" style="justify-content: right;">
+            <a class="btn btn-danger btn-cancel col-sm-12 border text-light move-up"
+              href="/home/administrar/deudas/"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
+          </div>
+      {% endif %}
+          
+    </div>
+  </div>
+</div>
+{% endblock body_block %}

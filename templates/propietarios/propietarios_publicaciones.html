@@ -1,0 +1,280 @@
+{% extends "layouts/propietario-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+{% load crispy_forms_tags %}
+
+{% block title_page %}
+  Esparta Suites - Propietarios
+{% endblock title_page %}
+
+
+{% block modulo_label %}
+<span class="">Publicaciones</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+
+
+<!-- RECIBOS DE PAGO -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left">
+    <div class="container rounded modulo border border-secondary pb-2">
+        <div class="container pt-3 pb-1">
+
+            <div class="form-group row">
+                <div class="col-sm-6 d-none" id="HidePublicacion">
+                  <button class="btn-size-text btn btn-danger ml-3 move-left" onclick="ShowModulosProp('HideFormPublicacion')"><i class="fa fa-arrow-left pr-2"></i> Volver</button>
+                </div>
+
+                <button class="btn-option mx-auto move-up center-all" id="BtnShowPublicacion" onclick="ShowModulosProp('ShowFormPublicacion')"
+                        data-toggle="popover" data-content="Haz click aquí para ver la lista de los gastos"
+                        style="width: 230px !important; height: 45px !important; justify-content: space-around;">
+                    <span class="material-symbols-outlined">add</span><div>Agregar una publicación</div>
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="" id="VerPublicaciones">
+                <div></div>
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada" id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search-prop"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table id="TablaPublicaciones" class="table table-hover table-responsive-xl mb-lg-0 col-mb-7 col-lg-7" width="100%">
+                <thead class="table-header">
+                <tr>
+                    <th scope="col">Tipo de Publicación</th>
+                    <th scope="col">Titulo</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col">Contacto</th>
+                    <th scope="col">Fecha de Publicación</th>
+                    <th scope="col">Acción</th>
+                </tr>
+                </thead>
+                <tbody>
+
+                {% for post in posts %}
+                <tr>
+                    <td class="centered-cell">{{post.tipo_post}}</td>
+                    <td class="centered-cell">{{post.titulo}}</td>
+                    <td class="centered-cell">{{post.descripcion}}</td>
+                    <td class="centered-cell">{{post.contacto}}</td>
+                    <td class="centered-cell">{{post.fecha_publicacion}}</td>
+                    <td class="center-all">
+                        <div class="horizontal-cell" id="btns">
+                            <a href="/home/propietarios/publicaciones/ver/{{post.id_post}}"
+                               class="btn btn-primary btn-option border text-light button-table center-all"
+                               title="Ver" data-toggle="popover"><i class="fa fa-eye"></i></a>
+                            <a href="/home/propietarios/publicaciones/editar/{{post.id_post}}"
+                               class="btn btn-primary btn-option border text-light button-table center-all"
+                               title="Editar" data-toggle="popover"><i class="fa fa-pencil-square-o"></i></a>
+                            <button type="button" class="btn btn-primary btn-option border text-light button-table center-all eliminar"
+                               title="Eliminar" value={{post.id_post}} data-toggle="modal" data-target="#consulta"><i class="fa fa-trash-o"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+            </div>
+
+            <div class="modal fade" id="consulta" tabindex="-1" role="dialog" aria-labelledby="consultaLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="consultaLabel">Confirmación</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    ¿Esta seguro que desea eliminar la publicación?
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" id="aceptar" class="btn btn-primary">Aceptar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal fade" id="confirmacion" tabindex="-1" role="dialog" aria-labelledby="confirmacionLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="confirmacionLabel">Operación finalizada</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    ¡La publicación fue eliminada con exito!
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Aceptar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-none" id="FormPublicacion">
+                <h3 class="text-center pt-3">Datos de la Publicación</h3>
+                {% csrf_token %}
+                {{ form|crispy }}
+            </div>
+        </div>
+    </div>
+</div>
+<!-- FIN RECIBOS DE PAGO -->
+
+<script>
+    var aceptar = document.getElementById('aceptar');
+
+    var contenedorPadre;
+
+    var eliminar = document.querySelectorAll('.eliminar');
+    eliminar.forEach(function(boton) {
+        boton.addEventListener('click', function() {
+            const contenedor = boton.closest('tr');
+            contenedorPadre = contenedor
+            aceptar.value = boton.value;
+        });
+    });
+
+    aceptar.addEventListener('click', function() {
+        $.ajax({
+            url: '/eliminar_publicacion/',
+            data: {
+                'publicacion': aceptar.value
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Cierra el primer modal
+                    $('#consulta').modal('hide');
+
+                    setTimeout(function() {
+                      $('#confirmacion').modal('show');
+                    }, 500); // Cambia el valor de tiempo si deseas ajustar el retraso
+
+                    contenedorPadre.remove()
+                } else {
+                    alert('Hubo un problema al realizar la operación. Por favor vuelva a intentarlo mas tarde.');
+                }
+            },
+            error: function() {
+                // Manejo de errores
+                alert('Error al obtener los datos');
+            }
+        });
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        const contenedorPadreCod = document.getElementById('div_id_cod_tlf');
+
+        const divInternoCod = contenedorPadreCod.querySelector('.col-sm-8');
+
+        divInternoCod.classList.add('col-sm-3');
+        divInternoCod.classList.remove('col-sm-8');
+
+        nuevoDiv = '<div class="text-dark col-sm-5"> <input type="text" name="contacto" placeholder="Ingrese el numero de contacto" class="textinput form-control" required="" pattern="[0-9]+" title="Solo se aceptan números en este campo (Entre 7 y 14 números)." minlength="7" maxlength="14" id="id_contacto"></div>'
+        contenedorPadreCod.innerHTML += nuevoDiv;
+
+        const divImagen = document.getElementById('div_id_imagen');
+        const div = divImagen.querySelector('.col-sm-8');
+
+        nuevoLabel = '<label class="col-sm-12 custom-file-label" for="id_imagen">Suba la referencia aquí</label>'
+        div.innerHTML += nuevoLabel;
+    });
+</script>
+
+<script>
+    $(document).on('change', '#domicilio', function() {
+        var domSeleccionado = $(this).val();
+
+        $.ajax({
+            url: '/obtener_domicilio/',
+            data: {
+                'domicilio': domSeleccionado
+            },
+            success: function(response) {
+
+                var nombre = response.nombre_domicilio
+                var piso = response.piso_domicilio;
+                var tipo = response.tipo_domicilio;
+                var estacionamiento = response.estacionamientos;
+                var alicuota = response.alicuota_domicilio;
+                var size = response.size_domicilio;
+                var nombre_torre = response.nombre_torre;
+
+                var fila = '<tr>' + '<td>' + nombre + '</td>' + '<td>' + piso + '</td>' + '<td>' + tipo + '</td>' +
+                           '<td>' + estacionamiento + '</td>' +
+                           '<td>' + alicuota + '</td>' +
+                           '<td>' + size + '</td>' +
+                           '<td>' + nombre_torre + '</td>' +
+                           '</tr>';
+
+                $('#tabla_datos tbody').append(fila);
+
+                document.getElementById('datos_domicilio').classList.remove('d-none')
+                document.getElementById('btn_publicar').disabled = false;
+                document.getElementById('btn_publicar').classList.remove('btn-disabled');
+                document.getElementById('btn_publicar').classList.add('btn-success');
+            },
+            error: function() {
+                // Manejo de errores
+                alert('Error al obtener los datos');
+            }
+        });
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaPublicaciones').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+{% endblock body_block %}

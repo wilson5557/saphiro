@@ -1,0 +1,662 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+
+{% block modulo_label %}
+<span class="" id="gestionar-propietarios">Propietarios</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="d-none"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO MAESTRO DE PROPIETARIOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Propietarios">
+    <div class="container rounded modulo pb-2">
+        <div class="container pt-3 pb-1">
+
+            <div class="form-group row">
+                <button class="btn-option mx-auto move-up d-none" id="HidePropietarios" onclick="ShowOrHide('ShowFormPropietarios')" data-toggle="popover" data-content="Haz click aquí para agregar un gasto"><i class="bx bx-plus pr-2"></i> Agregar Propietarios</button>
+
+                <button class="btn-option mx-auto move-up" id="ShowPropietarios" onclick="ShowOrHide('HideFormPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de los gastos"><i class="fa fa-list pr-2"></i> Lista de propietarios</button>
+
+                <button class="btn-option mx-auto move-up" id="ShowMovPropietarios" onclick="ShowOrHide('HideAllPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de los gastos"><i class="fa fa-list pr-2"></i> Lista de movimientos</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- VER LOS PROPIETARIOS EN EL SISTEMA -->
+            <div class="d-none" id="VerPropietarios">
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                           id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+                    width="100%" id="TablaPropietarios">
+                    <thead class="table-header">
+                    <tr>
+                        <th scope="col">Propietario</th>
+                        <th scope="col">DNI</th>
+                        <th scope="col">Teléfono</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if propietarios %}
+                    {% for propietario in propietarios %}
+                    <tr>
+                        <td class="centered-cell"> {{ propietario.nombre_propietario }}</td>
+                        <td class="centered-cell"> {{ propietario.tipo_dni }}-{{ propietario.dni }}</td>
+                        <!-- VERIFICAR CON UN IF, SI EL TLF DE HABITACION ESTA VACIO PONER EL MOVIL, CASO CONTRARIO PONER EL DE HABITACION Y SI ESTAN LOS DOS ENTONCES PONER LOS DOS -->
+                        <td class="centered-cell text-center">
+                            {% if propietario.codigo_tlf_movil and propietario.telefono_movil %}
+                            {{propietario.codigo_tlf_movil}}-{{ propietario.telefono_movil }}
+                            {% else %} 
+                                - 
+                            {% endif %}
+                        </td>
+                        {% if propietario.genero == "M" %}
+                        <td class="centered-cell"> Masculino </td>
+                        {% else %}
+                        <td class="centered-cell"> Femenino </td>
+                        {% endif %}
+                        <td>
+                            <div class="horizontal-cell">
+                                <a href="/home/administrar/propietarios/ver/{{ propietario.id_propietario }} "
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                                <a href="/home/administrar/propietarios/actualizar/{{ propietario.id_propietario }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="/home/administrar/propietarios/eliminar/{{ propietario.id_propietario }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- VER LOS MOVIMIENTOS REALIZADOS POR LOS PROPIETARIOS Y SU ESTADO -->
+            <form method="POST" id="Confirm_form" action="{% url 'condominio_app:admin_propietarios_mov' %}">
+              {% csrf_token %}
+              <div class="d-none" id="VerMovimientos">
+                <br>
+                <div class="input-div input-group">
+                  <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                         id="search_table2">
+                  <div class="input-group-append">
+                    <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                  </div>
+                </div>
+                <table class="table table-hover mt-3 table-responsive-xl table-responsive-lg table-responsive-md"
+                       width="100%" id="TablaMovimientos">
+                  <thead class="table-header">
+                  <tr>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Emisor</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col">Referencia</th>
+                    <th scope="col">Monto</th>
+                    <th scope="col">Banco Emisor</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Acción</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                      {% for mov in movimientos %}
+                      {% if movimientos %}
+                  <tr>
+                    <td class="centered-cell"> {{ mov.fecha_movimiento }}</td>
+                    <td class="centered-cell">
+                        {% if mov.id_propietario %}
+                            {{ mov.id_propietario.nombre_propietario }}
+                        {% else %}
+                            {{ mov.emisor }}
+                        {% endif %}
+                    </td>
+                    <td class="centered-cell"> {{ mov.descripcion_movimiento }}</td>
+                    <td class="centered-cell text-center"> {{ mov.referencia_movimiento }}</td>
+                    <td class="centered-cell">{{ mov.monto_movimiento }}</td>
+                    <td class="centered-cell"> {{ mov.banco_emisor }}</td>
+
+                    {% if mov.estado_movimiento == 0 %}
+                    <td class="centered-cell text-success"> Aprobado</td>
+                    {% elif mov.estado_movimiento == 1 %}
+                    <td class="centered-cell text-warning"> Rechazado</td>
+                    {% else %}
+                    <td class="centered-cell"> Pendiente</td>
+                    {% endif %}
+
+                    {% if mov.estado_movimiento == 2 %}
+                    <td class="center-all">
+                      <div class="horizontal-cell">
+                          <button type="button" value={{mov.id_movimiento}} class="btn btn-primary btn-option-admin border text-light button-table center-all aceptar"
+                                  style="justify-content: unset;" data-toggle="modal" data-target="#consultar" data-content="Aceptar"><i class="fa fa-thumbs-o-up pr-3"></i></button>
+                          <button type="button" value={{mov.id_movimiento}} class="btn btn-primary btn-option-admin border text-light button-table center-all rechazar"
+                                  style="justify-content: unset;" data-toggle="modal" data-target="#consultar" data-content="Rechazar"><i class="fa fa-ban pr-3"></i></button>
+                      </div>
+                    </td>
+                    {% else %}
+                    <td class="centered-cell">Revisado</td>
+                    {% endif %}
+                  </tr>
+                  {% endif %}
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </form>
+
+            <div class="modal fade" id="consultar" tabindex="-1" role="dialog" aria-labelledby="consultarLabel" aria-hidden="true" style="width: 100%">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="consultarLabel">Confirmar</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div id="text_aprobar">¿Esta seguro que desea aprobar el movimiento?</div>
+                    <div id="text_rechazar">¿Esta seguro que desea rechazar el movimiento?</div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" id="btn_respuesta" class="btn btn-primary">Aceptar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FORMULARIO PARA AGREGAR UN NUEVO PROPIETARIO -->
+            <div class="form-style-10 col-sm-12" id="AgregarPropietarios">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="section mb-3"><span>1</span><strong>Información del propietario</strong></div>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-12">
+                            <label for="{{ propietarios_form.nombre_propietario.name }}" class="col-sm-12 text-dark">{{ propietarios_form.nombre_propietario.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.nombre_propietario class="form-control text-dark" placeholder="Ingrese el nombre completo del propietario" %}
+                                {% for error in propietarios_form.nombre_propietario.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-4">
+                            <label for="{{ propietarios_form.pais_residencia.name }}" class="col-sm-12 text-dark">{{ propietarios_form.pais_residencia.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.pais_residencia.name }}"
+                                        id="{{ propietarios_form.pais_residencia.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.pais_residencia %}
+                                    {{select}}
+                                    {% for error in propietarios_form.pais_residencia.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-2">
+                            <label for="{{ propietarios_form.genero.name }}" class="col-sm-3 text-dark">{{ propietarios_form.genero.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.genero.name }}"
+                                        id="{{ propietarios_form.genero.name }}" class="form-control text-dark">
+                                    {% for select in propietarios_form.genero %}
+                                    {{select}}
+                                    {% for error in propietarios_form.genero.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-2">
+                            <label for="{{ propietarios_form.tipo_dni.name }}" class="col-sm-12 text-dark">{{ propietarios_form.tipo_dni.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.tipo_dni.name }}"
+                                        id="{{ propietarios_form.tipo_dni.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.tipo_dni %}
+                                    {{select}}
+                                    {% for error in propietarios_form.tipo_dni.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-4">
+                            <label for="{{ propietarios_form.dni.name }}" class="col-sm-12 text-dark">{{ propietarios_form.dni.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.dni class="form-control text-dark" name=propietarios_form.dni.name placeholder="Ingrese el número de su documento" %}
+                                {% for error in propietarios_form.dni.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inner-wrap form-row">
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.codigo_tlf_hab.name }}" class="col-sm-12 text-dark">{{ propietarios_form.codigo_tlf_hab.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.codigo_tlf_hab.name }}"
+                                        id="{{ propietarios_form.codigo_tlf_hab.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.codigo_tlf_hab %}
+                                    {{select}}
+                                    {% for error in propietarios_form.codigo_tlf_hab.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.telefono_hab.name }}" class="col-sm-12 text-dark">{{ propietarios_form.telefono_hab.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.telefono_hab class="form-control text-dark" name=propietarios_form.telefono_hab.name placeholder="Número de teléfono de habitación" %}
+                                {% for error in propietarios_form.telefono_hab.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.codigo_tlf_movil.name }}" class="col-sm-12 text-dark">{{ propietarios_form.codigo_tlf_movil.label }}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ propietarios_form.codigo_tlf_movil.name }}"
+                                        id="{{ propietarios_form.codigo_tlf_movil.name }}"
+                                        class="form-control text-dark">
+                                    {% for select in propietarios_form.codigo_tlf_movil %}
+                                    {{select}}
+                                    {% for error in propietarios_form.codigo_tlf_movil.errors %}
+                                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-3">
+                            <label for="{{ propietarios_form.telefono_movil.name }}" class="col-sm-12 text-dark">{{ propietarios_form.telefono_movil.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field propietarios_form.telefono_movil class="form-control text-dark" name=propietarios_form.telefono_movil.name placeholder="Número de teléfono móvil" %}
+                                {% for error in propietarios_form.telefono_movil.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section"><span>2</span><strong>Información de Inmueble</strong></div>
+                    <div class="inner-wrap form-row domicilios" id="domicilios">
+                        <div class="form-group col-sm-12">
+                            <label for="domicilio" class="text-dark">Seleccione un inmueble:</label>
+                            <div>
+                                <select name="domicilio" id="domicilio0" class="domicilio form-control text-dark">
+                                    {% if domicilios %}
+                                    <option value="" selected>Seleccione un inmueble...</option>
+                                    {% for dom in domicilios %}
+                                    <option value="{{dom.id_domicilio}}" class="dom-option">{{dom.nombre_domicilio}}</option>
+                                    {% endfor %}
+                                    {% else %}
+                                    <option value="">No existen inmuebles disponibles por el momento</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-sm-12 d-none" id="item-add">
+                            <p style="padding-top: 0.25rem;">
+                                <button type="button" class="btn border btn-option-admin center-all"
+                                        style="width: 215px !important; height: 45px !important; justify-content: space-between;" onclick="add();">
+                                    <span class="material-symbols-outlined">add</span>
+                                    <div>Agregar otro inmueble</div>
+                                </button>
+                            </p>
+                        </div>
+
+                        <div id="section_name" class="col-sm-12 section_name section d-none">
+                            <strong>Información del inmueble</strong>
+
+                            <table id="tabla_datos" width="100%" style="font-size: 14px;"
+                                   class="table table-hover mt-3 table-responsive-xl table-responsive-lg table-responsive-md tabla_datos">
+                              <thead class="table-header-admin">
+                                <tr>
+                                    <th style="font-weight: 400;" width="20%">Inmueble</th>
+                                    <th style="font-weight: 400;" width="20%">Piso</th>
+                                    <th style="font-weight: 400;" width="30%">Tipo</th>
+                                    <th style="font-weight: 400;">Estacionamientos</th>
+                                    <th style="font-weight: 400;">Alicuota</th>
+                                    <th style="font-weight: 400;">Tamaño</th>
+                                    <th style="font-weight: 400;" width="50%">Ubicado en la torre</th>
+                                    <th style="font-weight: 400;">Acción</th>
+                                  <!-- Agrega las columnas adicionales necesarias -->
+                                </tr>
+                              </thead>
+                              <tbody style="background-color: white;">
+                              </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="section"><span>3</span><strong>Información de cuenta</strong></div>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-12">
+                            <label for="{{ user_form.email.name }}" class="col-sm-12 text-dark">{{ user_form.email.label }}:</label>
+                            <div class="col-sm-12">
+                                {% render_field user_form.email class="form-control text-dark" name=user_form.email.name placeholder="Ingrese el correo electrónico" %}
+                                {% for error in user_form.email.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <small id="emailHelp" class="form-text text-muted col-sm-12">Se le enviará un correo al
+                                propietario indicandole su usuario y contraseña para su posterior ingreso al
+                                sistema.</small>
+                        </div>
+                    </div>
+
+                    <div class="button-section mx-auto">
+                        {% if domicilios %}
+                        <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover"
+                                data-content="Haz click aquí para agregar el nuevo propietario al sistema"><i
+                                class="fa fa-check pr-1"></i> Aceptar
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn btn-gray col-sm-4 mt-3 move-up" data-toggle="popover"
+                                data-content="Debe tener inmuebles registrados disponibles para poder ingresar un propietario"><i
+                                class="fa fa-check pr-1" disabled aria-disabled></i> Aceptar
+                        </button>
+                        {% endif %}
+                        <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i
+                                class="fa fa-times pr-1"></i> Cancelar
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+      $('#Confirm_form').submit(function(event) {
+        event.preventDefault();
+
+        $.ajax({
+          type: 'POST',
+          url: $(this).attr('action'),
+          data: $(this).serialize(),
+          success: function(response) {
+            window.location.href = '/home/administrar/propietarios/'
+            console.log(response.mensaje)
+          },
+          error: function(response) {
+            alert('Hubo un inconveniente al realizar la confirmacion. Por favor intente mas tarde.');
+          }
+        });
+      });
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaPropietarios').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+
+        var table2 = $('#TablaMovimientos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table2').on( 'keyup', function () {
+            table2.search( this.value ).draw();
+        });
+    });
+</script>
+
+<script>
+    var btnAceptar = document.querySelectorAll('.aceptar');
+    var btnRechazar = document.querySelectorAll('.rechazar');
+
+    var respuesta = document.getElementById('btn_respuesta');
+    var id;
+
+    btnAceptar.forEach(function(boton) {
+        boton.addEventListener('click',  function() {
+            id = boton.value;
+            respuesta.value = "Aprobado";
+            document.getElementById('text_aprobar').classList.remove('d-none');
+            document.getElementById('text_rechazar').classList.add('d-none');
+        });
+    });
+
+    btnRechazar.forEach(function(boton) {
+        boton.addEventListener('click',  function() {
+            id = boton.value;
+            respuesta.value = "Rechazado";
+            document.getElementById('text_aprobar').classList.add('d-none');
+            document.getElementById('text_rechazar').classList.remove('d-none');
+        });
+    });
+
+    respuesta.addEventListener('click', function () {
+        $.ajax({
+            url: '/admin_propietarios_mov/',
+            data: {
+                'respuesta': respuesta.value,
+                'id': id
+            },
+            success: function(response) {
+                alert(response.mensaje);
+                location.reload(true);
+            },
+            error: function() {
+                // Manejo de errores
+                alert('Error al obtener los datos');
+            }
+        });
+    });
+
+</script>
+
+<script>
+var domiciliosSeleccionados = [];
+
+$(document).on('change', '.domicilio', function() {
+    var dom_disp = parseInt("{{ domicilios_disponibles }}") || 999;
+    var selectId = $(this).attr("id");
+    var domSeleccionado = $(this).val();
+    
+    if (!domSeleccionado || domSeleccionado === '') {
+        return;
+    }
+    
+    if (domiciliosSeleccionados.indexOf(domSeleccionado) !== -1) {
+        $(this).val('');
+        alert('Este inmueble ya fue seleccionado');
+        return;
+    }
+    
+    domiciliosSeleccionados.push(domSeleccionado);
+    
+    $('#section_name').removeClass('d-none');
+    
+    if (selectId == 'domicilio0') {
+        if (dom_disp > domiciliosSeleccionados.length) {
+            $('#item-add').removeClass('d-none');
+        } else {
+            $('#item-add').addClass('d-none');
+        }
+    }
+    
+    $.ajax({
+        url: '/obtener_domicilio/',
+        data: {
+            'domicilio': domSeleccionado
+        },
+        success: function(response) {
+            var filaId = "fila" + domSeleccionado;
+            
+            var nombre = response.nombre_domicilio;
+            var piso = response.piso_domicilio;
+            var tipo = response.tipo_domicilio;
+            var estacionamiento = response.estacionamientos;
+            var alicuota = response.alicuota_domicilio;
+            var size = response.size_domicilio;
+            var nombre_torre = response.nombre_torre;
+
+            var fila = '<tr id="'+filaId+'">' + 
+                       '<td>' + nombre + '</td>' + 
+                       '<td>' + piso + '</td>' + 
+                       '<td>' + tipo + '</td>' +
+                       '<td>' + estacionamiento + '</td>' +
+                       '<td>' + alicuota + '</td>' +
+                       '<td>' + size + '</td>' +
+                       '<td>' + nombre_torre + '</td>' +
+                       '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeDomicilio(' + domSeleccionado + ')">Eliminar</button></td>' +
+                       '</tr>';
+
+            $('#tabla_datos tbody').append(fila);
+            
+            if (selectId == 'domicilio0') {
+                var optionElement = $('#domicilio0 option[value="' + domSeleccionado + '"]');
+                var optionText = optionElement.text();
+                optionElement.remove();
+                $('#domicilio0').val('').prop('selectedIndex', 0).prop('disabled', true);
+                var hiddenInput = '<input type="hidden" name="domicilio" value="' + domSeleccionado + '" data-nombre="' + optionText + '">';
+                $('#domicilios').append(hiddenInput);
+            }
+        },
+        error: function() {
+            alert('Error al obtener los datos');
+            var index = domiciliosSeleccionados.indexOf(domSeleccionado);
+            if (index > -1) {
+                domiciliosSeleccionados.splice(index, 1);
+            }
+        }
+    });
+});
+
+$(document).ready(function() {
+    window.add = function() {
+        var dom_disp = parseInt("{{ domicilios_disponibles }}") || 999;
+        if (domiciliosSeleccionados.length < dom_disp) {
+            $('#domicilio0').val('').prop('selectedIndex', 0).prop('disabled', false);
+            $('#domicilio0').focus();
+        } else {
+            $('#item-add').addClass('d-none');
+        }
+    };
+});
+
+function removeDomicilio(id) {
+    var idStr = id.toString();
+    var index = domiciliosSeleccionados.indexOf(idStr);
+    if (index > -1) {
+        domiciliosSeleccionados.splice(index, 1);
+    }
+    var hiddenInput = $('input[type="hidden"][name="domicilio"][value="' + id + '"]');
+    var nombreDomicilio = hiddenInput.data('nombre') || hiddenInput.attr('data-nombre');
+    $('#tabla_datos #fila' + id).remove();
+    hiddenInput.remove();
+    
+    if (nombreDomicilio && $('#domicilio0 option[value="' + id + '"]').length === 0) {
+        $('#domicilio0').append('<option value="' + id + '">' + nombreDomicilio + '</option>');
+    }
+    
+    var dom_disp = parseInt("{{ domicilios_disponibles }}") || 999;
+    if (domiciliosSeleccionados.length < dom_disp) {
+        $('#item-add').removeClass('d-none');
+    }
+    
+    if (domiciliosSeleccionados.length === 0) {
+        $('#section_name').addClass('d-none');
+        $('#domicilio0').prop('disabled', false);
+    }
+}
+</script>
+
+<!-- FIN MAESTRO DE PROPIETARIOS -->
+{% endblock body_block %}

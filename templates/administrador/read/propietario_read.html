@@ -1,0 +1,101 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="">Ver Propietario</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Bancos">
+  <div class="container rounded modulo border-secondary pb-2">
+    <div class="container pt-3 pb-1">
+
+      <div class="divider"></div>
+
+      {% if prop %}
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Nombre completo:</strong> <span>{{prop.nombre_propietario}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Usuario:</strong> <span class="">{{prop.id_usuario.username}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Identificación:</strong> <span>{{prop.tipo_dni}}-{{prop.dni}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Correo eléctronico:</strong> <span class="">{{prop.id_usuario.email}}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Pais residencia:</strong> <span>{{prop.pais_residencia}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Teléfono de habitación</strong> <span>
+              {% if prop.telefono_hab == '' %}
+                <span class="text-danger">No tiene</span>
+              {% else %}
+                ({{prop.codigo_tlf_hab}}) {{prop.telefono_hab}}
+              {% endif %}
+              </span></p>
+          </div>
+
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Género:</strong> <span>
+              {% if prop.genero == 'M' %}
+                Masculino
+              {% else %}
+                Femenino
+              {% endif %}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Teléfono móvil</strong> <span>
+              {% if prop.telefono_movil == '' %}
+                <span class="text-danger">No tiene</span>
+              {% else %}
+                ({{prop.codigo_tlf_movil}}) {{prop.telefono_movil}}
+              {% endif %}
+              </span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Fecha de registro del propietario:</strong> <span class="">{{prop.created_at|date:"l, d/m/Y"}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Última actualización:</strong> <span class="">{{prop.updated_at|date:"l, d/m/Y"}}</span></p>
+            
+            <div class="row pt-3" style="display: grid; align-content: center;">
+              <div class="inner-wrap form-row" bis_skin_checked="1" style="display: block;">
+                <h3 for="Inmuebles" style="color:#974608; margin-left: 2rem;">Inmuebles del propietario</h3>
+               
+                <table style="margin-left: 2rem;" class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3 dataTable no-footer"  > 
+                  <head class="" style="background-color: #974608; color: white;">
+                    <th scope="col" class="sorting sorting_asc" tabindex="0" aria-controls="Domicilios de propietario" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Propietario: activate to sort column descending">
+                      Propiedades usuario 
+                    </th>
+                  </head>
+                <tbody>
+                  {% for domicilios in domicilios %}
+                  <tr>
+                    <td style="border-width: 0.5px!important;"> {{domicilios}} </td> 
+                  </tr>
+                  {% endfor %}
+                </tbody>
+
+              </table>
+             
+              </div>
+            </div>
+
+          </div>
+          <div class="dropdown-divider">
+            
+           
+
+          </div>
+          <div class="d-grid pt-3" style="justify-content: right;">
+            <a class="btn btn-danger col-sm-12 border text-light move-up btn-cancel"
+              href="/home/administrar/propietarios"><i class="fa fa-arrow-left float-left pt-1"></i> Volver</a>
+          </div>
+        {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock body_block %}

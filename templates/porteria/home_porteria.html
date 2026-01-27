@@ -1,0 +1,60 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="" id="inicio-admin">Inicio</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- SECCIÓN DE INICIO -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="InicioAdmin">
+    <div class="container rounded modulo border border-secondary pb-2" style="background-color: #ffffff">
+        <div class="container pt-3 pb-1">
+            <h2 class="text-center pb-1">¡Bienvenido {{user}}!</h2>
+            <div class="divider"></div>
+
+            {% language 'es' %}
+            {{weekend}}
+            {% endlanguage %}
+
+            <!-- INICIO -->
+            <div class="mt-3">
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6">Correo Eléctronico: <span>{{usuario.email}}</span></p>
+                    <p class="normal-font text-dark col-sm-6">Usuario: <span>{{usuario.username}}</span></p>
+                </div>
+                <div class="row pt-3">
+                    <p class="normal-font text-dark col-sm-6">Estado de Cuenta:
+                        {% if user.is_active == True %}
+                        <span class="text-success">
+                            Activo
+                        </span>
+                        {% else %}
+                        <span class="text-danger">
+                          Suspendido
+                        </span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="align-right object-right">
+                    <a class="btn border btn-option-admin text-center align-right center-all" href="/password_change/">Cambiar
+                        contraseña</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FIN SECCIÓN DE INICIO -->
+{% endblock body_block %}

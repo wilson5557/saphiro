@@ -1,0 +1,471 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+<span class="" id="gestionar-ingresos">Ingresos</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<!-- INICIO MAESTRO DE INGRESOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Ingresos">
+    <div class="container rounded modulo pb-2">
+        <div class="container pt-3 pb-1">
+
+            <div class="form-group row">
+                <button class="btn-option mx-auto move-up d-none" id="HideIngresos" onclick="ShowOrHide('HideListaIngresos')"
+                        data-toggle="popover" data-content="Haz click aquí para agregar un ingreso"><i
+                        class="bx bx-plus pr-2"></i> Agregar Ingreso
+                </button>
+
+                <button class="btn-option mx-auto move-up" id="ShowIngresos" onclick="ShowOrHide('ShowListaIngresos')"
+                        data-toggle="popover" data-content="Haz click aquí para ver la lista de ingresos agregados"><i
+                        class="fa fa-list pr-2"></i> Lista de Ingresos
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- FORMULARIO -->
+            <form id="AgregarIngresos" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group row mt-4">
+                    <label for="TipoMonedaIngreso" class="col-sm-3 col-form-label text-dark">Tipo de moneda:</label>
+                    <!-- BOLIVARES -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="BolivarI" name="TipoMonedaIngreso" class="custom-control-input"
+                               value="BS" onclick="CheckMoneda('Bs', 'BancosBS_INGRESO')" required>
+                        <label class="custom-control-label text-dark" for="BolivarI">BS</label>
+                    </div>
+                    <!-- DOLARES -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="DolarI" name="TipoMonedaIngreso" class="custom-control-input"
+                               value="USD" onclick="CheckMoneda('Usd', 'BancosUSD_INGRESO')" required>
+                        <label class="custom-control-label text-dark" for="DolarI">USD</label>
+                    </div>
+                    <!-- EUROS -->
+                    <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+                        <input type="radio" id="EuroI" name="TipoMonedaIngreso" class="custom-control-input" value="EUR"
+                               onclick="CheckMoneda('Eur', 'BancosEUR_INGRESO')" required>
+                        <label class="custom-control-label text-dark" for="EuroI">EUR</label>
+                    </div>
+                </div>
+                <!-- TENGO QUE CAMBIAR LOS ID DE BANCOSBS A BANCOSBSINGRESO Y ASI PQ EL HTML ES MARISQUITO -->
+                <div class="form-group row d-none" id="BancosBS_INGRESO">
+                    <label for="banco_ingreso_BS" class="col-sm-3 col-form-label text-dark">Banco utilizado:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_ingreso_BS" name="banco_ingreso_BS">
+                            {% if bancos %}
+                            <option value="" disabled selected>Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'BS' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} BS)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE MANEJEN BOLIVARES REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row d-none" id="BancosUSD_INGRESO">
+                    <label for="banco_ingreso_USD" class="col-sm-3 col-form-label text-dark">Banco utilizado:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_ingreso_USD" name="banco_ingreso_USD">
+                            {% if bancos %}
+                            <option value="" disabled selected>Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'USD' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} $)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE MANEJEN USD REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row d-none" id="BancosEUR_INGRESO">
+                    <label for="banco_ingreso_EUR" class="col-sm-3 col-form-label text-dark">Banco utilizado:</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="banco_ingreso_EUR" name="banco_ingreso_EUR">
+                            {% if bancos %}
+                            <option value="" disabled selected>Elige un banco...</option>
+                            {% for banco in bancos %}
+                            {% if banco.tipo_moneda == 'EUR' %}
+                            <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} EUR)</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="0" selected disabled>NO HAY BANCOS QUE MANEJEN EUROS REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                  <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del gasto: </label>
+                  <div class="col-sm-5">
+                    <input type="date" class="form-control text-dark" id="fecha_movimiento" name="fecha_movimiento" required>
+                  </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                  <label for="{{ movimiento_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.concepto_movimiento.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.concepto_movimiento class="form-control text-dark" placeholder="Concepto del ingreso" %}
+                    {% for error in movimiento_form.concepto_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ movimiento_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.descripcion_movimiento.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.descripcion_movimiento class="form-control text-dark" placeholder="Descripción del ingreso" rows="5" %}
+                    {% for error in movimiento_form.descripcion_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ movimiento_form.monto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.monto_movimiento.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.monto_movimiento class="form-control text-dark" placeholder="Ingrese el monto del ingreso realizado" %}
+                    {% for error in movimiento_form.monto_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="nombre_titular" class="col-sm-3 col-form-label text-dark">{{ datos_transaccion_form.nombre_titular.label }}:</label>
+                  <div class="col-sm-8">
+                    {% render_field datos_transaccion_form.nombre_titular class="form-control text-dark" placeholder="Ingrese el nombre del titular" %}
+                    {% for error in datos_transaccion_form.nombre_titular.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ datos_transaccion_form.tipo_dni_titular.name }}" class="col-sm-3 col-form-label text-dark">Identificación del emisor:</label>
+                  <div class="col-sm-2">
+                    <select name="{{ datos_transaccion_form.tipo_dni_titular.name }}" id="{{ datos_transaccion_form.tipo_dni_titular.name }}" class="form-control text-dark">
+                      {% for select in datos_transaccion_form.tipo_dni_titular  %}
+                        {{select}}
+                        {% for error in datos_transaccion_form.tipo_dni_titular.errors %}
+                          <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-6">
+                    {% render_field datos_transaccion_form.dni_titular class="form-control text-dark" name=datos_transaccion_form.dni_titular.name placeholder="Ingrese el número de identificación del titular" %}
+                    {% for error in datos_transaccion_form.dni_titular.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="{{ datos_transaccion_form.codigo_area.name }}" class="col-sm-3 col-form-label text-dark">Teléfono del receptor:</label>
+                  <div class="col-sm-2">
+                    <select name="{{ datos_transaccion_form.codigo_area.name }}" id="{{ datos_transaccion_form.codigo_area.name }}" class="form-control text-dark">
+                      {% for select in datos_transaccion_form.codigo_area  %}
+                        {{select}}
+                        {% for error in datos_transaccion_form.codigo_area.errors %}
+                          <div class="alert alert-danger mt-2">{{ error }}</div>
+                        {% endfor %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-6">
+                    {% render_field datos_transaccion_form.telefono_titular class="form-control text-dark" name=datos_transaccion_form.telefono_titular.name placeholder="Ingrese el número de teléfono del titular" %}
+                    {% for error in datos_transaccion_form.telefono_titular.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row mt-4">
+                  <label for="{{ ingresos_form.metodo_pago.name }}" class="col-sm-3 col-form-label text-dark">Método de Pago:</label>
+                  <div class="col-sm-5">
+                      <select name="{{ ingresos_form.metodo_pago.name }}"
+                      id="{{ ingresos_form.metodo_pago.name }}" class="form-control">
+                      <option value="" disabled selected>Seleccione un método de pago</option>
+                      {% for select in ingresos_form.metodo_pago %}
+                      {{select}}
+                      {% for error in ingresos_form.metodo_pago.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                      {% endfor %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                  <!-- <script>
+                function esNum(ev, el) {
+                  /* ev: evento; el: elemento; */
+                  tecla = (document.all) ? ev.keyCode : ev.which;
+              
+                  // Permite un solo punto decimal
+                  if (el.value.indexOf('.') == -1 ? tecla == 46 : false) { return true; }
+              
+                  // Permite números negativos (después de escribir un número)
+                  if (tecla == 45 && el.value !== '') { el.value = (-1) * el.value; }
+              
+                  // Permite tecla de retroceso (borrar)
+                  if (tecla == 8) { return true; }
+              
+                  // Permite tecla Tab
+                  if (tecla == 9) { return true; }
+              
+                  // Patrón de entrada: solo acepta numeros positivos
+                  patron = /[0-9]/;
+                  tecla_fin = String.fromCharCode(tecla);
+                  return patron.test(tecla_fin);
+              } </script> -->
+               
+
+                <div class="form-group row mt-3" id="num_factura">
+                  <label for="factura" class="col-sm-3 col-form-label text-dark">Número de factura: </label>
+                  <div class="col-sm-5">
+                    {% render_field ingresos_form.factura class="form-control" id=ingresos_form.factura.name placeholder="Número de Factura (si aplica)" %}
+                  </div>
+                </div>
+                
+
+                <div class="form-group row" id="divReferencia">
+                  <label for="referencia" class="col-sm-3 col-form-label text-dark">Referencia bancaria:</label>
+                  <div class="col-sm-8">
+                    {% render_field movimiento_form.referencia_movimiento class="form-control text-dark" id="referencia" title="Por favor introduzca un formato valido" placeholder="Ingrese referencia bancaria" %}
+                    {% for error in movimiento_form.referencia_movimiento.errors %}
+                      <div class="alert alert-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="{{ ingresos_form.tipo_ingreso.name }}" class="col-sm-3 col-form-label text-dark">{{ ingresos_form.tipo_ingreso.label }}:</label>
+                    <div class="col-sm-8">
+                      <select name="{{ ingresos_form.tipo_ingreso.name }}" id="{{ ingresos_form.tipo_ingreso.name }}" class="form-control text-dark">
+                        {% for select in ingresos_form.tipo_ingreso  %}
+                          {{select}}
+                          {% for error in ingresos_form.tipo_ingreso.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                          {% endfor %}
+                        {% endfor %}
+                      </select>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="apto_ingreso" class="col-sm-3 col-form-label text-dark">Apartamento (Opcional):</label>
+                    <div class="col-sm-8">
+                        <select class="form-control text-dark" id="apto_ingreso" name="apto_ingreso">
+                            {% if propietarios %}
+                            <option value="opcion" selected disabled>Elige un apartamento...</option>
+                            {% for propietario in propietarios %}
+                            {% if propietario.id_propietario %}
+                            <option value="{{propietario.id_domicilio}}">{{ propietario.nombre_domicilio }} - {{ propietario.id_propietario.nombre_propietario }}</option>
+                            {% else %}
+                            <option value="" disabled>{{ propietario.nombre_domicilio }}</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option value="opcion" selected disabled>NO HAY PROPIETARIOS REGISTRADOS</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                  <label for="imgIngreso" class="col-sm-3 col-form-label text-dark">Imagen Referencial:</label>
+                  <div class="col-sm-8">
+                    <input type="file" class="custom-control-input" accept="image/*" name="imgIngreso" id="imgIngreso">
+                    <label class="col-sm-12 custom-file-label" for="imgIngreso">Suba la referencia aquí</label>
+                  </div>
+                </div>
+
+                <input type="hidden" value="INGRESOS_POST" name="form_post" id="form_post" class="d-none">
+
+                {% if bancos %}
+                <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover"
+                        data-content="Haz click aquí para agregar el nuevo ingreso a la lista"><i
+                        class="fa fa-check pr-1"></i> Aceptar
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-gray col-sm-4 mt-3 move-up" data-toggle="popover"
+                        data-content="Se debe tener registrados bancos y propietarios primero para hacer uso de esta opción!">
+                    <i class="fa fa-check pr-1" disabled aria-disabled="true"></i> Aceptar
+                </button>
+                {% endif %}
+
+                <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i class="fa fa-times pr-1"></i>
+                    Cancelar
+                </button>
+            </form>
+
+            <!-- TABLA -->
+            <div class="d-none" id="VerIngresos">
+                <br>
+                <div class="input-div input-group">
+                    <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada" id="search_table">
+                    <div class="input-group-append">
+                        <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                    </div>
+                </div>
+
+                <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+                       width="100%" id="TablaIngresos">
+                    <thead class="table-header">
+                    <tr>
+                        <th scope="col">Concepto</th>
+                        <th scope="col">Descripción</th>
+                        <th scope="col">Monto</th>
+                        <th scope="col">Propietario</th>
+                        <th scope="col">Banco</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if ingresos %}
+                    {% for ingreso in ingresos %}
+                    <tr style="font-size: 14px;">
+                        <td class="centered-cell"> {{ ingreso.id_movimiento.concepto_movimiento }}</td>
+                        <td class="centered-cell stadistics-text"> {{ ingreso.id_movimiento.descripcion_movimiento }}</td>
+                        <td class="centered-cell"><span
+                                class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento }}</span></td>
+                        {% if ingreso.emisor %}
+                        <td class="centered-cell stadistics-text"> {{ ingreso.emisor }}</td>
+                        {% else %}
+                        <td class="centered-cell stadistics-text">-</td>
+                        {% endif %}
+
+                        <td class="centered-cell stadistics-text"> {{ ingreso.id_movimiento.id_banco.nombre_banco }}</td>
+                        {% language 'es' %}
+                        <td class="centered-cell"> {{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
+                        {% endlanguage %}
+                        {% if cierre %}
+                        {% if ingreso.id_movimiento.fecha_movimiento > cierre.fecha_cierre %}
+                        <td>
+                            <div class="horizontal-cell">
+                                <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                                <a href="/home/administrar/ingresos/actualizar/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="/home/administrar/ingresos/eliminar/{{ ingreso.id_movimiento_id }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                            </div>
+                        </td>
+                        {% else %}
+                        <td class="center-all">
+                          <div class="horizontal-cell">
+                            <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Archivado"><i class="fa fa-eye"></i></a>
+                          </div>
+                        </td>
+                        {% endif %}
+                        {% else %}
+                        <td>
+                            <div class="horizontal-cell">
+                                <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                                <a href="/home/administrar/ingresos/actualizar/{{ ingreso.id_ingreso }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="/home/administrar/ingresos/eliminar/{{ ingreso.id_movimiento_id }}"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  var metodo_pago = document.getElementById('metodo_pago');
+  var divFactura = document.getElementById('num_factura');
+  var i_referencia = document.getElementById('referencia');
+  var divReferencia = document.getElementById('divReferencia');
+
+  metodo_pago.addEventListener('change', function () {
+    if (metodo_pago.value == 0) {
+      i_referencia.required = false;
+      divReferencia.classList.add('d-none');
+
+      divFactura.classList.remove('d-none');
+    } else {
+      i_referencia.required = true
+      divReferencia.classList.remove('d-none');
+
+      divFactura.classList.add('d-none');
+    }
+  })
+</script>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaIngresos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+<!-- FIN MAESTRO DE INGRESOS -->
+{% endblock body_block %}

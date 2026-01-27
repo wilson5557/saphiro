@@ -1,0 +1,120 @@
+{% extends "layouts/base-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Inicio
+{% endblock title_page %}
+
+{% block informacion_active %}
+	class="active"
+{% endblock informacion_active %}
+
+{% block body_block %}
+  <!-- bradcam_area_start -->
+	<div class="bradcam_area breadcam_bg">
+		<h3>Cartelera Informativa</h3>
+	</div>
+	<!-- bradcam_area_end -->
+
+
+	<!--================Blog Area =================-->
+	<section class="blog_area section-padding">
+		<div class="container">
+			<div class="row">
+				<div class="col-lg-8 mb-5 mb-lg-0">
+					<div class="blog_left_sidebar">
+						{% if noticias %}
+							{% for noticia in noticias %}
+								{% include 'snippets/noticias_snippet.html' with noticias=noticia %}
+							{% endfor %}
+						{% else %}
+							<div class="blog-post-container">
+								{% include 'snippets/noticias_snippet.html' with query=query %}
+							</div>
+						{% endif %}
+						
+						{% include 'snippets/pagination_snippet.html' with noticias=noticias %}
+					
+					</div>
+				</div>
+
+				<div class="col-lg-4">
+					<div class="blog_right_sidebar">
+						<aside class="single_sidebar_widget search_widget">
+							<form method="GET">
+								<div class="form-group">
+									<div class="input-group mb-3">
+										<input type="text" class="form-control" placeholder='Palabras clave' onfocus="this.placeholder = ''"
+											onblur="this.placeholder = 'Palabras clave'" name="q" id="id_q">
+										<div class="input-group-append">
+											<button class="btn" type="button"><i class="ti-search"></i></button>
+										</div>
+									</div>
+								</div>
+								<button class="button rounded-0 primary-bg text-white w-100 btn_1 boxed-btn"
+									type="submit">Buscar</button>
+							</form>
+						</aside>
+
+						<aside class="single_sidebar_widget popular_post_widget">
+							<h3 class="widget_title">Publicaciones recientes</h3>
+              {% if recent_posts %}
+                {% for recent_post in recent_posts|slice:4 %}
+                  <div class="media post_item">
+                    <img src="{{recent_post.imagen.url}}" alt="post" width="80px" height="80px">
+                    <div class="media-body">
+                      <a href="{% url 'condominio_app:noticia' recent_post.slug %}">
+                        <h3>{{recent_post.titulo}}</h3>
+                      </a>
+                      <p><i class="fa fa-calendar"></i> Publicado el {{recent_post.fecha_publicacion|date:"d/m/Y"}}</p>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% endif %}
+						</aside>
+
+						<aside class="single_sidebar_widget instagram_feeds">
+							<h4 class="widget_title">Publicaciones de Instagram</h4>
+							<ul class="instagram_row flex-wrap">
+								<li>
+									<a href="#">
+										<img class="img-fluid" src="{% static '/img/post/post_5.png' %}" alt="">
+									</a>
+								</li>
+								<li>
+									<a href="#">
+										<img class="img-fluid" src="{% static '/img/post/post_6.png' %}" alt="">
+									</a>
+								</li>
+								<li>
+									<a href="#">
+										<img class="img-fluid" src="{% static '/img/post/post_7.png' %}" alt="">
+									</a>
+								</li>
+								<li>
+									<a href="#">
+										<img class="img-fluid" src="{% static '/img/post/post_8.png' %}" alt="">
+									</a>
+								</li>
+								<li>
+									<a href="#">
+										<img class="img-fluid" src="{% static '/img/post/post_9.png' %}" alt="">
+									</a>
+								</li>
+								<li>
+									<a href="#">
+										<img class="img-fluid" src="{% static '/img/post/post_10.png' %}" alt="">
+									</a>
+								</li>
+							</ul>
+						</aside>
+					</div>
+				</div>
+				
+			</div>
+		</div>
+	</section>
+	<!--================Blog Area =================-->
+{% endblock body_block %}

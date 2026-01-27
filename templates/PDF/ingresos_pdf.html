@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<title>Reporte de ingresos del {{inicio}} a el {{fin}}</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<style>
+		@page {
+			size: a4 landscape;
+			@frame header_frame {           /* Static frame */
+					-pdf-frame-content: header_content;
+					left: 50pt; width: 750pt; top: 70pt; height: 90pt;
+			};
+			@frame content_frame {          /* Content Frame */
+					left: 50pt; width: 750pt; top: 140pt; height: 425pt;
+			};
+    }
+
+		.table-keep-next
+		{
+			-pdf-keep-with-next: true;
+		}
+		
+		.sticky-bot-footer
+		{
+			position: absolute !important; 
+			bottom:0 !important;
+			width: 100% !important;
+			margin-left: auto !important;
+			margin-right: auto !important;
+			text-align: center !important;
+		}
+
+		.text-center {
+    	text-align: center!important
+		}	
+
+		.text-danger {
+    color: #dc3545!important
+		}
+
+		.text-success {
+    color: #28a745!important
+		}
+
+		.table .thead-light th {
+    color: #495057;
+    background-color: #e9ecef;
+    border-color: #dee2e6
+		}
+
+		.table {
+    width: 100%;
+    max-width: 98%;
+    margin-bottom: 1rem;
+    background-color: transparent;
+    margin-left: auto;
+    margin-right: auto;
+		}
+
+		.table td,
+		.table th {
+				padding: .75rem;
+				vertical-align: top;
+				border-top: 1px solid #dee2e6
+		}
+
+		.table thead th {
+				vertical-align: bottom;
+				border-bottom: 2px solid #dee2e6
+		}
+
+		.table tbody+tbody {
+				border-top: 2px solid #dee2e6
+		}
+
+		.table .table {
+				background-color: #fff
+		}
+
+		.table-sm td,
+		.table-sm th {
+				padding: .3rem
+		}
+
+		.table-bordered {
+				border: 1px solid #dee2e6
+		}
+
+		.table-bordered td,
+		.table-bordered th {
+				border: 1px solid #dee2e6
+		}
+
+		.table-bordered thead td,
+		.table-bordered thead th {
+				border-bottom-width: 2px
+		}
+
+		.mt-5,
+		.my-5 {
+				margin-top: 3rem!important
+		}
+
+		body {
+				margin: 0;
+				font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+				font-size: 1rem;
+				font-weight: 400;
+				line-height: 1.5;
+				color: #212529;
+				text-align: left;
+				background-color: #fff
+		}
+
+		.thead-blue th
+		{
+				color: #fff;
+				background-color: #1f2e88 !important;
+				border-color: #32383e
+		}
+	</style>
+</head>
+<body>
+
+	<table id="header_content">
+		<thead>
+			<tr>
+				<td style="text-align: left;" ><img src="static/img-inverdata/logo_inverdata_pdf.jpg"> <br>
+					CONDOMINIO APARTHOTEL ESPARTA SUITES <br>
+					APART HOTEL ESPARTA SUITES RIF J-30456994-7</td>
+				<td style="text-align: right;"> <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
+					<span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span></td>
+			</tr>
+		</thead>
+	</table>
+	
+  <h2 class="text-center" style="padding-top: 15px;">REPORTE DE INGRESOS</h2>
+	<h3 class="text-center">Desde {{inicio}} Hasta {{fin}}</h3>
+
+    <table class="table table-bordered text-center mt-5" style="font-size: 12px;">
+      <thead class="thead-blue">
+        <tr>
+			<th>Fecha</th>
+			<th>Referencia</th>
+			<th>Concepto</th>
+			<th>BS</th>
+			<th>USD</th>
+			<th>EUR</th>
+			<th>Banco</th>
+			<th>Apartamento</th>
+        </tr>
+      </thead>
+		<tbody>
+		{% if ingresos %}
+		{% for ingreso in ingresos %}
+		<tr>
+			{% language 'es' %}
+			<td> {{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
+			{% endlanguage %}
+
+			{% if ingreso.id_movimiento.referencia_movimiento %}
+			<td> {{ ingreso.id_movimiento.referencia_movimiento }}</td>
+			{% else %}
+			<td>-</td>
+			{% endif %}
+
+			<td> {{ ingreso.id_movimiento.concepto_movimiento }}</td>
+
+			{% if bancos %}
+			{% for banco in bancos %}
+			{% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'BS' %}
+			<td class=""><span class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento|floatformat:"2" }}</span></td>
+			<td>0</td>
+			<td>0</td>
+			{% endif %}
+
+			{% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'USD' %}
+			<td>0</td>
+			<td class=""><span class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento|floatformat:"2" }}</span></td>
+			<td>0</td>
+			{% endif %}
+
+			{% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'EUR' %}
+			<td>0</td>
+			<td>0</td>
+			<td class=""><span class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento|floatformat:"2" }}</span></td>
+
+			{% endif %}
+			{% endfor %}
+			{% endif %}
+
+			{% if bancos %}
+			{% for banco in bancos %}
+			{% if banco.id_banco == ingreso.id_movimiento.id_banco_id %}
+			<td> {{ banco.nombre_banco }}</td>
+			{% endif %}
+			{% endfor %}
+			{% endif%}
+
+			{% if ingreso.id_propietario_id %}
+			<td> {{ ingreso.id_propietario_id }}</td>
+			{% else %}
+			<td>-</td>
+			{% endif %}
+		</tr>
+		{% endfor %}
+		{% else %}
+		<tr>
+			<td colspan="8" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong>
+			</td>
+		</tr>
+		{% endif %}
+		</tbody>
+    </table>
+
+	<div class="
+	{% if ingresos.all.count > 8 %}
+	table-keep-next
+	{% endif %}">
+
+		<table class="table table-bordered text-center mt-5" style="font-size: 12px;">
+			<thead class="thead-blue">
+				<tr>
+					<th>Total en Bolivares</th>
+					<th>Total en Dólares Estadounidense</th>
+					<th>Total en Euros</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>{{total_bs}} Bs</td>
+					<td>{{total_usd}} USD</td>
+					<td>{{total_eur}} EUR</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<table class="mt-5" style="font-size: 12px;">
+			<tr>
+				<td>
+					<table class="table table-bordered text-center">
+						<thead class="thead-blue">
+						<th colspan="2">Tasas de cambio (BCV)</th>
+						</thead>
+						<tbody>
+						{% if tasas %}
+						<tr>
+							<td>Dólar Estadounidense</td>
+							<td>Bs/USD {{tasas.tasa_BCV_USD}}</td>
+						</tr>
+						<tr>
+							<td>Euro</td>
+							<td>Bs/EUR {{tasas.tasa_BCV_EUR}}</td>
+						</tr>
+						{% else %}
+						<tr>
+							<td colspan="2"><strong class="text-danger">NO SE HAN ESTABLECIDO LAS TASAS DE
+								CAMBIO</strong></td>
+						</tr>
+						{% endif %}
+						</tbody>
+					</table>
+				</td>
+
+				<td width="10%"></td>
+
+				<td class="mt-5">
+					<table class="table table-bordered text-center">
+						<thead class="thead-blue">
+							<th colspan="2"><strong>Total después de la conversión</strong></th>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Bolivares</td>
+								<td>{{total_bs}} Bs</td>
+							</tr>
+							<tr>
+								<td>Dólar Estadounidense</td>
+								<td>{{total_usd_en_bs|floatformat:"2"}} Bs</td>
+							</tr>
+							<tr>
+								<td>Euro</td>
+								<td>{{total_eur_en_bs|floatformat:"2"}} Bs</td>
+							</tr>
+							<tr>
+								<td>Total en Bolivares:</td>
+								<td>{{total_final_en_bs|floatformat:"2"}} Bs</td>
+							</tr>
+						</tbody>
+					</table>
+				</td>
+
+			</tr>
+		</table>
+	</div>
+	
+</body>
+</html>

@@ -1,0 +1,86 @@
+{% extends "layouts/admin-layout.html" %}
+
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block modulo_label %}
+{% if reservacion.estado == False  %} 
+  <span class="">Aprobacion de solicitud de reservacion</span>
+  {% else %}
+  <span class="">Cancelacion de reservacion</span>
+  {% endif %}
+{% endblock modulo_label %}
+
+{% block body_block %}
+
+
+<form  action="/editarEstado/"method="POST" >
+    {% csrf_token %}
+      
+      <div class="form-group form_reservacion"style="width:25%;margin-left: 40%;display: grid;">
+      <div class="form-group"> 
+        <h3 style="margin-top:10px; color:#009dff; width:23rem;">Informacion del cliente</h3>
+      <div class="form-group"> 
+
+      <label for="txtAlquiler">Id alquiler</label>
+      <input type="text" class="form-control" name="txtAlquiler" id="txtAlquiler" value="{{reservacion.id_alquiler.get_id_alquiler}}" readonly>
+      <label>Identificacion</label>
+      <input type="text" name="txtidreservacion" id="txtidreservacion" value="{{reservacion.id_reservacion}} "class="form-control" placeholder="False" hidden>
+      <br>
+       <input type="text" name="txtCedula" id="txtCedula" value="{{reservacion.cedula}} "class="form-control" readonly>
+      <br>
+      <label>Nombre:</label>
+      <input type="text" name="txtNombre" id="txtNombre" value="{{reservacion.nombre}} "class="form-control" readonly>
+      <br>
+      
+      <label>Numero de referencia</label>
+      <input type="text" name="txtReferencia" id="txtReferencia" value="{{reservacion.referenncia_bancaria}} "class="form-control" placeholder="" readonly>
+      <br>
+
+      <label>Desde:</label>
+      <input type="text" name="txtEntrada" id="txtEntrada" value="{{reservacion.Fecha_entrada}} "class="form-control" placeholder="" readonly>
+      <br>
+      <label>Hasta: </label>
+      <input type="text" name="txtSalida" id="txtSalida" value="{{reservacion.Fecha_salida}} "class="form-control" placeholder="" readonly>
+      <br>
+    </div>
+    {% if reservacion.estado == False  %} 
+      <input type="radio" name="txtestado" id="txtestado" value="True" required>
+      <label class="label">
+      Aprobar reservacion
+      {% else %}
+      <input type="radio" name="txtestado" id="txtestado" value="False">
+      Cancelar Reservación
+      {% endif %}
+    </label>
+    <br>
+   
+      <!-- <select name="txtestado" id="txtidreservacion" class="form-control" required >
+        <option value="" selected="" disabled="">Seleccione... </option>
+        <option value="True">✅ Aprobar</option>
+      </select>
+      -->
+    </div>
+    <button tyoe="submit" class="btn btn-success btn-block text-white">
+      Guardar
+    </button>
+  </form>
+  <div class="container-alquilerImg"> 
+    <h3 style="margin-top:10px; color:#4ea3d8; width:23rem;">Inmueble: </h3>
+    <img src="{{reservacion.id_alquiler.imagen.url}}" alt="">
+   
+</div>
+    <style>
+.popup_box {
+    background: #fff;
+    display: none;
+    z-index: 0;
+    width: 681px;
+    padding: 60px 40px;
+    border-radius: 5px;
+}
+</style>
+
+{% endblock %}

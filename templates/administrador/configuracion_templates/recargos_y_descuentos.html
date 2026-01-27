@@ -1,0 +1,164 @@
+{% extends "administrador/configuracion.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block edificio_active %}
+  
+{% endblock edificio_active %}
+
+{% block recargos_descuentos_block %}
+  active
+{% endblock recargos_descuentos_block %}
+
+{% block options_admin %}
+<ul class="sidebar-spacing">
+    <li><a href="/home/administrador/" style="font-size: 12px !important;">Inicio</a></li>
+    <li>
+        <div class="dropdown d-lg-block">
+            <a class="a-sub-option not-selected" style="font-size: 12px !important;" id="dropdownMenuLink" data-toggle="dropdown">
+                Administrar <i class="fa fa-angle-down ml-2"></i>
+            </a>
+            <div class="dropdown-menu show-options" aria-labelledby="dropdownMenuLink">
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/bancos/">Bancos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/gastos/">Gastos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/ingresos/">Ingresos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/deudas/">Deudas</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/fondos/">Fondos</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/propietarios/">Propietarios</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/torres/">Torres</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/noticias/">Noticias</a>
+                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
+                   href="/home/administrar/cuentas/">Administradores</a>
+            </div>
+        </div>
+    </li>
+    <li>
+        <a href="/home/administrar/reportes/" style="font-size: 12px !important;" class="a-sub-option">
+            Reportes
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
+            Cierre del Mes
+        </a>
+    </li>
+    <li class="active">
+        <a href="{% url 'condominio_app:admin_configuracion' type='condominio' %}" style="font-size: 12px !important;" class="a-sub-option">
+            Configuración
+        </a>
+    </li>
+</ul>
+{% endblock options_admin %}
+
+{% block modulo_config_block %}
+
+  <form method="POST">
+    {% csrf_token %}
+    {% if recargos_descuentos %}
+      {% for recargo_descuento in recargos_descuentos %}
+        <!-- PORCENTAJE RECARGO -->
+        <div class="form-group row mt-3">
+          <label for="{{recargo_descuento_form.recargo_moratorio.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.recargo_moratorio.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field recargo_descuento_form.recargo_moratorio class="form-control text-dark" placeholder="Ingrese el porcentaje de recargo por mora" name=recargo_descuento_form.recargo_moratorio.name value=recargo_descuento.recargo_moratorio %}
+            {% for error in recargo_descuento_form.recargo_moratorio.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- DIA DE RECARGO -->
+        <div class="form-group row mt-3">
+          <label for="{{recargo_descuento_form.dia_recargo.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.dia_recargo.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field recargo_descuento_form.dia_recargo class="form-control text-dark" placeholder="Ingrese el día. Ej: 1 - 31" name=recargo_descuento_form.dia_recargo.name value=recargo_descuento.dia_recargo %}
+            {% for error in recargo_descuento_form.dia_recargo.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- PORCENTAJE DESCUENTO -->
+        <div class="form-group row">
+          <label for="{{recargo_descuento_form.descuento_pronto_pago.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.descuento_pronto_pago.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field recargo_descuento_form.descuento_pronto_pago class="form-control text-dark" placeholder="Ingrese el porcentaje de descuento por pronto pago" name=recargo_descuento_form.descuento_pronto_pago.name value=recargo_descuento.descuento_pronto_pago %}
+            {% for error in recargo_descuento_form.descuento_pronto_pago.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- DIA DESCUENTO -->
+        <div class="form-group row mt-3">
+          <label for="{{recargo_descuento_form.dia_descuento.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.dia_descuento.label}}:</label>
+          <div class="col-sm-5">
+            {% render_field recargo_descuento_form.dia_descuento class="form-control text-dark" placeholder="Ingrese el día. Ej: 1 - 31" name=recargo_descuento_form.dia_descuento.name value=recargo_descuento.dia_descuento %}
+            {% for error in recargo_descuento_form.dia_descuento.errors %}
+              <div class="alert alert-danger mt-2">{{error}}</div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <!-- PORCENTAJE RECARGO -->
+      <div class="form-group row mt-3">
+        <label for="{{recargo_descuento_form.recargo_moratorio.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.recargo_moratorio.label}}:</label>
+        <div class="col-sm-5">
+          {% render_field recargo_descuento_form.recargo_moratorio class="form-control text-dark" placeholder="Ingrese el porcentaje de recargo por mora" name=recargo_descuento_form.recargo_moratorio.name value=recargo_descuento_form.recargo_moratorio %}
+          {% for error in recargo_descuento_form.recargo_moratorio.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- DIA DE RECARGO -->
+      <div class="form-group row mt-3">
+        <label for="{{recargo_descuento_form.dia_recargo.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.dia_recargo.label}}:</label>
+        <div class="col-sm-5">
+          {% render_field recargo_descuento_form.dia_recargo class="form-control text-dark" placeholder="Ingrese el día. Ej: 1 - 31" name=recargo_descuento_form.dia_recargo.name value=recargo_descuento_form.dia_recargo %}
+          {% for error in recargo_descuento_form.dia_recargo.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- PORCENTAJE DESCUENTO -->
+      <div class="form-group row">
+        <label for="{{recargo_descuento_form.descuento_pronto_pago.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.descuento_pronto_pago.label}}:</label>
+        <div class="col-sm-5">
+          {% render_field recargo_descuento_form.descuento_pronto_pago class="form-control text-dark" placeholder="Ingrese el porcentaje de descuento por pronto pago" name=recargo_descuento_form.descuento_pronto_pago.name value=tasas_name.descuento_pronto_pago %}
+          {% for error in recargo_descuento_form.descuento_pronto_pago.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- DIA DESCUENTO -->
+      <div class="form-group row mt-3">
+        <label for="{{recargo_descuento_form.dia_descuento.name}}" class="col-sm-4 col-form-label text-dark">{{recargo_descuento_form.dia_descuento.label}}:</label>
+        <div class="col-sm-5">
+          {% render_field recargo_descuento_form.dia_descuento class="form-control text-dark" placeholder="Ingrese el día. Ej: 1 - 31" name=recargo_descuento_form.dia_descuento.name value=recargo_descuento_form.dia_descuento %}
+          {% for error in recargo_descuento_form.dia_descuento.errors %}
+            <div class="alert alert-danger mt-2">{{error}}</div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+
+    <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar datos</button>
+    <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
+  </form>
+
+{% endblock modulo_config_block %}

@@ -1,0 +1,450 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="" id="gestionar-gastos">Gastos</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+  <!-- INICIO MAESTRO DE GASTOS -->
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left" id="Gastos">
+  <div class="container rounded modulo pb-2">
+    <div class="container pt-3 pb-1">
+
+      <div class="form-group row">
+        <button class="btn-option mx-auto move-up d-none" id="HideGastos" onclick="ShowOrHide('HideListaGastos')" data-toggle="popover" data-content="Haz click aquí para agregar un gasto"><i class="bx bx-plus pr-2"></i> Agregar Gasto</button>
+
+        <button class="btn-option mx-auto move-up" id="ShowGastos" onclick="ShowOrHide('ShowListaGastos')" data-toggle="popover" data-content="Haz click aquí para ver la lista de los gastos"><i class="fa fa-list pr-2"></i> Lista de Gastos</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <form id="AgregarGastos" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group row mt-4">
+          <label for="TipoMonedaGasto" class="col-sm-3 col-form-label text-dark">Tipo de moneda:</label>
+          <!-- BOLIVARES -->
+          <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+            <input type="radio" id="BolivarG" name="TipoMonedaGasto" class="custom-control-input"   value="BS" onclick="CheckMoneda('Bs', 'BancosBS')" required>
+            <label class="custom-control-label text-dark" for="BolivarG">BS</label>
+          </div>
+          <!-- DOLARES -->
+          <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+            <input type="radio" id="DolarG" name="TipoMonedaGasto" class="custom-control-input"   value="Usd" onclick="CheckMoneda('USD', 'BancosUSD')" required>
+            <label class="custom-control-label text-dark" for="DolarG">USD</label>
+          </div>
+          <!-- EUROS -->
+          <div class="custom-control custom-radio custom-control-inline col-sm-1 ml-3">
+            <input type="radio" id="EuroG" name="TipoMonedaGasto" class="custom-control-input"   value="Eur" onclick="CheckMoneda('EUR', 'BancosEUR')" required>
+            <label class="custom-control-label text-dark" for="EuroG">EUR</label>
+          </div>
+        </div>
+
+        <div class="form-group row d-none" id="BancosBS">
+          <label for="banco_gasto_BS" class="col-sm-3 col-form-label text-dark">Banco utilizado:</label>
+          <div class="col-sm-8">
+            <select class="form-control text-dark" id="banco_gasto_BS" name="banco_gasto_BS">
+              {% if bancos %}
+                <option value="" disabled selected>Elige una opción...</option>
+                {% for banco in bancos %}
+                  {% if banco.tipo_moneda == 'BS' %}
+                    <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} BS) </option>
+                  {% endif %}
+                {% empty %}
+                  <option value="0" disabled>NO HAY BANCOS REGISTRADOS</option>
+                {% endfor %}
+              {% else %}
+                <option value="0" disabled>NO HAY BANCOS REGISTRADOS</option>
+              {% endif %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group row d-none" id="BancosUSD">
+          <label for="banco_gasto_USD" class="col-sm-3 col-form-label text-dark">Banco utilizado:</label>
+          <div class="col-sm-8">
+            <select class="form-control text-dark" id="banco_gasto_USD" name="banco_gasto_USD">
+              {% if bancos %}
+                <option value="" disabled selected>Elige una opción...</option>
+                {% for banco in bancos %}
+                  {% if banco.tipo_moneda == 'USD' %}
+                    <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} $) </option>
+                  {% endif %}
+                {% empty %}
+                  <option value="0" disabled>NO HAY BANCOS REGISTRADOS</option>
+                {% endfor %}
+              {% else %}
+                <option value="0" disabled>NO HAY BANCOS REGISTRADOS</option>
+              {% endif %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group row d-none" id="BancosEUR">
+          <label for="banco_gasto_EUR" class="col-sm-3 col-form-label text-dark">Banco utilizado:</label>
+          <div class="col-sm-8">
+            <select class="form-control text-dark" id="banco_gasto_EUR" name="banco_gasto_EUR">
+              {% if bancos %}
+                <option value="" disabled selected>Elige una opción...</option>
+                {% for banco in bancos %}
+                  {% if banco.tipo_moneda == 'EUR' %}
+                    <option value="{{banco.id_banco}}"> {{ banco.nombre_banco }} (Saldo: {{ banco.saldo_actual }} EUR) </option>
+                  {% endif %}
+                {% empty %}
+                  <option value="0" disabled>NO HAY BANCOS REGISTRADOS</option>
+                {% endfor %}
+              {% else %}
+                <option value="0" disabled>NO HAY BANCOS REGISTRADOS</option>
+              {% endif %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mt-4 row">
+          <label for="categoria_gasto" class="col-sm-3 col-form-label text-dark">Seleccione la categoría del gasto:</label>
+          <div class="col-sm-5">
+            <select name="categoria_gasto" id="categoria_gasto" class="form-control">
+              <option value="" selected>Seleccione un tipo...</option>
+              {% if categorias %}
+                {% for categoria in categorias %}
+                <option value="{{categoria.id_categoria}}">{{ categoria.nombre_categoria }}</option>
+                {% endfor %}
+              {% else %}
+                <option value="" disabled>NO HAY CATEGORÍAS REGISTRADAS</option>
+              {% endif %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mt-4 row">
+          <label for="tipo_cobro_gasto" class="col-sm-3 col-form-label text-dark">¿Como desea registrar el gasto?</label>
+          <div class="col-sm-5">
+            <select name="tipo_cobro_gasto" id="tipo_cobro_gasto" class="form-control">
+              <option value="" selected disabled>Seleccione...</option>
+              <option value="Condominio">Condominio</option>
+              <option value="Cuota">Cuota</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group row d-none" id="showTipoGasto">
+          <label for="{{gastos_form.tipo_gasto.name}} " class="col-sm-3 col-form-label text-dark">{{gastos_form.tipo_gasto.label}}:</label>
+          <div class="col-sm-5 form-check form-check-inline">
+            <div class="ml-3 align-middle" style="width: 100%;">
+              <select name="{{ gastos_form.tipo_gasto.name }}" id="{{ gastos_form.tipo_gasto.name }}" class="form-control option_tipo_gasto text-dark">
+                {% for radio in gastos_form.tipo_gasto %}
+                  {{radio}}
+                  {% for error in gastos_form.tipo_gasto.errors %}
+                    <div class="alert alert-danger mt-2">{{ error }}</div>
+                  {% endfor %}
+                  <label for="{{ radio.id_for_label }}" class="ml-5 text-dark">{{ radio.label }}</label>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group row d-none" id="showProp">
+          <label for="prop_selected" class="col-sm-3 col-form-label text-dark">Seleccione el propietario:</label>
+          <div class="form-check form-check-inline">
+            <div class="ml-3 align-middle">
+              <select name="prop_selected" id="prop_selected" class="form-control prop_selected text-dark">
+                <option value="0">Seleccione un propietario</option>
+                {% if propietarios %}
+                  {% for propietario in propietarios %}
+                    <option value="{{propietario.id_domicilio}}">{{ propietario.nombre_domicilio }} - {{ propietario.id_propietario.nombre_propietario }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="0">No existen propietarios en este condominio</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group row mt-4">
+          <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del gasto: </label>
+          <div class="col-sm-5">
+            <input type="date" class="form-control text-dark" id="fecha_movimiento" name="fecha_movimiento" required>
+          </div>
+        </div>
+
+        <div class="form-group row mt-4">
+          <label for="{{ movimiento_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">Concepto del gasto:</label>
+          <div class="col-sm-8">
+            {% render_field movimiento_form.concepto_movimiento class="form-control text-dark" placeholder="..." %}
+            {% for error in movimiento_form.concepto_movimiento.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ movimiento_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.descripcion_movimiento.label }}:</label>
+          <div class="col-sm-8">
+            {% render_field movimiento_form.descripcion_movimiento class="form-control text-dark" placeholder="Descripción del gasto" rows="5" %}
+            {% for error in movimiento_form.descripcion_movimiento.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ movimiento_form.monto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.monto_movimiento.label }}:</label>
+          <div class="col-sm-8">
+            {% render_field movimiento_form.monto_movimiento class="form-control text-dark" placeholder="Ingrese el monto del gasto realizado" %}
+            {% for error in movimiento_form.monto_movimiento.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="nombre_titular" class="col-sm-3 col-form-label text-dark">{{ datos_transaccion_form.nombre_titular.label }}:</label>
+          <div class="col-sm-8">
+            {% render_field datos_transaccion_form.nombre_titular class="form-control text-dark" placeholder="Ingrese el nombre del titular" %}
+            {% for error in datos_transaccion_form.nombre_titular.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ datos_transaccion_form.tipo_dni_titular.name }}" class="col-sm-3 col-form-label text-dark">Identificación del receptor:</label>
+          <div class="col-sm-2">
+            <select name="{{ datos_transaccion_form.tipo_dni_titular.name }}" id="{{ datos_transaccion_form.tipo_dni_titular.name }}" class="form-control text-dark">
+              {% for select in datos_transaccion_form.tipo_dni_titular  %}
+                {{select}}
+                {% for error in datos_transaccion_form.tipo_dni_titular.errors %}
+                  <div class="alert alert-danger mt-2">{{ error }}</div>
+                {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-6">
+            {% render_field datos_transaccion_form.dni_titular class="form-control text-dark" name=datos_transaccion_form.dni_titular.name placeholder="Ingrese el número de identificación del titular" %}
+            {% for error in datos_transaccion_form.dni_titular.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="{{ datos_transaccion_form.codigo_area.name }}" class="col-sm-3 col-form-label text-dark">Teléfono del receptor:</label>
+          <div class="col-sm-2">
+            <select name="{{ datos_transaccion_form.codigo_area.name }}" id="{{ datos_transaccion_form.codigo_area.name }}" class="form-control text-dark">
+              {% for select in datos_transaccion_form.codigo_area  %}
+                {{select}}
+                {% for error in datos_transaccion_form.codigo_area.errors %}
+                  <div class="alert alert-danger mt-2">{{ error }}</div>
+                {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-6">
+            {% render_field datos_transaccion_form.telefono_titular class="form-control text-dark" name=datos_transaccion_form.telefono_titular.name placeholder="Ingrese el número de teléfono del titular" %}
+            {% for error in datos_transaccion_form.telefono_titular.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row mt-4">
+          <label for="{{ gastos_form.metodo_pago.name }}" class="col-sm-3 col-form-label text-dark">Método de Pago:</label>
+          <div class="col-sm-5">
+              <select name="{{ gastos_form.metodo_pago.name }}"
+              id="{{ gastos_form.metodo_pago.name }}" class="form-control">
+              <option value="" disabled selected>Seleccione un método de pago</option>
+              {% for select in gastos_form.metodo_pago %}
+              {{select}}
+              {% for error in gastos_form.metodo_pago.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+              {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group row mt-3" id="num_factura">
+          <label for="factura" class="col-sm-3 col-form-label text-dark">Número de factura: </label>
+          <div class="col-sm-5">
+            {% render_field gastos_form.factura class="form-control" id=gastos_form.factura.name placeholder="Número de Factura (si aplica)" %}
+          </div>
+        </div>
+
+        <div class="form-group row" id="divReferencia">
+          <label for="referencia" class="col-sm-3 col-form-label text-dark">Referencia bancaria:</label>
+          <div class="col-sm-8">
+            {% render_field movimiento_form.referencia_movimiento class="form-control text-dark" id="referencia" placeholder="Ingrese la referencia bancaria" %}
+            {% for error in movimiento_form.referencia_movimiento.errors %}
+              <div class="alert alert-danger mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="imgGasto" class="col-sm-3 col-form-label text-dark">Imagen Referencial:</label>
+          <div class="col-sm-8">
+            <input type="file" class="custom-control-input" accept="image/*" name="imgGasto" id="imgGasto">
+            <label class="col-sm-12 custom-file-label" for="imgGasto">Suba la referencia aquí</label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para agregar el nuevo gasto a la lista"><i class="fa fa-check pr-1"></i> Aceptar</button>
+        <a type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" href="/home/administrador/"><i class="fa fa-times pr-1"></i> Cancelar</a>
+      </form>
+
+      <div class="d-none" id="VerGastos">
+        <br>
+        <div class="input-div input-group">
+          <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                 id="search_table">
+          <div class="input-group-append">
+            <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+          </div>
+        </div>
+
+        <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+               width="100%" id="TablaGastos">
+          <thead class="table-header">
+          <tr>
+            <th scope="col" class="d-none">#</th>
+            <th scope="col">Concepto</th>
+            <th scope="col">Categoría</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Monto</th>
+            <th scope="col">Acción</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% if gastos %}
+          {% for gasto in gastos %}
+          <tr style="font-size: 14px;">
+            <td scope="row" class="d-none"> {{ gasto.id_gasto }}</td>
+            <td class="centered-cell"> {{ gasto.id_movimiento.concepto_movimiento }}</td>
+            <td class="centered-cell stadistics-text"> {{ gasto.id_categoria.nombre_categoria }}</td>
+            <td class="centered-cell"> {{ gasto.tipo_gasto }}</td>
+            {% language 'es' %}
+            <td class="centered-cell"> {{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
+            {% endlanguage %}
+            <td class="centered-cell"><span class="text-center text-success">{{ gasto.id_movimiento.monto_movimiento }}</span></td>
+            {% if cierre %}
+            {% if gasto.id_movimiento.fecha_movimiento > cierre.fecha_cierre %}
+            <td>
+              <div class="horizontal-cell">
+                <a href="/home/administrar/gastos/ver/{{ gasto.id_gasto }}"
+                   class="btn btn-primary btn-option border text-light button-table center-all"
+                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                <a href="/home/administrar/gastos/actualizar/{{ gasto.id_gasto }}"
+                   class="btn btn-primary btn-option border text-light button-table center-all"
+                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                <a href="/home/administrar/gastos/eliminar/{{ gasto.id_movimiento_id }}"
+                   class="btn btn-primary btn-option border text-light button-table center-all"
+                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+              </div>
+            </td>
+            {% else %}
+            <td class="center-all">
+              <a href="/home/administrar/gastos/ver/{{ gasto.id_gasto }}"
+                 class="btn btn-primary btn-option border text-light button-table center-all"
+                 data-toggle="popover" data-content="Archivado"><i class="fa fa-eye"></i></a>
+            </td>
+            {% endif %}
+            {% else %}
+            <td>
+              <div class="horizontal-cell">
+                <a href="/home/administrar/gastos/ver/{{ gasto.id_gasto }}"
+                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                <a href="/home/administrar/gastos/actualizar/{{ gasto.id_gasto }}"
+                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                <a href="/home/administrar/gastos/eliminar/{{ gasto.id_movimiento_id }}"
+                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var metodo_pago = document.getElementById('metodo_pago');
+  var divFactura = document.getElementById('num_factura');
+  var i_referencia = document.getElementById('referencia');
+  var divReferencia = document.getElementById('divReferencia');
+
+  metodo_pago.addEventListener('change', function () {
+    if (metodo_pago.value == 0) {
+      i_referencia.required = false;
+      divReferencia.classList.add('d-none');
+
+      divFactura.classList.remove('d-none');
+    } else {
+      i_referencia.required = true
+      divReferencia.classList.remove('d-none');
+
+      divFactura.classList.add('d-none');
+    }
+  })
+</script>
+
+<script>
+    $(document).ready(function() {
+        var table = $('#TablaGastos').DataTable( {
+          "processing": true,
+          "language": {
+            "lengthMenu": "Mostrar _MENU_ filas por página",
+            "zeroRecords": "No se ha encontrado ningún dato",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "-",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "loadingRecords": "Cargando...",
+            "processing": "",
+            "emptyTable": "No hay datos disponibles",
+            "paginate": {
+                "first":      "Primera",
+                "last":       "Última",
+                "next":       "Siguiente",
+                "previous":   "Anterior"
+            },
+          },
+          responsive: {
+              details: false
+          },
+          autoWidth: false,
+          columnDefs: [{
+              targets: -1, // Última columna (0-indexed)
+              width: '160px' // Cambia el valor '100px' según el ancho deseado
+          }]
+        });
+
+        $('#search_table').on( 'keyup', function () {
+            table.search( this.value ).draw();
+        });
+    });
+</script>
+
+<!-- FIN MAESTRO DE GASTOS -->
+{% endblock body_block %}
+

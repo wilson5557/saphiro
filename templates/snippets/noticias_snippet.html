@@ -1,0 +1,43 @@
+<style type="text/css">
+	.card{
+		max-width: 700px;
+		width: 100%;
+	}
+	.card-body{
+		padding: 20px;
+	}
+</style>
+
+{% if noticias %}
+<article class="blog_item">
+	<div class="blog_item_img">
+		<img class="card-img rounded-0 d-flex mx-auto" src="{{noticias.imagen.url}}" alt="" style="width: 50% !important;">
+		<a href="{% url 'condominio_app:noticia' noticias.slug %}" class="blog_item_date">
+			<h3>{{noticias.fecha_publicacion|date:'d'}}</h3>
+			<p>{{noticias.fecha_publicacion|date:'M'}}</p>
+		</a>
+	</div>
+
+	<div class="blog_details">
+		<a class="d-inline-block" href="{% url 'condominio_app:noticia' noticias.slug %}">
+			<h2>{{noticias.titulo}}</h2>
+		</a>
+		<p class="text-dark">{{noticias.descripcion}}</p>
+		<ul class="blog-info-link">
+			<li class="move-up"><a href="{% url 'condominio_app:noticia' noticias.slug %}"><i class="fa fa-eye"></i> Ver más</a></li>
+		</ul>
+	</div>
+</article>
+
+{% else %}
+
+<div class="row">
+	<div class="card m-auto">
+		<div class="card-body mt-2 mb-2">
+			<h2 class="card-title">No hay resultados</h2>
+			<p class="card-text">No se han encontrado resultados que coincidan con las palabras: "{{query}}"</p>
+		</div>
+	</div>
+</div>
+
+{% endif %}
