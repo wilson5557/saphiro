@@ -13,7 +13,7 @@ from .views import generate_pdf
 app_name = 'condominio_app'
 
 class DateConverter:
-    regex = '\d{4}-\d{2}-\d{2}'
+    regex = r'\d{4}-\d{2}-\d{2}'
 
     def to_python(self, value):
         return datetime.strptime(value, '%Y-%m-%d')
