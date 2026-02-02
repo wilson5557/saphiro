@@ -25,7 +25,7 @@
         <div class="divider"></div>
 
         <!-- FORMULARIO PARA AGREGAR NUEVAS MENSUALIDADES -->
-        <form id="AgregarBancos" class="" method="POST">
+        <form id="AgregarBancos" class="" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="form-group row">
             <label for="{{ bancos_form.nombre_titular.name }}" class="col-sm-3 col-form-label text-dark">{{ bancos_form.nombre_titular.label }}:</label>
@@ -99,7 +99,7 @@
                 {% endfor %}
               </div>
             </div>
-          
+
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up"><i class="fa fa-plus"></i> Actualizar Banco</button>
 
             <a type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" href="{% url 'condominio_app:admin_configuracion' type='bancos' %}"><i class="fa fa-remove"></i> Cancelar</a>

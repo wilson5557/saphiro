@@ -1,0 +1,316 @@
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+<div class="container rounded modulo pb-2">
+    <div class="container pt-3 pb-1">
+        <h3 class="text-center pb-2"><strong>Propietarios</strong></h3>
+        <div class="divider"></div>
+
+        <div class="form-group row">
+            <button type="button" class="btn-option mx-auto move-up" id="ShowPropietariosConf"
+                    onclick="ShowOrHide('ShowFormPropietariosConf')" data-toggle="popover"
+                    data-content="Haz click aquí para agregar un propietario">
+                <i class="bx bx-plus pr-2"></i> Agregar Propietario
+            </button>
+            <button type="button" class="btn-option mx-auto move-up d-none" id="HidePropietariosConf"
+                    onclick="ShowOrHide('HideFormPropietariosConf')" data-toggle="popover"
+                    data-content="Haz click aquí para ocultar el formulario">
+                <i class="fa fa-arrow-left pr-2"></i> Volver
+            </button>
+        </div>
+
+        <!-- LISTA DE PROPIETARIOS -->
+        <div class="mt-3" id="VerPropietariosConf">
+            <div class="input-div input-group">
+                <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
+                       id="search_table_conf">
+                <div class="input-group-append">
+                    <span class="input-group-text icon-search"><img src="{% static '/img/search.png' %}"></span>
+                </div>
+            </div>
+
+            <table class="table table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-3"
+                   width="100%" id="TablaPropietariosConf">
+                <thead class="table-header">
+                <tr>
+                    <th scope="col">Propietario</th>
+                    <th scope="col">C.I</th>
+                    <th scope="col">Teléfono</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Acción</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% if propietarios %}
+                {% for propietario in propietarios %}
+                <tr>
+                    <td class="centered-cell"> {{ propietario.nombre_propietario }}</td>
+                    <td class="centered-cell"> {{ propietario.tipo_dni }}-{{ propietario.dni }}</td>
+                    <td class="centered-cell text-center">
+                        {% if propietario.codigo_tlf_movil and propietario.telefono_movil %}
+                        {{propietario.codigo_tlf_movil}}-{{ propietario.telefono_movil }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% if propietario.genero == "M" %}
+                    <td class="centered-cell"> Masculino </td>
+                    {% else %}
+                    <td class="centered-cell"> Femenino </td>
+                    {% endif %}
+                    <td>
+                        <div class="horizontal-cell">
+                            <a href="/home/administrar/propietarios/ver/{{ propietario.id_propietario }} "
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
+                            <a href="/home/administrar/propietarios/actualizar/{{ propietario.id_propietario }}"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                               data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="#"
+                               class="btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-prop"
+                               data-url="/home/administrar/propietarios/eliminar/{{ propietario.id_propietario }}"
+                               data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal confirmar eliminación de propietario -->
+        <div class="modal fade" id="modalEliminarPropConf" tabindex="-1" role="dialog" aria-labelledby="modalEliminarPropConfLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalEliminarPropConfLabel">Eliminar propietario</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        ¿Está seguro que desea eliminar este propietario?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                        <a href="#" id="confirmEliminarPropConf" class="btn btn-danger">Sí, eliminar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- FORMULARIO PARA AGREGAR UN NUEVO PROPIETARIO -->
+        <div class="form-style-10 col-sm-12 d-none" id="AgregarPropietariosConf">
+            <form method="POST" action="{% url 'condominio_app:admin_configuracion' type='condominio' %}">
+                {% csrf_token %}
+                <input type="hidden" name="form_origen" value="configuracion_propietarios">
+                <div class="section mb-3"><span>1</span><strong>Información del propietario</strong></div>
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-12">
+                        <label for="{{ propietarios_form.nombre_propietario.name }}" class="col-sm-12 text-dark">{{ propietarios_form.nombre_propietario.label }}:</label>
+                        <div class="col-sm-12">
+                            {% render_field propietarios_form.nombre_propietario class="form-control text-dark" placeholder="Ingrese el nombre completo del propietario" %}
+                            {% for error in propietarios_form.nombre_propietario.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-4">
+                        <label for="{{ propietarios_form.pais_residencia.name }}" class="col-sm-12 text-dark">{{ propietarios_form.pais_residencia.label }}:</label>
+                        <div class="col-sm-12">
+                            <select name="{{ propietarios_form.pais_residencia.name }}"
+                                    id="{{ propietarios_form.pais_residencia.name }}"
+                                    class="form-control text-dark">
+                                {% for select in propietarios_form.pais_residencia %}
+                                {{select}}
+                                {% for error in propietarios_form.pais_residencia.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-2">
+                        <label for="{{ propietarios_form.genero.name }}" class="col-sm-3 text-dark">{{ propietarios_form.genero.label }}:</label>
+                        <div class="col-sm-12">
+                            <select name="{{ propietarios_form.genero.name }}"
+                                    id="{{ propietarios_form.genero.name }}" class="form-control text-dark">
+                                {% for select in propietarios_form.genero %}
+                                {{select}}
+                                {% for error in propietarios_form.genero.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                                {% endfor %}
+
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-2">
+                        <label for="{{ propietarios_form.tipo_dni.name }}" class="col-sm-12 text-dark">{{ propietarios_form.tipo_dni.label }}:</label>
+                        <div class="col-sm-12">
+                            <select name="{{ propietarios_form.tipo_dni.name }}"
+                                    id="{{ propietarios_form.tipo_dni.name }}"
+                                    class="form-control text-dark">
+                                {% for select in propietarios_form.tipo_dni %}
+                                {{select}}
+                                {% for error in propietarios_form.tipo_dni.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-4">
+                        <label for="{{ propietarios_form.dni.name }}" class="col-sm-12 text-dark">{{ propietarios_form.dni.label }}:</label>
+                        <div class="col-sm-12">
+                            {% render_field propietarios_form.dni class="form-control text-dark" name=propietarios_form.dni.name placeholder="Ingrese el número de su documento" %}
+                            {% for error in propietarios_form.dni.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-3">
+                        <label for="{{ propietarios_form.codigo_tlf_hab.name }}" class="col-sm-12 text-dark">{{ propietarios_form.codigo_tlf_hab.label }}:</label>
+                        <div class="col-sm-12">
+                            <select name="{{ propietarios_form.codigo_tlf_hab.name }}"
+                                    id="{{ propietarios_form.codigo_tlf_hab.name }}"
+                                    class="form-control text-dark">
+                                {% for select in propietarios_form.codigo_tlf_hab %}
+                                {{select}}
+                                {% for error in propietarios_form.codigo_tlf_hab.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-3">
+                        <label for="{{ propietarios_form.telefono_hab.name }}" class="col-sm-12 text-dark">{{ propietarios_form.telefono_hab.label }}:</label>
+                        <div class="col-sm-12">
+                            {% render_field propietarios_form.telefono_hab class="form-control text-dark" placeholder="Ingrese el número de teléfono fijo" %}
+                            {% for error in propietarios_form.telefono_hab.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-3">
+                        <label for="{{ propietarios_form.codigo_tlf_movil.name }}" class="col-sm-12 text-dark">{{ propietarios_form.codigo_tlf_movil.label }}:</label>
+                        <div class="col-sm-12">
+                            <select name="{{ propietarios_form.codigo_tlf_movil.name }}"
+                                    id="{{ propietarios_form.codigo_tlf_movil.name }}"
+                                    class="form-control text-dark">
+                                {% for select in propietarios_form.codigo_tlf_movil %}
+                                {{select}}
+                                {% for error in propietarios_form.codigo_tlf_movil.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
+                                {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group col-sm-3">
+                        <label for="{{ propietarios_form.telefono_movil.name }}" class="col-sm-12 text-dark">{{ propietarios_form.telefono_movil.label }}:</label>
+                        <div class="col-sm-12">
+                            {% render_field propietarios_form.telefono_movil class="form-control text-dark" placeholder="Ingrese el número de teléfono móvil" %}
+                            {% for error in propietarios_form.telefono_movil.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-12">
+                        <label for="{{ propietarios_form.correo.name }}" class="col-sm-12 text-dark">{{ propietarios_form.correo.label }}:</label>
+                        <div class="col-sm-12">
+                            {% render_field propietarios_form.correo class="form-control text-dark" placeholder="Ingrese el correo electrónico" name="email" %}
+                            {% for error in propietarios_form.correo.errors %}
+                            <div class="alert alert-danger mt-2">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-12 text-dark">Seleccione los inmuebles:</label>
+                        <div class="col-sm-12">
+                            {% if domicilios_propietarios %}
+                                <select name="domicilio" class="form-control text-dark" multiple>
+                                    {% for dom in domicilios_propietarios %}
+                                        <option value="{{ dom.id_domicilio }}">{{ dom.nombre_domicilio }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <p class="text-danger">No hay inmuebles disponibles.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-12">
+                        <button type="submit" class="btn btn-success w-100">Guardar propietario</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+  document.querySelectorAll('#VerPropietariosConf .btn-eliminar-prop').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      var url = btn.getAttribute('data-url');
+      document.getElementById('confirmEliminarPropConf').setAttribute('href', url);
+      $('#modalEliminarPropConf').modal('show');
+    });
+  });
+</script>
+
+<script>
+  $(document).ready(function() {
+      var tableConf = $('#TablaPropietariosConf').DataTable({
+        "processing": true,
+        "language": {
+          "lengthMenu": "Mostrar _MENU_ filas por página",
+          "zeroRecords": "No se ha encontrado ningún dato",
+          "info": "Página _PAGE_ de _PAGES_",
+          "infoEmpty": "-",
+          "infoFiltered": "(filtered from _MAX_ total records)",
+          "loadingRecords": "Cargando...",
+          "processing": "",
+          "emptyTable": "No hay datos disponibles",
+          "paginate": {
+              "first": "Primera",
+              "last": "Última",
+              "next": "Siguiente",
+              "previous": "Anterior"
+          }
+        },
+        responsive: {
+            details: false
+        },
+        autoWidth: false,
+        columnDefs: [{
+            targets: -1,
+            width: '160px'
+        }]
+      });
+
+      $('#search_table_conf').on('keyup', function () {
+          tableConf.search(this.value).draw();
+      });
+  });
+</script>

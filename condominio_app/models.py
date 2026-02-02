@@ -134,6 +134,14 @@ class Actas(models.Model):
 class Bancos(models.Model):
     id_banco = models.AutoField(primary_key=True)
 
+    def img_bancos(instance, filename):
+        file_path = 'bancos/{id_condominio}/{nombre}-{filename}'.format(
+            id_condominio=str(instance.id_condominio_id),
+            nombre=str(instance.nombre_banco),
+            filename=filename
+        )
+        return file_path
+
     # INFORMACIÓN DE LA CUENTA DE BANCO
     nro_cuenta = models.CharField(verbose_name="Número de cuenta bancaria", max_length=35, null=True)
     nombre_banco = models.CharField(verbose_name="Nombre del Banco", max_length=255)
@@ -156,6 +164,7 @@ class Bancos(models.Model):
     saldo_actual = models.DecimalField(verbose_name="Saldo actual en el banco", max_digits=30, decimal_places=2)
     saldo_apertura = models.DecimalField(verbose_name="Saldo actual en el banco", max_digits=30, decimal_places=2, null=True)
     tipo_banco = models.CharField(verbose_name="Tipo de banco", max_length=100, null=True)
+    imagen_referencial = models.ImageField(upload_to=img_bancos, null=True, blank=True)
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
@@ -230,9 +239,14 @@ class Recibos(models.Model):
 
 # INGRESOS
 def img_ingresos(instance, filename):
-    file_path = 'ingresos/{id_condominio}/{titulo}-{filename}'.format(id_condominio=str(instance.id_movimiento.id_banco.id_condominio_id),
-                                                                        titulo=str(instance.concepto_movimiento),
-                                                                        filename=filename)
+    concepto = ""
+    if instance.id_movimiento and instance.id_movimiento.concepto_movimiento:
+        concepto = str(instance.id_movimiento.concepto_movimiento)
+    file_path = 'ingresos/{id_condominio}/{titulo}-{filename}'.format(
+        id_condominio=str(instance.id_movimiento.id_banco.id_condominio_id) if instance.id_movimiento else "sin-condominio",
+        titulo=concepto or "ingreso",
+        filename=filename
+    )
     return file_path
 
 
@@ -253,7 +267,9 @@ class Ingresos(models.Model):
     id_movimiento = models.ForeignKey('Movimientos_bancarios', on_delete=models.CASCADE, null=True)
     
     def __str__(self):
-        return self.concepto_ingreso
+        if self.id_movimiento and self.id_movimiento.concepto_movimiento:
+            return self.id_movimiento.concepto_movimiento
+        return self.tipo_ingreso or "Ingreso"
 
     class Meta:
         db_table = 'ingresos'

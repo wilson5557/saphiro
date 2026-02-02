@@ -54,6 +54,17 @@
         </button>
       </div>
 
+      <!-- REPORTE DE DEUDAS Y ESTADO DE CUENTA -->
+      <div class="row col-sm-12 mx-auto mt-4 mb-3 center-all div_btn" style="width: 100%;">
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteDeudas" aria-expanded="false" aria-controls="reporteDeudas">
+          Deudas (General)
+        </button>
+
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteEstadoCuenta" aria-expanded="false" aria-controls="reporteEstadoCuenta">
+          Estado de cuenta (Propietario)
+        </button>
+      </div>
+
       <div class="divider mt-2 mb-2"></div>
 
       <!-- REPORTE DE GASTOS -->
@@ -205,6 +216,100 @@
 
             <input type="hidden" name="reporte" id="reporte" value="PROPIETARIOS">
             <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de los propietarios"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- REPORTE DE DEUDAS -->
+      <div class="collapse" id="reporteDeudas" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Reporte de Deudas (General)</h4>
+          <h6 class="text-center">Indique el rango de fechas en el que desee visualizar su reporte.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio_deudas" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio_deudas" name="fecha_inicio" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="fecha_fin_deudas" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin_deudas" name="fecha_fin" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="formato_deudas" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_deudas" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="DEUDAS">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de deudas"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ESTADO DE CUENTA POR PROPIETARIO -->
+      <div class="collapse" id="reporteEstadoCuenta" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Estado de cuenta por propietario</h4>
+          <h6 class="text-center">Indique el rango de fechas y el propietario.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio_estado" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio_estado" name="fecha_inicio" required>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="fecha_fin_estado" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin_estado" name="fecha_fin" required>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label for="propietario_select" class="col-sm-3 col-form-label text-dark">Propietario:</label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="propietario_select" name="propietario_select" required>
+                  {% if propietarios_select %}
+                    <option value="" disabled selected>Elige un propietario...</option>
+                    {% for prop in propietarios_select %}
+                      <option value="{{ prop.id_propietario }}">{{ prop.nombre_propietario }}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled selected>NO HAY PROPIETARIOS REGISTRADOS</option>
+                  {% endif %}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group row mt-4">
+              <label for="formato_estado" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_estado" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
+
+            <input type="hidden" name="reporte" id="reporte" value="ESTADO_CUENTA">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el estado de cuenta"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
         </div>
       </div>

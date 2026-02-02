@@ -1,0 +1,97 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+  Esparta Suites - Administración
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="">Ver Pago</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+<div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left">
+  <div class="container rounded modulo border-secondary pb-2">
+    <div class="container pt-3 pb-1">
+      <div class="divider"></div>
+
+      {% if movimiento %}
+        <div class="row pt-3">
+          <p class="normal-font text-dark col-sm-6"><strong>Concepto:</strong> <span>{{ movimiento.concepto_movimiento }}</span></p>
+          <p class="normal-font text-dark col-sm-6"><strong>Descripción:</strong> <span>{{ movimiento.descripcion_movimiento }}</span></p>
+        </div>
+        <div class="row pt-3">
+          <p class="normal-font text-dark col-sm-6"><strong>Fecha del pago:</strong> <span>{{ movimiento.fecha_movimiento|date:"l, d/m/Y" }}</span></p>
+          <p class="normal-font text-dark col-sm-6"><strong>Monto:</strong> <span class="text-success">{{ movimiento.monto_movimiento }}</span></p>
+        </div>
+        <div class="row pt-3">
+          <p class="normal-font text-dark col-sm-6"><strong>Banco receptor:</strong> <span>{{ movimiento.id_banco.nombre_banco }}</span></p>
+          <p class="normal-font text-dark col-sm-6"><strong>Banco emisor:</strong> <span>{{ movimiento.banco_emisor }}</span></p>
+        </div>
+        <div class="row pt-3">
+          <p class="normal-font text-dark col-sm-6"><strong>Referencia:</strong> <span>{{ movimiento.referencia_movimiento }}</span></p>
+          <p class="normal-font text-dark col-sm-6"><strong>Moneda:</strong> <span>{{ movimiento.tipo_moneda }}</span></p>
+        </div>
+        <div class="row pt-3">
+          <p class="normal-font text-dark col-sm-6"><strong>Estado:</strong>
+            {% if movimiento.estado_movimiento == 0 %}
+              <span class="text-success">Aprobado</span>
+            {% elif movimiento.estado_movimiento == 1 %}
+              <span class="text-warning">Rechazado</span>
+            {% else %}
+              <span>Pendiente</span>
+            {% endif %}
+          </p>
+          <p class="normal-font text-dark col-sm-6"><strong>Fecha de registro:</strong> <span>{{ movimiento.created_at|date:"l, d/m/Y" }}</span></p>
+        </div>
+
+        {% if propietario %}
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-12"><strong>Propietario:</strong> <span>{{ propietario.nombre_propietario }}</span></p>
+          </div>
+        {% endif %}
+
+        {% if datos_mov %}
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Nombre del titular:</strong> <span>{{ datos_mov.nombre_titular }}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Correo del titular:</strong> <span>{{ datos_mov.correo_titular }}</span></p>
+          </div>
+          <div class="row pt-3">
+            <p class="normal-font text-dark col-sm-6"><strong>Teléfono:</strong> <span>{{ datos_mov.codigo_area }} {{ datos_mov.telefono_titular }}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Tipo transacción:</strong> <span>{{ datos_mov.tipo_transaccion }}</span></p>
+          </div>
+        {% endif %}
+
+        {% if ingreso and ingreso.imagen_referencial %}
+          <div class="row center-area">
+            <form method="POST" class="center-area" action="{% url 'condominio_app:downloadReferenciaingreso' %}">
+              {% csrf_token %}
+              <input type="text" value="{{ ingreso.id_ingreso }}" name="id_ingreso" hidden="hidden">
+              <input type="text" value="{{ ingreso.imagen_referencial }}" name="ruta_imagen" hidden="hidden">
+              <button type="submit" style="font-size: 13px;" class="btn center-area btn-info mx-auto move-up">
+                <strong>Descargar referencia</strong>
+              </button>
+            </form>
+          </div>
+        {% else %}
+          <div class="row pt-1">
+            <p class="normal-font text-center text-dark col-sm-12 text-center"><strong>No se subió imagen de referencia</strong></p>
+          </div>
+        {% endif %}
+
+        <div class="dropdown-divider"></div>
+        <div class="d-grid pt-3" style="justify-content: right;">
+          <a class="btn btn-danger btn-cancel col-sm-12 border text-light move-up"
+             href="/home/administrar/propietarios"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock body_block %}

@@ -155,6 +155,10 @@
                         <i class='bx bxs-report'></i> <span class="nav_name">Reportes</span>
                     </a>
 
+                    <a href="{% url 'condominio_app:admin_validacion_pagos' %}" class="nav_link {% block active_option_validacion %} {% endblock active_option_validacion %}">
+                        <i class='bx bx-check-double'></i> <span class="nav_name">Validación de pagos</span>
+                    </a>
+
                     <a href="{% url 'condominio_app:admin_cierres' %}" class="nav_link {% block active_option_cierre %} {% endblock active_option_cierre %}">
                         <i class='bx bx-bar-chart-alt-2'></i> <span class="nav_name">Cierre del mes</span>
                     </a>
@@ -272,13 +276,14 @@
 <script>
     document.addEventListener("DOMContentLoaded", function(event) {
    
-        const showNavbar = (toggleId, navId, bodyId, headerId, logoId, submenuID) =>{
+        const showNavbar = (toggleId, navId, bodyId, headerId, logoId, submenuID, collapseID) =>{
             const toggle = document.getElementById(toggleId),
             nav = document.getElementById(navId),
             bodypd = document.getElementById(bodyId),
             headerpd = document.getElementById(headerId)
             logopd = document.getElementById(logoId)
             submenupd = document.getElementById(submenuID)
+            const collapseEl = collapseID ? document.getElementById(collapseID) : null
 
             // Validate that all variables exist
             if(toggle && nav && bodypd && headerpd && logopd) {
@@ -315,7 +320,9 @@
                         if (submenupd.getAttribute("aria-expanded") == "true") {
                             submenupd.setAttribute("aria-expanded", "false");
                             submenupd.classList.add('collapsed');
-                            document.getElementById('collapseAdministrar').classList.remove('show')
+                            if (collapseEl) {
+                                collapseEl.classList.remove('show')
+                            }
                         }
                     }
                 })
@@ -341,7 +348,7 @@
             }
         }
 
-        showNavbar('header-toggle','nav-bar','body-pd','header', 'logo_menu', 'submenu-administrar')
+        showNavbar('header-toggle','nav-bar','body-pd','header', 'logo_menu', 'submenu-administrar', 'collapseAdministrar')
 
         /*===== LINK ACTIVE =====*/
         const linkColor = document.querySelectorAll('.nav_link')

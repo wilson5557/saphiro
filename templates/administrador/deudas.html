@@ -52,6 +52,15 @@
 
         <div class="divider"></div>
 
+        <div class="row mt-3">
+          <div class="col-md-12 text-center">
+            <div class="alert alert-info">
+              <strong>Total de deudas activas:</strong>
+              BS {{ total_deudas_bs }} | USD {{ total_deudas_usd }} | EUR {{ total_deudas_eur }}
+            </div>
+          </div>
+        </div>
+
         <!-- FORMULARIO -->
         <form id="AgregarDeudas" class="pt-4" method="POST">
           {% csrf_token %}
@@ -157,7 +166,8 @@
                   <thead class="table-header">
                   <tr>
                       <th scope="col">Propietario</th>
-                      <th scope="col">DNI</th>
+                      <th scope="col">C.I</th>
+                      <th scope="col">Estado</th>
                       <th scope="col">Acción</th>
                   </tr>
                   </thead>
@@ -167,6 +177,7 @@
                   <tr>
                       <td class="centered-cell"> {{ deuda.id_domicilio.id_propietario.nombre_propietario }}</td>
                       <td class="centered-cell"> {{ deuda.id_domicilio.id_propietario.tipo_dni }}-{{ deuda.id_domicilio.id_propietario.dni }}</td>
+                      <td class="centered-cell">{{ deuda.estado_label }}</td>
                       <td class="center-all">
                           <div class="horizontal-cell">
                               {% csrf_token %}

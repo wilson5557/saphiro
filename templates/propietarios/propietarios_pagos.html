@@ -19,7 +19,7 @@
 {% block body_block %}
 <!-- PAGO DE CONDOMINIO -->
 <div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left">
-	<form method="POST">
+	<form id="EnviarPago" method="POST" enctype="multipart/form-data">
 		{% csrf_token %}
 		<div class="container rounded modulo border border-secondary pb-2">
 			<div class="container pt-3 pb-1">
@@ -103,11 +103,9 @@
 
 						<div class="divider mb-3"></div>
 
-						<form id="EnviarPago" method="POST">
-							{% csrf_token %}
-
 							<input id="deudas" name="deudas" type="text" hidden="hidden">
 							<input id="tipo_transaccion" name="tipo_transaccion" type="text" hidden="hidden">
+							<input id="moneda_seleccionada" name="moneda_seleccionada" type="text" hidden="hidden">
 
 							<div class="form-group row">
 								<label for="bancoReceptor" class="col-sm-3 col-form-label text-dark">Banco
@@ -415,17 +413,46 @@
 								</div>
 							</div>
 
+							<div class="form-group row">
+								<label for="imgReferencia" class="col-sm-3 col-form-label text-dark">Imagen Referencial:</label>
+								<div class="col-sm-9">
+									<input type="file" class="custom-control-input" accept="image/*" name="imgReferencia" id="imgReferencia">
+									<label class="col-sm-12 custom-file-label" for="imgReferencia">Suba la referencia aquí</label>
+								</div>
+							</div>
+
 							<div class="form-group row" style="justify-content: space-around;">
 								<button type="submit" class="col-sm-5 mt-2 mb-1 btn btn-success move-up" data-toggle="popover" data-content="Haz click aquí para enivar el pago"><i class="fa fa-check pr-1"></i> Enviar Reporte de Pago</button>
 								<a class="col-sm-5 btn btn-danger mt-2 mb-1 move-up" href="/home/propietarios/pagos/">Cancelar proceso de pago</a>
 							</div>
 
-						</form>
 					</div>
 				</div>
 			</div>
 		</div>
+	</div>
 	</form>
+</div>
+
+<div class="modal fade" id="modalMetodoPago" tabindex="-1" role="dialog" aria-labelledby="modalMetodoPagoLabel" aria-hidden="true">
+	<div class="modal-dialog modal-metodo-pago-dialog" role="document">
+		<div class="modal-content modal-metodo-pago-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="modalMetodoPagoLabel">Método de pago</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				¿Deseas pagar normalmente o descontar del saldo?
+			</div>
+			<div class="modal-footer">
+				<button type="button" id="btnPagoNormal" class="btn btn-secondary">Pagar normalmente</button>
+				<button type="button" id="btnPagoSaldo" class="btn btn-primary">Descontar del saldo</button>
+			</div>
+		</div>
+	</div>
+</div>
 </div>
 
 <script>
@@ -439,6 +466,7 @@
 		    	contenedorPadre.querySelector('.abonar').classList.remove('btn-disabled');
 
 				const select_banco = document.getElementById('bancoReceptor');
+				const monedaHidden = document.getElementById('moneda_seleccionada');
 
 				for (let i = select_banco.options.length - 1; i >= 0; i--) {
 				  const opcion = select_banco.options[i];
@@ -448,6 +476,8 @@
 				}
 
 		  	    const selectedValue = event.target.value;
+		  	    contenedorPadre.dataset.monedaSeleccionada = selectedValue;
+		  	    monedaHidden.value = selectedValue;
 
 				const deudas_condo = contenedorPadre.querySelectorAll('#deuda_condominio li .monto_condo');
 				const condo_moneda = contenedorPadre.querySelectorAll('#deuda_condominio li .tipo_moneda_condo');

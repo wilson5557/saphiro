@@ -11,7 +11,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, HTML, Submit, Field, Div, Row, MultiField
 from django.core.validators import RegexValidator
 
-TIPO_DNI = [('V', 'V'),
+TIPO_CI = [('V', 'V'),
             ('J', 'J'),
             ('E', 'E'),
             ('G', 'G'),
@@ -519,7 +519,7 @@ class BancosForm(forms.ModelForm):
   nombre_banco      = forms.CharField(label='Nombre del Banco', max_length=255)
   nombre_titular    = forms.CharField(label='Nombre del titular de la cuenta', max_length=255, required=True)
   fecha_apertura    = forms.DateField(label="Fecha de apertura del banco", widget = forms.SelectDateWidget(attrs=({'style': 'width: 30%; display: inline-block;'})), required=True)
-  tipo_dni_titular  = forms.ChoiceField(choices=TIPO_DNI, widget=forms.Select(attrs={'class': 'form-control'}))
+  tipo_dni_titular  = forms.ChoiceField(choices=TIPO_CI, widget=forms.Select(attrs={'class': 'form-control'}))
   dni_titular       = forms.CharField(label='Identificación', max_length=20, required=True)
   email_titular     = forms.EmailField(label='Correo electrónico del titular', max_length=100)
   cod_tlf           = forms.ChoiceField(label="Código del teléfono del titular", required=False, choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
@@ -527,10 +527,11 @@ class BancosForm(forms.ModelForm):
   tipo_moneda       = forms.CharField(label="Tipo de moneda", widget=forms.RadioSelect(choices=TIPO_MONEDA, attrs={'class': 'from-check-input tipo_moneda', 'id': 'tipo_moneda'}))
   tipo_banco        = forms.CharField(label="Tipo de banco", widget=forms.Select(choices=TIPO_BANCO, attrs={'class': 'from-check-input', 'id': 'tipo_banco'}))
   saldo_actual      = forms.DecimalField(label="Saldo de apertura del banco", max_digits=30, decimal_places=2)
+  imagen_referencial = forms.ImageField(label="Imagen referencial", required=False)
 
   class Meta:
     model = Bancos
-    fields = ('tipo_moneda', 'tipo_banco', 'nro_cuenta', 'nombre_banco', 'nombre_titular', 'fecha_apertura', 'tipo_dni_titular', 'dni_titular', 'email_titular', 'tlf_titular', 'saldo_actual')
+    fields = ('tipo_moneda', 'tipo_banco', 'nro_cuenta', 'nombre_banco', 'nombre_titular', 'fecha_apertura', 'tipo_dni_titular', 'dni_titular', 'email_titular', 'tlf_titular', 'saldo_actual', 'imagen_referencial')
     exclude = ('ultimo_debito', 'ultimo_credito', 'debitos_banco', 'creditos_banco')
 
   def clean_tipo_moneda(self):
@@ -597,7 +598,7 @@ class DatosMovimientoForm(forms.ModelForm):
   codigo_area = forms.ChoiceField(label="Código del teléfono del titular", required=False, choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
   telefono_titular = forms.CharField(label='Teléfono del titular', max_length=20)
   correo_titular = forms.EmailField(label='Correo electrónico del titular', max_length=100, required=False)
-  tipo_dni_titular = forms.ChoiceField(choices=TIPO_DNI, widget=forms.Select(attrs={'class': 'form-control'}))
+  tipo_dni_titular = forms.ChoiceField(choices=TIPO_CI, widget=forms.Select(attrs={'class': 'form-control'}))
   dni_titular = forms.CharField(label='Identificación', max_length=20, required=True)
 
   class Meta:

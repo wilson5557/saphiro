@@ -10,7 +10,11 @@ Esparta Suites - Administración
 
 
 {% block modulo_label %}
+{% if show_movimientos %}
+<span class="" id="gestionar-propietarios">Validación de pagos</span>
+{% else %}
 <span class="" id="gestionar-propietarios">Propietarios</span>
+{% endif %}
 {% endblock modulo_label %}
 
 {% block opc_panel_class %}
@@ -23,18 +27,27 @@ class="d-none"
     <div class="container rounded modulo pb-2">
         <div class="container pt-3 pb-1">
 
+{% if not show_movimientos %}
+{% if show_propietarios_form or show_movimientos_button %}
             <div class="form-group row">
-                <button class="btn-option mx-auto move-up d-none" id="HidePropietarios" onclick="ShowOrHide('ShowFormPropietarios')" data-toggle="popover" data-content="Haz click aquí para agregar un gasto"><i class="bx bx-plus pr-2"></i> Agregar Propietarios</button>
+                {% if show_propietarios_form %}
+                <button class="btn-option mx-auto move-up d-none" id="HidePropietarios" onclick="ShowOrHide('ShowFormPropietarios')" data-toggle="popover" data-content="Haz click aquí para agregar un propietario"><i class="bx bx-plus pr-2"></i> Agregar Propietarios</button>
 
-                <button class="btn-option mx-auto move-up" id="ShowPropietarios" onclick="ShowOrHide('HideFormPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de los gastos"><i class="fa fa-list pr-2"></i> Lista de propietarios</button>
+                <button class="btn-option mx-auto move-up" id="ShowPropietarios" onclick="ShowOrHide('HideFormPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de propietarios"><i class="fa fa-list pr-2"></i> Lista de propietarios</button>
+                {% endif %}
 
-                <button class="btn-option mx-auto move-up" id="ShowMovPropietarios" onclick="ShowOrHide('HideAllPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de los gastos"><i class="fa fa-list pr-2"></i> Lista de movimientos</button>
+                {% if show_movimientos_button %}
+                <button class="btn-option mx-auto move-up" id="ShowMovPropietarios" onclick="ShowOrHide('HideAllPropietarios')" data-toggle="popover" data-content="Haz click aquí para ver la lista de movimientos"><i class="fa fa-list pr-2"></i> Lista de movimientos</button>
+                {% endif %}
             </div>
+            {% endif %}
+            {% endif %}
 
             <div class="divider"></div>
 
             <!-- VER LOS PROPIETARIOS EN EL SISTEMA -->
-            <div class="d-none" id="VerPropietarios">
+{% if not show_movimientos %}
+            <div class="{% if show_propietarios_list %}{% else %}d-none{% endif %}" id="VerPropietarios">
                 <br>
                 <div class="input-div input-group">
                     <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
@@ -49,7 +62,7 @@ class="d-none"
                     <thead class="table-header">
                     <tr>
                         <th scope="col">Propietario</th>
-                        <th scope="col">DNI</th>
+                        <th scope="col">C.I</th>
                         <th scope="col">Teléfono</th>
                         <th scope="col">Tipo</th>
                         <th scope="col">Acción</th>
@@ -82,8 +95,9 @@ class="d-none"
                                 <a href="/home/administrar/propietarios/actualizar/{{ propietario.id_propietario }}"
                                    class="btn btn-primary btn-option-admin border text-light button-table center-all"
                                    data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
-                                <a href="/home/administrar/propietarios/eliminar/{{ propietario.id_propietario }}"
-                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                                <a href="#"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-prop"
+                                   data-url="/home/administrar/propietarios/eliminar/{{ propietario.id_propietario }}"
                                    data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
                             </div>
                         </td>
@@ -93,11 +107,33 @@ class="d-none"
                     </tbody>
                 </table>
             </div>
+            {% endif %}
+
+            <!-- Modal confirmar eliminación de propietario -->
+            <div class="modal fade" id="modalEliminarProp" tabindex="-1" role="dialog" aria-labelledby="modalEliminarPropLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="modalEliminarPropLabel">Eliminar propietario</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    ¿Está seguro que desea eliminar este propietario?
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                    <a href="#" id="confirmEliminarProp" class="btn btn-danger">Sí, eliminar</a>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <!-- VER LOS MOVIMIENTOS REALIZADOS POR LOS PROPIETARIOS Y SU ESTADO -->
             <form method="POST" id="Confirm_form" action="{% url 'condominio_app:admin_propietarios_mov' %}">
               {% csrf_token %}
-              <div class="d-none" id="VerMovimientos">
+              <div class="{% if show_movimientos %}{% else %}d-none{% endif %}" id="VerMovimientos">
                 <br>
                 <div class="input-div input-group">
                   <input type="text" class="form-control text-dark input-search" placeholder="Búsqueda Avanzada"
@@ -138,11 +174,11 @@ class="d-none"
                     <td class="centered-cell"> {{ mov.banco_emisor }}</td>
 
                     {% if mov.estado_movimiento == 0 %}
-                    <td class="centered-cell text-success"> Aprobado</td>
+                    <td class="centered-cell text-success">Aprobado</td>
                     {% elif mov.estado_movimiento == 1 %}
-                    <td class="centered-cell text-warning"> Rechazado</td>
+                    <td class="centered-cell text-warning">Rechazado</td>
                     {% else %}
-                    <td class="centered-cell"> Pendiente</td>
+                    <td class="centered-cell">Pendiente</td>
                     {% endif %}
 
                     {% if mov.estado_movimiento == 2 %}
@@ -152,6 +188,9 @@ class="d-none"
                                   style="justify-content: unset;" data-toggle="modal" data-target="#consultar" data-content="Aceptar"><i class="fa fa-thumbs-o-up pr-3"></i></button>
                           <button type="button" value={{mov.id_movimiento}} class="btn btn-primary btn-option-admin border text-light button-table center-all rechazar"
                                   style="justify-content: unset;" data-toggle="modal" data-target="#consultar" data-content="Rechazar"><i class="fa fa-ban pr-3"></i></button>
+                          <a href="/home/administrar/pagos/ver/{{ mov.id_movimiento }}"
+                             class="btn btn-primary btn-option-admin border text-light button-table center-all"
+                             data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
                       </div>
                     </td>
                     {% else %}
@@ -164,6 +203,17 @@ class="d-none"
                 </table>
               </div>
             </form>
+
+<script>
+  document.querySelectorAll('.btn-eliminar-prop').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      var url = btn.getAttribute('data-url');
+      document.getElementById('confirmEliminarProp').setAttribute('href', url);
+      $('#modalEliminarProp').modal('show');
+    });
+  });
+</script>
 
             <div class="modal fade" id="consultar" tabindex="-1" role="dialog" aria-labelledby="consultarLabel" aria-hidden="true" style="width: 100%">
               <div class="modal-dialog" role="document">
@@ -187,6 +237,7 @@ class="d-none"
             </div>
 
             <!-- FORMULARIO PARA AGREGAR UN NUEVO PROPIETARIO -->
+            {% if not show_movimientos and show_propietarios_form %}
             <div class="form-style-10 col-sm-12" id="AgregarPropietarios">
                 <form method="POST">
                     {% csrf_token %}
@@ -402,6 +453,7 @@ class="d-none"
 
                 </form>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

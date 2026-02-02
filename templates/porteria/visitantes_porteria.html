@@ -36,8 +36,6 @@ class="col-lg-3 end-padding-left"
                 <a class="normal-font dropdown-item text-dark btn sub-option-menu"
                    href="/home/administrar/fondos/">Fondos</a>
                 <a class="normal-font dropdown-item text-dark btn sub-option-menu"
-                   href="/home/administrar/propietarios/">Propietarios</a>
-                <a class="normal-font dropdown-item text-dark btn sub-option-menu"
                    href="/home/administrar/torres/">Torres</a>
                 <a class="normal-font dropdown-item text-dark btn sub-option-menu"
                    href="/home/administrar/noticias/">Noticias</a>
@@ -52,6 +50,11 @@ class="col-lg-3 end-padding-left"
         </a>
     </li>
     <li>
+        <a href="/home/administrar/validacion-pagos/" style="font-size: 12px !important;" class="a-sub-option">
+            Validación de pagos
+        </a>
+    </li>
+    <li>
         <a href="/home/administrar/cierres/" style="font-size: 12px !important;" class="a-sub-option">
             Cierre del Mes
         </a>
@@ -59,6 +62,11 @@ class="col-lg-3 end-padding-left"
     <li>
         <a href="{% url 'condominio_app:admin_configuracion' type='condominio' %}" style="font-size: 12px !important;" class="a-sub-option">
             Configuración
+        </a>
+    </li>
+    <li>
+        <a href="/home/administrar/propietarios/" style="font-size: 12px !important;" class="a-sub-option">
+            Propietarios
         </a>
     </li>
 </ul>

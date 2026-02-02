@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 from django.db.models.functions import Extract, TruncMonth
 from django.shortcuts import render 
+import csv
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, reverse, get_object_or_404
 from django.http import HttpResponse, JsonResponse, Http404, HttpResponseRedirect, FileResponse
@@ -658,10 +659,12 @@ def confirmarPago(request, ids, prop):
     ult_movimiento = Movimientos_bancarios.objects.filter(id_banco_id=request.POST['bancoReceptor']).last()
     monto_transaccion = Decimal(request.POST['montoPago'])
 
+    concepto_pago = request.POST['descripcion_pago']
     if ult_movimiento:
 
         movimiento = Movimientos_bancarios.objects.get_or_create(referencia_movimiento=request.POST['Referencia'],
                                                                defaults={'fecha_movimiento': request.POST['dateTransferencia'],
+                                                                         'concepto_movimiento': concepto_pago,
                                                                          'descripcion_movimiento': request.POST['descripcion_pago'],
                                                                          'debito_movimiento': ult_movimiento.debito_movimiento, 
                                                                          'credito_movimiento': ult_movimiento.credito_movimiento,
@@ -675,6 +678,7 @@ def confirmarPago(request, ids, prop):
     else:
         movimiento = Movimientos_bancarios.objects.get_or_create(referencia_movimiento=request.POST['Referencia'],
                                                                defaults={'fecha_movimiento': request.POST['dateTransferencia'],
+                                                                         'concepto_movimiento': concepto_pago,
                                                                          'descripcion_movimiento': request.POST['descripcion_pago'],
                                                                          'debito_movimiento': 0, 
                                                                          'credito_movimiento': 0,
@@ -685,6 +689,20 @@ def confirmarPago(request, ids, prop):
                                                                          'id_banco_id': request.POST['bancoReceptor'],
                                                                          'created_at': datetime.now(), 
                                                                          'updated_at': datetime.now()})
+
+    if not movimiento[0].concepto_movimiento:
+        movimiento[0].concepto_movimiento = concepto_pago
+        movimiento[0].save()
+
+    ingreso = Ingresos.objects.filter(id_movimiento_id=movimiento[0].id_movimiento).first()
+    if not ingreso:
+        ingreso = Ingresos()
+    ingreso.tipo_ingreso = 'Pago de un propietario'
+    ingreso.id_movimiento_id = movimiento[0].id_movimiento
+    ingreso.id_propietario = prop
+    if request.FILES.get('imgReferencia'):
+        ingreso.imagen_referencial = request.FILES['imgReferencia']
+    ingreso.save()
 
     Datos_transaccion.objects.get_or_create(nombre_titular=request.POST['nameTitular'],
                                             telefono_titular=request.POST['tlfTitular'],
@@ -736,6 +754,112 @@ def confirmarPago(request, ids, prop):
                                                   extra_tags='alert-success')
     return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
 
+def pagar_con_saldo(request, ids, prop):
+    moneda = request.POST.get('moneda_seleccionada')
+    montos = request.POST.getlist('montos_deudas')
+    if not moneda or not montos:
+        messages.warning(request, 'No se pudo procesar el pago con saldo. Verifique los datos enviados.',
+                         extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+
+    deudas = Deudas.objects.filter(id_deuda__in=ids, is_active=True).select_related('id_domicilio')
+    deuda = deudas.first()
+    if not deuda or not deuda.id_domicilio:
+        messages.warning(request, 'No se encontraron deudas válidas para el pago con saldo.',
+                         extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+
+    domicilio = deuda.id_domicilio
+    total = sum(Decimal(monto) for monto in montos)
+
+    banco = Bancos.objects.filter(
+        id_condominio_id=domicilio.id_condominio_id,
+        tipo_moneda=moneda
+    ).first()
+    if not banco:
+        messages.warning(request, 'No hay un banco configurado para esa moneda.',
+                         extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+
+    if moneda == "USD":
+        saldo = domicilio.saldo_usd or 0
+    elif moneda == "EUR":
+        saldo = domicilio.saldo_eur or 0
+    else:
+        saldo = domicilio.saldo or 0
+
+    if Decimal(total) > Decimal(saldo):
+        messages.warning(request, 'Saldo insuficiente en la moneda seleccionada. Debe pagar normalmente.',
+                         extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+
+    if moneda == "USD":
+        domicilio.saldo_usd = (domicilio.saldo_usd or 0) - total
+    elif moneda == "EUR":
+        domicilio.saldo_eur = (domicilio.saldo_eur or 0) - total
+    else:
+        domicilio.saldo = (domicilio.saldo or 0) - total
+    domicilio.save()
+
+    referencia = str(timezone.now()).replace('-', '').replace(':', '').replace('.', '').replace('+', '').replace(' ', '')
+    mov = Movimientos_bancarios.objects.create(
+        fecha_movimiento=timezone.now().date(),
+        concepto_movimiento="Pago con saldo",
+        descripcion_movimiento="Pago de deudas con saldo de la cuenta",
+        referencia_movimiento=referencia,
+        debito_movimiento=0,
+        credito_movimiento=0,
+        monto_movimiento=total,
+        banco_emisor="Saldo de cuenta",
+        estado_movimiento=0,
+        tipo_moneda=moneda,
+        id_banco=banco,
+        created_at=timezone.now(),
+        updated_at=timezone.now()
+    )
+
+    banco.creditos_banco += total
+    banco.saldo_actual += total
+    banco.ultimo_credito = timezone.now().date()
+    banco.save()
+
+    condominio = Condominio.objects.get(id_condominio=domicilio.id_condominio_id)
+    if moneda == "USD":
+        condominio.saldo_edificio_usd += total
+    elif moneda == "EUR":
+        condominio.saldo_edificio_eur += total
+    else:
+        condominio.saldo_edificio += total
+    condominio.save()
+
+    ingreso = Ingresos()
+    ingreso.tipo_ingreso = 'Pago con saldo'
+    ingreso.id_movimiento = mov
+    ingreso.id_propietario = domicilio.id_propietario
+    ingreso.save()
+
+    for deuda_item in deudas:
+        Recibos.objects.create(
+            descripcion_recibo=deuda_item.concepto_deuda,
+            monto=deuda_item.monto_deuda,
+            categoria_recibo="SOLVENTE",
+            fecha_creacion=timezone.now().date(),
+            hora_creacion=timezone.now(),
+            id_movimiento_id=mov.id_movimiento,
+            id_deuda=deuda_item
+        )
+        deuda_item.is_active = False
+        deuda_item.updated_at = timezone.now()
+        deuda_item.save()
+
+    if not Deudas.objects.filter(id_domicilio=domicilio, is_active=True).exists():
+        domicilio.estado_deuda = False
+        domicilio.save()
+
+    messages.success(request, '¡La deuda fue pagada con saldo de la cuenta!',
+                     extra_tags='alert-success')
+    return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+
 @login_required
 def propietarios_pagos(request):
     user = request.user
@@ -772,6 +896,10 @@ def propietarios_pagos(request):
             ids = [-1]
             print("confirmar pago: abono")
             confirmarPago(request, ids, propietarios)
+        elif request.POST['tipo_transaccion'] == 'SALDO':
+            ids = request.POST['deudas'].split(',')
+            print("confirmar pago: saldo")
+            pagar_con_saldo(request, ids, propietarios)
 
         else:
             messages.warning(request, 'Hubo un error al concretar el movimiento en el sistema. Por favor intente nuevamente.',
@@ -1084,7 +1212,7 @@ def admin_bancos(request):
 
             print("xd2")
 
-            bancos_form = BancosForm(data=request.POST)
+            bancos_form = BancosForm(data=request.POST, files=request.FILES)
 
             print("xd3")
 
@@ -1095,6 +1223,8 @@ def admin_bancos(request):
                 bancos.fecha_apertura = request.POST['fecha_apertura']
                 bancos.saldo_apertura = request.POST['saldo_actual']
                 bancos.id_condominio = condominio
+                if request.FILES.get('imagen_referencial'):
+                    bancos.imagen_referencial = request.FILES['imagen_referencial']
                 bancos.save()
                 print("xd6")
 
@@ -1130,7 +1260,13 @@ def admin_gastos(request):
     if not categorias.exists():
         Categoria.objects.create(nombre_categoria="General")
         categorias = Categoria.objects.all()
-    cierre = Cierre_mes.objects.all().last()
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    cierre_fecha = cierre.fecha_cierre if cierre else None
+    for gasto_item in gastos:
+        if not cierre_fecha or not gasto_item.id_movimiento.created_at:
+            gasto_item.can_modify = True
+            continue
+        gasto_item.can_modify = gasto_item.id_movimiento.created_at > cierre_fecha
     gasto = Gastos()
     movimiento = Movimientos_bancarios()
     deudas = Deudas()
@@ -1197,7 +1333,7 @@ def admin_gastos(request):
 
                 ult_movimiento = Movimientos_bancarios.objects.filter(id_banco_id=id_bank).last()
 
-                mov_realizado.tipo_moneda = request.POST['TipoMonedaGasto']
+                mov_realizado.tipo_moneda = request.POST['TipoMonedaGasto'].upper()
                 mov_realizado.id_banco = id_bank
                 if ult_movimiento:
                     if ult_movimiento.debito_movimiento:
@@ -1335,7 +1471,11 @@ def admin_ingresos(request):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
-    ingresos = Ingresos.objects.filter(id_movimiento__id_banco__id_condominio_id=user.id_condominio_id).select_related("id_movimiento__id_banco")
+    ingresos = Ingresos.objects.filter(
+        id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        id_movimiento__estado_movimiento=0,
+    ).select_related("id_movimiento__id_banco")
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).last()
     for ingreso in ingresos:
         ingreso.emisor = ""
         if ingreso.id_propietario:
@@ -1344,9 +1484,22 @@ def admin_ingresos(request):
             recibo = Recibos.objects.filter(id_movimiento_id=ingreso.id_movimiento_id).select_related('id_deuda__id_domicilio__id_propietario').first()
             if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio and recibo.id_deuda.id_domicilio.id_propietario:
                 ingreso.emisor = recibo.id_deuda.id_domicilio.id_propietario.nombre_propietario
+        if ingreso.id_movimiento.estado_movimiento == 2:
+            ingreso.estado_label = "Pendiente"
+            ingreso.estado_bloqueado = False
+        elif ingreso.id_movimiento.estado_movimiento == 1:
+            ingreso.estado_label = "Rechazado"
+            ingreso.estado_bloqueado = True
+        else:
+            if cierre and ingreso.id_movimiento.created_at and ingreso.id_movimiento.created_at < cierre.fecha_cierre:
+                ingreso.estado_label = "Cerrado"
+                ingreso.estado_bloqueado = True
+            else:
+                ingreso.estado_label = "Pagada"
+                ingreso.estado_bloqueado = False
     bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
     propietarios = Domicilio.objects.filter(id_condominio_id=user.id_condominio_id).select_related('id_propietario')
-    cierre = Cierre_mes.objects.all().last()
+    # cierre ya calculado arriba para el condominio
     
     ingreso = Ingresos()
     movimiento = Movimientos_bancarios()
@@ -1413,8 +1566,9 @@ def admin_ingresos(request):
 
                 ult_movimiento = Movimientos_bancarios.objects.filter(id_banco_id=id_bank).last()
 
-                mov_realizado.tipo_moneda = request.POST['TipoMonedaIngreso']
+                mov_realizado.tipo_moneda = request.POST['TipoMonedaIngreso'].upper()
                 mov_realizado.id_banco = id_bank
+                mov_realizado.estado_movimiento = 0
                 if ult_movimiento:
                     if ult_movimiento.debito_movimiento:
                         mov_realizado.debito_movimiento = ult_movimiento.debito_movimiento
@@ -1503,9 +1657,42 @@ def admin_deudas(request):
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
     gastos = Gastos.objects.all()
-    deudas_prop = Deudas.objects.filter(is_active=True, id_domicilio__estado_deuda=True, tipo_deuda="2").distinct('id_domicilio')
-    deudas_condo = Deudas.objects.filter(is_active=True, tipo_deuda="1")
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    deudas_prop = Deudas.objects.filter(
+        is_active=True,
+        id_domicilio__estado_deuda=True,
+        tipo_deuda="2",
+        id_domicilio__id_condominio_id=user.id_condominio_id,
+    ).distinct('id_domicilio')
+    deudas_condo = Deudas.objects.filter(
+        is_active=True,
+        tipo_deuda="1",
+        id_domicilio__id_condominio_id=user.id_condominio_id,
+    )
     propietarios = Domicilio.objects.filter(id_condominio_id=user.id_condominio_id, id_propietario__isnull=False)
+    totales_deudas = Deudas.objects.filter(
+        is_active=True,
+        tipo_deuda="2",
+        id_domicilio__id_condominio_id=user.id_condominio_id,
+    ).values('tipo_moneda').annotate(total=Sum('monto_deuda'))
+    total_deudas_bs = 0
+    total_deudas_usd = 0
+    total_deudas_eur = 0
+    for item in totales_deudas:
+        if item['tipo_moneda'] == 'BS':
+            total_deudas_bs = item['total'] or 0
+        elif item['tipo_moneda'] == 'USD':
+            total_deudas_usd = item['total'] or 0
+        elif item['tipo_moneda'] == 'EUR':
+            total_deudas_eur = item['total'] or 0
+    for deuda_item in deudas_prop:
+        if not deuda_item.is_active:
+            deuda_item.estado_label = "Pagada"
+        elif cierre and deuda_item.created_at and deuda_item.created_at < cierre.fecha_cierre:
+            deuda_item.estado_label = "Cerrado"
+        else:
+            deuda_item.estado_label = "Pendiente"
+
     deudas_form = DeudasForm()
     deuda = Deudas()
     ultima_tasa = Tasas.objects.last()
@@ -1538,6 +1725,7 @@ def admin_deudas(request):
                     deuda.tipo_deuda = request.POST['tipo_deuda']
                     deuda.categoria_deuda = "CUOTA EXTRA"
                     deuda.monto_deuda = request.POST['monto_deuda']
+                    deuda.tipo_moneda = request.POST['tipo_moneda']
                     deuda.is_active = True
                     deuda.created_at = today
                     deuda.updated_at = today
@@ -1548,12 +1736,16 @@ def admin_deudas(request):
 
                     deuda.save()
 
+                    # No descontar saldo al crear la deuda. El descuento solo ocurre
+                    # cuando el usuario elige "Descontar del saldo".
+
                 else:
                     deuda.tipo_deuda = request.POST['tipo_deuda']
                     deuda.is_moroso = False
                     deuda.concepto_deuda = request.POST['concepto_deuda']
                     deuda.descripcion_deuda = request.POST['descripcion_deuda']
                     deuda.monto_deuda = request.POST['monto_deuda']
+                    deuda.tipo_moneda = request.POST['tipo_moneda']
                     deuda.fecha_deuda = request.POST['fecha_deuda']
                     deuda.is_active = True
                     deuda.created_at = today
@@ -1569,7 +1761,10 @@ def admin_deudas(request):
     return render(request, 'administrador/deudas.html', {'conf': condominio, 'tasa_bs': tasa_bs,
                                                          'tasa_euro': tasa_euro, 'gastos': gastos, 'deudas_prop': deudas_prop,
                                                          'deudas_condo': deudas_condo, 'propietarios': propietarios,
-                                                         'deudas_form': deudas_form})
+                                                         'deudas_form': deudas_form,
+                                                         'total_deudas_bs': total_deudas_bs,
+                                                         'total_deudas_usd': total_deudas_usd,
+                                                         'total_deudas_eur': total_deudas_eur})
 
 
 # envia los datos al modal
@@ -1582,11 +1777,7 @@ def deudas_list(request):
     for domicilio in domicilios:
         deudas_domicilio = Deudas.objects.filter(id_domicilio_id=domicilio.id_domicilio, is_active=True).select_related('id_domicilio')
         for deuda in deudas_domicilio:
-            moroso = ""
-            if deuda.is_moroso:
-                moroso = "Si"
-            else:
-                moroso = "No"
+            moroso = "Si" if deuda.is_active else "No"
 
             data_deuda = {
                 'concepto_deuda': deuda.concepto_deuda,
@@ -1802,6 +1993,91 @@ def admin_fondos(request):
                                                          'datos_transaccion_form': datos_transaccion_form,
                                                          'bancos': bancos, 'fondos': fondos})
 
+def procesar_propietario_post(request):
+    dataPropietario = {
+        'nombre_propietario': request.POST.get('nombre_propietario', '').upper(),
+        'genero': request.POST.get('genero'),
+        'pais_residencia': request.POST.get('pais_residencia'),
+        'tipo_dni': request.POST.get('tipo_dni'),
+        'dni': request.POST.get('dni'),
+        'codigo_tlf_hab': request.POST.get('codigo_tlf_hab'),
+        'telefono_hab': request.POST.get('telefono_hab'),
+        'codigo_tlf_movil': request.POST.get('codigo_tlf_movil'),
+        'telefono_movil': request.POST.get('telefono_movil'),
+        'correo': request.POST.get('email'),
+        'condominio': request.user.id_condominio_id
+    }
+
+    dataUsuario = {
+        'username': dataPropietario['dni'],
+        'email': request.POST.get('email'),
+        'password1': dataPropietario['dni']
+    }
+
+    if request.POST.get('tipo_dni') == '':
+        messages.warning(request,
+                         'Ha ocurrido un error durante el registro. Debe escoger un tipo de identificación',
+                         extra_tags='alert-danger')
+        return False
+
+    propietarios_form = PropietariosForm(data=dataPropietario)
+    if propietarios_form.is_valid():
+        prop = propietarios_form.save()
+
+        aptos = ""
+        for i, domicilios in enumerate(request.POST.getlist('domicilio')):
+            dom_seleccionados = Domicilio.objects.get(id_domicilio=int(domicilios))
+            dom_seleccionados.id_propietario = prop
+            dom_seleccionados.save()
+            if i == 0:
+                aptos = dom_seleccionados.nombre_domicilio
+            else:
+                aptos = aptos + ', ' + dom_seleccionados.nombre_domicilio
+
+        usuario = RegistrationForm(data=dataUsuario)
+        if usuario.is_valid():
+            acc = usuario.save(commit=False)
+            acc.set_password(dataPropietario['dni'])
+            rol_propietario = RolModel.objects.filter(rol='4').first()
+            if not rol_propietario:
+                rol_propietario = RolModel.objects.create(rol='4')
+            acc.id_rol_id = rol_propietario.id_rol
+            acc.id_condominio_id = request.user.id_condominio_id
+            acc.save()
+
+            prop.id_usuario_id = acc.id
+            prop.save()
+
+            dataEmail = {'propietario': request.POST['nombre_propietario'], 'apto': aptos,
+                         'password': dataPropietario['dni'], 'usuario': dataPropietario['dni']
+                         }
+
+            html_content = render_to_string('mails/mail.html', dataEmail)
+            email = EmailMultiAlternatives('Esparta Suites: Información de Cuenta', html_content)
+            email.attach_alternative(html_content, "text/html")
+            email.to = [request.POST['email']]
+            res = email.send()
+            if res == 1:
+                print("Correo enviado satisfactoriamente")
+
+            messages.success(request,
+                             '¡El propietario y su usuario han sido registrados de manera satisfactoria!',
+                             extra_tags='alert-success')
+            return True
+        else:
+            print(usuario.errors)
+            primera_key = next(iter(usuario.errors))
+            messages.warning(request,
+                             usuario.errors[primera_key].as_text().replace('*', ''),
+                             extra_tags='alert-danger')
+    else:
+        messages.warning(request,
+                         'Ha ocurrido un error durante el registro. El formulario es invalido.',
+                         extra_tags='alert-danger')
+
+    return False
+
+
 # ------------------------------ADMINISTRACION Y GESTION DE PROPIETARIOS------------------------------
 @login_required
 def admin_propietarios(request):
@@ -1830,124 +2106,105 @@ def admin_propietarios(request):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
-    movimientos = Movimientos_bancarios.objects.filter(estado_movimiento=2)
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    movimientos = Movimientos_bancarios.objects.filter(estado_movimiento=2, id_banco__id_condominio_id=user.id_condominio_id)
     for mov in movimientos:
         mov.emisor = ""
         recibo = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related('id_deuda__id_domicilio__id_propietario').first()
         if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio and recibo.id_deuda.id_domicilio.id_propietario:
             mov.emisor = recibo.id_deuda.id_domicilio.id_propietario.nombre_propietario
+        if cierre and mov.created_at:
+            mov.cerrado = mov.created_at <= cierre.fecha_cierre
+        else:
+            mov.cerrado = False
 
     if request.method == 'POST':
-
-        dataPropietario = {
-            'nombre_propietario': request.POST['nombre_propietario'].upper(),
-            'genero': request.POST['genero'],
-            'pais_residencia': request.POST['pais_residencia'],
-            'tipo_dni': request.POST['tipo_dni'],
-            'dni': request.POST['dni'],
-            'codigo_tlf_hab': request.POST['codigo_tlf_hab'],
-            'telefono_hab': request.POST['telefono_hab'],
-            'codigo_tlf_movil': request.POST['codigo_tlf_movil'],
-            'telefono_movil': request.POST['telefono_movil'],
-            'correo': request.POST['email'],
-            'condominio': request.user.id_condominio_id
-        }
-
-        dataUsuario = {
-            'username': dataPropietario['dni'],
-            'email': request.POST['email'],
-            'password1': dataPropietario['dni']
-        }
-
-        if request.POST['tipo_dni'] == '':
-            # print("NO HA ESCOGIDO UN TIPO DE DNI")
-            messages.warning(request,
-                             'Ha ocurrido un error durante el registro. Debe escoger un tipo de identificación',
-                             extra_tags='alert-danger')
-
-        else:
-            propietarios_form = PropietariosForm(data=dataPropietario)
-
-            # Se chequea si el formulario de los propietarios es valido
-            if propietarios_form.is_valid():
-                # Se chequea si el formulario de los usuarios es valido
-                prop = propietarios_form.save()
-
-                aptos = ""
-
-                for i, domicilios in enumerate(request.POST.getlist('domicilio')):
-                    dom_seleccionados = Domicilio.objects.get(id_domicilio=int(domicilios))
-                    dom_seleccionados.id_propietario = prop
-                    dom_seleccionados.save()
-                    if i == 0:
-                        aptos = dom_seleccionados.nombre_domicilio
-                    else:
-                        aptos = aptos + ', ' + dom_seleccionados.nombre_domicilio
-
-                usuario = RegistrationForm(data=dataUsuario)
-                
-                if usuario.is_valid():
-                    acc = usuario.save(commit=False)
-                    acc.set_password(dataPropietario['dni'])
-                    # Buscar el rol de Propietario (valor '4'), si no existe crearlo
-                    rol_propietario = RolModel.objects.filter(rol='4').first()
-                    if not rol_propietario:
-                        rol_propietario = RolModel.objects.create(rol='4')
-                    acc.id_rol_id = rol_propietario.id_rol
-                    acc.id_condominio_id = request.user.id_condominio_id
-                    acc.save()
-
-                    prop.id_usuario_id = acc.id
-                    prop.save()
-
-                    dataEmail = {'propietario': request.POST['nombre_propietario'], 'apto': aptos,
-                            'password': dataPropietario['dni'], 'usuario': dataPropietario['dni']
-                        
-                    } #Hay que validar para que salga un error en lugar del itercount
-
-                    html_content = render_to_string('mails/mail.html', dataEmail)
-
-                    email = EmailMultiAlternatives('Esparta Suites: Información de Cuenta', html_content)
-                    email.attach_alternative(html_content, "text/html")
-                    email.to = [request.POST['email']]
-                    res = email.send()
-                    if (res == 1):
-                        print("Correo enviado satisfactoriamente")
-
-                    messages.success(request,
-                                     '¡El propietario y su usuario han sido registrados de manera satisfactoria!',
-                                     extra_tags='alert-success')
-                    return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
-                else:
-                    print(usuario.errors)
-                    primera_key = next(iter(usuario.errors))
-                    messages.warning(request,
-                                     usuario.errors[primera_key].as_text().replace('*', ''),
-                                     extra_tags='alert-danger')
-
-            else:
-                messages.warning(request,
-                                 'Ha ocurrido un error durante el registro. El formulario es invalido.',
-                                 extra_tags='alert-danger')
+        if procesar_propietario_post(request):
+            return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
 
     return render(request, 'administrador/propietarios.html', {'propietarios': propietarios,
                                                                'propietarios_form': propietarios_form, 'user_form': user_form,
                                                                'domicilios': domicilios, 'movimientos': movimientos, 'torres': torres,
                                                                'conf': condominio, 'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
-                                                               'domicilios_disponibles': domicilios_disponibles})
+                                                               'domicilios_disponibles': domicilios_disponibles,
+                                                               'show_propietarios_form': False,
+                                                               'show_propietarios_list': True,
+                                                               'show_movimientos_button': False})
+
+
+@login_required
+def admin_validacion_pagos(request):
+    user = request.user
+    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+
+    condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
+    propietarios = Propietario.objects.filter(id_usuario__id_condominio_id=user.id_condominio_id)
+    domicilios = Domicilio.objects.filter(id_propietario_id__isnull=True).select_related('id_propietario').order_by('-created_at')
+    domicilios_disponibles = len(domicilios)
+    torres = Torre.objects.all()
+    propietarios_form = PropietariosForm()
+    user_form = RegistrationForm()
+
+    ultima_tasa = Tasas.objects.all().last()
+    today = timezone.now()
+    tasa_bs = ultima_tasa.tasa_BCV_USD
+    tasa_euro = ultima_tasa.tasa_BCV_EUR
+    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
+                           today.strftime("%A"), tasa_bs, tasa_euro)
+    tasa_bs = tasas['tasa_BCV_USD']
+    tasa_euro = tasas['tasa_BCV_EUR']
+
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    movimientos = Movimientos_bancarios.objects.filter(
+        estado_movimiento=2,
+        id_banco__id_condominio_id=user.id_condominio_id
+    )
+    for mov in movimientos:
+        mov.emisor = ""
+        recibo = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related(
+            'id_deuda__id_domicilio__id_propietario'
+        ).first()
+        if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio and recibo.id_deuda.id_domicilio.id_propietario:
+            mov.emisor = recibo.id_deuda.id_domicilio.id_propietario.nombre_propietario
+        if cierre and mov.created_at:
+            mov.cerrado = mov.created_at <= cierre.fecha_cierre
+        else:
+            mov.cerrado = False
+
+    return render(request, 'administrador/propietarios.html', {
+        'propietarios': propietarios,
+        'propietarios_form': propietarios_form,
+        'user_form': user_form,
+        'domicilios': domicilios,
+        'movimientos': movimientos,
+        'torres': torres,
+        'conf': condominio,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'domicilios_disponibles': domicilios_disponibles,
+        'show_movimientos': True,
+        'show_propietarios_form': False,
+        'show_propietarios_list': False,
+        'show_movimientos_button': False,
+    })
 
 
 @require_http_methods(['GET'])
 def admin_propietarios_mov(request):
     if request.GET.get('respuesta') == 'Aprobado':
 
-        ingreso = Ingresos()
-
         user = request.user
         condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
-        mov = Movimientos_bancarios.objects.get(id_movimiento=request.GET.get('id'))
-        datos_mov = Datos_transaccion.objects.get(id_movimiento_id=request.GET.get('id'))
-        banco = Bancos.objects.get(id_banco=mov.id_banco_id)
+        try:
+            mov = Movimientos_bancarios.objects.get(id_movimiento=request.GET.get('id'))
+        except Movimientos_bancarios.DoesNotExist:
+            return JsonResponse({'mensaje': 'No se encontro el movimiento solicitado.'}, status=400)
+        datos_mov = Datos_transaccion.objects.filter(id_movimiento_id=mov.id_movimiento).first()
+        try:
+            banco = Bancos.objects.get(id_banco=mov.id_banco_id)
+        except Bancos.DoesNotExist:
+            return JsonResponse({'mensaje': 'No se encontro el banco del movimiento.'}, status=400)
 
         mov.estado_movimiento = 0
         mov.updated_at = timezone.now()
@@ -1960,7 +2217,15 @@ def admin_propietarios_mov(request):
 
         prop = None
         
-        if datos_mov.tipo_transaccion == 'ABONO':
+        tipo_transaccion = datos_mov.tipo_transaccion if datos_mov else None
+        if not tipo_transaccion:
+            recibos_mov = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento)
+            if recibos_mov.filter(categoria_recibo__in=['ABONO', 'ABONADO']).exists():
+                tipo_transaccion = 'ABONO'
+            else:
+                tipo_transaccion = 'PAGO'
+
+        if tipo_transaccion == 'ABONO':
             recibo = Recibos.objects.filter(id_movimiento_id=request.GET.get('id')).select_related('id_deuda__id_domicilio__id_propietario').first()
             if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio:
                 prop = recibo.id_deuda.id_domicilio.id_propietario
@@ -2004,6 +2269,9 @@ def admin_propietarios_mov(request):
             mov.id_propietario = prop
             mov.save()
 
+        ingreso = Ingresos.objects.filter(id_movimiento=mov).first()
+        if not ingreso:
+            ingreso = Ingresos()
         ingreso.tipo_ingreso = 'Pago de un propietario'
         ingreso.id_movimiento = mov
         ingreso.id_propietario = prop
@@ -2267,6 +2535,11 @@ def admin_configuracion(request, type=''):
     torres = Torre.objects.filter(id_condominio_id=user.id_condominio_id)
     bancos = Bancos.objects.filter(id_condominio_id=user.id_condominio_id)
     domicilios = Domicilio.objects.filter(id_condominio_id=user.id_condominio_id)
+    domicilios_propietarios = Domicilio.objects.filter(
+        id_condominio_id=user.id_condominio_id,
+        id_propietario_id__isnull=True
+    ).order_by('-created_at')
+    propietarios = Propietario.objects.filter(id_usuario__id_condominio_id=user.id_condominio_id)
 
     config_form = CondominioForm()
     banco_form = BancosForm()
@@ -2275,6 +2548,8 @@ def admin_configuracion(request, type=''):
     precios_form = Establecimiento_preciosForm()
     tasas_form = Tasas_de_cambioForm()
     recargo_descuento_form = Recargos_y_DescuentosForm()
+    propietarios_form = PropietariosForm()
+    user_form = RegistrationForm()
     ultima_tasa = Tasas.objects.last()
     today = timezone.now()
 
@@ -2288,6 +2563,9 @@ def admin_configuracion(request, type=''):
     tasa_euro = tasas['tasa_BCV_EUR']
 
     if request.method == 'POST':
+        if request.POST.get('form_origen') == 'configuracion_propietarios':
+            procesar_propietario_post(request)
+            return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "condominio"}))
 
         if (request.POST['tlf_1'] == '') and (request.POST['tlf_2'] == ''):
             messages.warning(request,
@@ -2376,7 +2654,11 @@ def admin_configuracion(request, type=''):
                                                                 'domicilio_form': domicilio_form, 'recargos_descuento':recargos_descuentos,
                                                                 'precio': precios, 'torres': torres, 'domicilios': domicilios,
                                                                 'conf': condominio, 'tasa_bs': tasa_bs, 'bancos': bancos,
-                                                                'tasa_euro': tasa_euro, 'type': type})
+                                                                'tasa_euro': tasa_euro, 'type': type,
+                                                                'propietarios': propietarios,
+                                                                'propietarios_form': propietarios_form,
+                                                                'user_form': user_form,
+                                                                'domicilios_propietarios': domicilios_propietarios})
 
 
 # ------------------------------CONFIGURACION SISTEMA------------------------------
@@ -2655,6 +2937,7 @@ def admin_reportes(request):
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
     bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
     propietarios = Domicilio.objects.filter(id_propietario_id__isnull=False, id_propietario__id_usuario__id_condominio_id=user.id_condominio).select_related('id_propietario__id_usuario')
+    propietarios_select = Propietario.objects.filter(id_usuario__id_condominio_id=condominio.id_condominio).select_related('id_usuario')
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre')
 
     ids_cierre = []
@@ -2961,6 +3244,248 @@ def admin_reportes(request):
                 return HttpResponse('We had some errors <pre>' + html + '</pre>')
             return response
 
+        elif request.POST['reporte'] == 'DEUDAS':
+            if request.POST['fecha_inicio'] > request.POST['fecha_fin']:
+                messages.warning(request, 'La fecha inicial no puede ser mayor a la fecha final.',
+                             extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+            else:
+                inicio = request.POST['fecha_inicio']
+                fin = request.POST['fecha_fin']
+                formato = (request.POST.get('formato') or 'PDF').upper()
+
+                deudas = Deudas.objects.filter(
+                    id_domicilio__id_condominio_id=condominio.id_condominio,
+                    tipo_deuda="2",
+                    is_active=True,
+                    fecha_deuda__range=[inicio, fin]
+                ).select_related('id_domicilio', 'id_domicilio__id_propietario')
+
+                total_bs = 0
+                total_usd = 0
+                total_eur = 0
+                for deuda in deudas:
+                    if deuda.tipo_moneda == 'BS':
+                        total_bs += deuda.monto_deuda
+                    elif deuda.tipo_moneda == 'USD':
+                        total_usd += deuda.monto_deuda
+                    elif deuda.tipo_moneda == 'EUR':
+                        total_eur += deuda.monto_deuda
+
+                data = {
+                    'inicio': inicio,
+                    'fin': fin,
+                    'deudas': deudas,
+                    'total_bs': total_bs,
+                    'total_usd': total_usd,
+                    'total_eur': total_eur,
+                    'fecha_generado': timezone.now(),
+                    'condominio': condominio,
+                }
+
+                template_path = 'PDF/deudas_general_pdf.html'
+
+                if formato == 'PDF':
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_deudas_{}_{}.pdf"'.format(inicio, fin)
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                    if pisa_status.err:
+                        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                    return response
+                elif formato == 'WORD':
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    response = HttpResponse(html, content_type='application/msword')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_deudas_{}_{}.doc"'.format(inicio, fin)
+                    return response
+                elif formato == 'EXCEL':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(['Propietario', 'Domicilio', 'Concepto', 'Descripcion', 'Monto', 'Moneda', 'Fecha', 'Moroso'])
+                    for deuda in deudas:
+                        propietario_nombre = ''
+                        if deuda.id_domicilio and deuda.id_domicilio.id_propietario:
+                            propietario_nombre = deuda.id_domicilio.id_propietario.nombre_propietario
+                        writer.writerow([
+                            propietario_nombre,
+                            deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
+                            deuda.concepto_deuda,
+                            deuda.descripcion_deuda,
+                            deuda.monto_deuda,
+                            deuda.tipo_moneda,
+                            deuda.fecha_deuda,
+                            'Si' if deuda.is_active else 'No',
+                        ])
+                    response = HttpResponse(output.getvalue(), content_type='text/csv')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_deudas_{}_{}.csv"'.format(inicio, fin)
+                    return response
+                elif formato == 'TXT':
+                    lines = [
+                        'Reporte de deudas',
+                        'Fecha inicio: {}'.format(inicio),
+                        'Fecha fin: {}'.format(fin),
+                        'Total BS: {}'.format(total_bs),
+                        'Total USD: {}'.format(total_usd),
+                        'Total EUR: {}'.format(total_eur),
+                        '',
+                    ]
+                    for deuda in deudas:
+                        propietario_nombre = ''
+                        if deuda.id_domicilio and deuda.id_domicilio.id_propietario:
+                            propietario_nombre = deuda.id_domicilio.id_propietario.nombre_propietario
+                        lines.append(
+                            '{} | {} | {} | {} | {} | {} | {} | {}'.format(
+                                propietario_nombre,
+                                deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
+                                deuda.concepto_deuda,
+                                deuda.descripcion_deuda,
+                                deuda.monto_deuda,
+                                deuda.tipo_moneda,
+                                deuda.fecha_deuda,
+                                'Si' if deuda.is_active else 'No'
+                            )
+                        )
+                    response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_deudas_{}_{}.txt"'.format(inicio, fin)
+                    return response
+                else:
+                    messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+
+        elif request.POST['reporte'] == 'ESTADO_CUENTA':
+            if request.POST['fecha_inicio'] > request.POST['fecha_fin']:
+                messages.warning(request, 'La fecha inicial no puede ser mayor a la fecha final.',
+                             extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+            else:
+                inicio = request.POST['fecha_inicio']
+                fin = request.POST['fecha_fin']
+                propietario_id = request.POST.get('propietario_select')
+                formato = (request.POST.get('formato') or 'PDF').upper()
+
+                if not propietario_id:
+                    messages.warning(request, 'Debe seleccionar un propietario.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+
+                propietario = Propietario.objects.filter(
+                    id_propietario=propietario_id,
+                    id_usuario__id_condominio_id=condominio.id_condominio
+                ).select_related('id_usuario').first()
+
+                if not propietario:
+                    messages.warning(request, 'No se encontro el propietario.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+
+                deudas = Deudas.objects.filter(
+                    id_domicilio__id_propietario_id=propietario_id,
+                    id_domicilio__id_condominio_id=condominio.id_condominio,
+                    tipo_deuda="2",
+                    fecha_deuda__range=[inicio, fin]
+                ).select_related('id_domicilio')
+
+                total_bs = 0
+                total_usd = 0
+                total_eur = 0
+                total_pendiente_bs = 0
+                total_pendiente_usd = 0
+                total_pendiente_eur = 0
+                for deuda in deudas:
+                    if deuda.tipo_moneda == 'BS':
+                        total_bs += deuda.monto_deuda
+                        if deuda.is_active:
+                            total_pendiente_bs += deuda.monto_deuda
+                    elif deuda.tipo_moneda == 'USD':
+                        total_usd += deuda.monto_deuda
+                        if deuda.is_active:
+                            total_pendiente_usd += deuda.monto_deuda
+                    elif deuda.tipo_moneda == 'EUR':
+                        total_eur += deuda.monto_deuda
+                        if deuda.is_active:
+                            total_pendiente_eur += deuda.monto_deuda
+
+                data = {
+                    'inicio': inicio,
+                    'fin': fin,
+                    'deudas': deudas,
+                    'propietario': propietario,
+                    'total_bs': total_bs,
+                    'total_usd': total_usd,
+                    'total_eur': total_eur,
+                    'total_pendiente_bs': total_pendiente_bs,
+                    'total_pendiente_usd': total_pendiente_usd,
+                    'total_pendiente_eur': total_pendiente_eur,
+                    'fecha_generado': timezone.now(),
+                    'condominio': condominio,
+                }
+
+                template_path = 'PDF/estado_cuenta_pdf.html'
+
+                if formato == 'PDF':
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = 'attachment; filename="estado_cuenta_{}_{}_{}.pdf"'.format(propietario_id, inicio, fin)
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                    if pisa_status.err:
+                        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                    return response
+                elif formato == 'WORD':
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    response = HttpResponse(html, content_type='application/msword')
+                    response['Content-Disposition'] = 'attachment; filename="estado_cuenta_{}_{}_{}.doc"'.format(propietario_id, inicio, fin)
+                    return response
+                elif formato == 'EXCEL':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(['Domicilio', 'Concepto', 'Descripcion', 'Monto', 'Moneda', 'Fecha', 'Estado'])
+                    for deuda in deudas:
+                        writer.writerow([
+                            deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
+                            deuda.concepto_deuda,
+                            deuda.descripcion_deuda,
+                            deuda.monto_deuda,
+                            deuda.tipo_moneda,
+                            deuda.fecha_deuda,
+                            'Pendiente' if deuda.is_active else 'Pagada',
+                        ])
+                    response = HttpResponse(output.getvalue(), content_type='text/csv')
+                    response['Content-Disposition'] = 'attachment; filename="estado_cuenta_{}_{}_{}.csv"'.format(propietario_id, inicio, fin)
+                    return response
+                elif formato == 'TXT':
+                    lines = [
+                        'Estado de cuenta del propietario',
+                        'Propietario: {}'.format(propietario.nombre_propietario),
+                        'Fecha inicio: {}'.format(inicio),
+                        'Fecha fin: {}'.format(fin),
+                        'Total BS: {}'.format(total_bs),
+                        'Total USD: {}'.format(total_usd),
+                        'Total EUR: {}'.format(total_eur),
+                        'Pendiente BS: {}'.format(total_pendiente_bs),
+                        'Pendiente USD: {}'.format(total_pendiente_usd),
+                        'Pendiente EUR: {}'.format(total_pendiente_eur),
+                        '',
+                    ]
+                    for deuda in deudas:
+                        lines.append(
+                            '{} | {} | {} | {} | {} | {}'.format(
+                                deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
+                                deuda.concepto_deuda,
+                                deuda.descripcion_deuda,
+                                deuda.monto_deuda,
+                                deuda.tipo_moneda,
+                                'Pendiente' if deuda.is_active else 'Pagada'
+                            )
+                        )
+                    response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                    response['Content-Disposition'] = 'attachment; filename="estado_cuenta_{}_{}_{}.txt"'.format(propietario_id, inicio, fin)
+                    return response
+                else:
+                    messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+
         elif request.POST['reporte'] == 'CIERRE_MES':
 
             if request.POST['cierre'] == "CONDOMINIO":
@@ -2987,6 +3512,7 @@ def admin_reportes(request):
         pass
 
     return render(request, 'administrador/reportes.html', {'conf': condominio, 'propietarios': propietarios,
+                                                           'propietarios_select': propietarios_select,
                                                            'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
                                                            'bancos': bancos, 'cierre': cierre_mensual})
 
@@ -3001,8 +3527,12 @@ def admin_cierres(request):
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
     datos_condominio = condominio.first()
     ultima_tasa = Tasas.objects.last()
-    cierre_mes = Cierre_mes.objects.all()
-    deudas = Deudas.objects.filter(is_active=True)
+    cierre_mes = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id)
+    deudas = Deudas.objects.filter(
+        is_active=True,
+        id_domicilio__id_condominio_id=user.id_condominio_id,
+        monto_deuda__gt=0
+    )
     deudas_prop = deudas.filter(tipo_deuda="2").values('id_domicilio_id').distinct()
     today = timezone.now()
 
@@ -3056,10 +3586,24 @@ def admin_cierres(request):
 
     if cierre_mes.exists():
         ultimo_cierre = cierre_mes.last()
-        resultado_ingreso = Ingresos.objects.filter(id_movimiento__created_at__range=(ultimo_cierre.fecha_cierre, today), id_movimiento__estado_movimiento=0).select_related("id_movimiento")
-        movimientos_propietarios = Movimientos_bancarios.objects.filter(estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, fecha_movimiento__range=(ultimo_cierre.fecha_cierre, today)).select_related("id_banco")
-        resultado_gasto = Gastos.objects.filter(id_movimiento__created_at__range=(ultimo_cierre.fecha_cierre, today)).select_related("id_movimiento")
-        resultado_fondo = Fondos.objects.filter(id_movimiento__created_at__range=(ultimo_cierre.fecha_cierre, today)).select_related("id_movimiento")
+        resultado_ingreso = Ingresos.objects.filter(
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__estado_movimiento=0,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento")
+        movimientos_propietarios = Movimientos_bancarios.objects.filter(
+            estado_movimiento=0,
+            id_banco__id_condominio_id=user.id_condominio_id,
+            created_at__gt=ultimo_cierre.fecha_cierre,
+        ).select_related("id_banco")
+        resultado_gasto = Gastos.objects.filter(
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento")
+        resultado_fondo = Fondos.objects.filter(
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento")
 
         if resultado_ingreso.exists() and resultado_gasto.exists():
             pass
@@ -3076,10 +3620,28 @@ def admin_cierres(request):
                              'Para cerrar el mes se debe tener al menos un ingreso y un gasto.',
                              extra_tags='alert-danger')
     
-        resultado_ingreso = Ingresos.objects.filter(id_movimiento__fecha_movimiento__range=(ingresos.id_movimiento.fecha_movimiento, today.strftime("%Y-%m-%d")), id_movimiento__estado_movimiento=0).select_related("id_movimiento") if ingresos else Ingresos.objects.none()
-        movimientos_propietarios = Movimientos_bancarios.objects.filter(estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, fecha_movimiento__range=(ingresos.id_movimiento.fecha_movimiento, today.strftime("%Y-%m-%d"))).select_related("id_banco") if ingresos else Movimientos_bancarios.objects.none()
-        resultado_gasto = Gastos.objects.filter(id_movimiento__fecha_movimiento__range=(gastos.id_movimiento.fecha_movimiento, today.strftime("%Y-%m-%d"))).select_related("id_movimiento") if gastos else Gastos.objects.none()
-        resultado_fondo = Fondos.objects.filter(id_movimiento__fecha_movimiento__range=(fondos.id_movimiento.fecha_movimiento, today.strftime("%Y-%m-%d"))).select_related("id_movimiento") if fondos else Fondos.objects.none() 
+        resultado_ingreso = Ingresos.objects.filter(
+            id_movimiento__created_at__gte=ingresos.id_movimiento.created_at,
+            id_movimiento__estado_movimiento=0,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento") if ingresos else Ingresos.objects.none()
+        movimientos_propietarios = Movimientos_bancarios.objects.filter(
+            estado_movimiento=0,
+            id_banco__id_condominio_id=user.id_condominio_id,
+            created_at__gte=ingresos.id_movimiento.created_at,
+        ).select_related("id_banco") if ingresos else Movimientos_bancarios.objects.none()
+        resultado_gasto = Gastos.objects.filter(
+            id_movimiento__created_at__gte=gastos.id_movimiento.created_at,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento") if gastos else Gastos.objects.none()
+        resultado_fondo = Fondos.objects.filter(
+            id_movimiento__created_at__gte=fondos.id_movimiento.created_at,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento") if fondos else Fondos.objects.none()
+
+    # Evitar duplicar ingresos: si un movimiento ya tiene Ingreso, no repetirlo
+    ingreso_ids = resultado_ingreso.values_list('id_movimiento_id', flat=True)
+    movimientos_propietarios = movimientos_propietarios.exclude(id_movimiento__in=ingreso_ids)
 
     if request.method == 'POST':
         template_path = 'PDF/cierre_mes.html'
@@ -3123,9 +3685,9 @@ def admin_cierres(request):
                 gastos_lista.append(data_gasto)
 
         data['gastos'] = gastos_lista
-        data['t_gastos'] = resultado_gasto.filter(id_movimiento__tipo_moneda="BS").aggregate(Sum('id_movimiento__monto_movimiento'))
-        data['t_gastos_USD'] = resultado_gasto.filter(id_movimiento__tipo_moneda="USD").aggregate(Sum('id_movimiento__monto_movimiento'))
-        data['t_gastos_EUR'] = resultado_gasto.filter(id_movimiento__tipo_moneda="EUR").aggregate(Sum('id_movimiento__monto_movimiento'))
+        data['t_gastos'] = resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))
+        data['t_gastos_USD'] = resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento'))
+        data['t_gastos_EUR'] = resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="EUR").aggregate(Sum('id_movimiento__monto_movimiento'))
 
         # Ingresos
         ingresos_lista = []
@@ -3190,12 +3752,12 @@ def admin_cierres(request):
                 ingresos_lista.append(data_ingreso)
 
         data['ingresos'] = ingresos_lista
-        total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
-        total_ingresos_usd = resultado_ingreso.filter(id_movimiento__tipo_moneda="USD").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
-        total_ingresos_eur = resultado_ingreso.filter(id_movimiento__tipo_moneda="EUR").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
-        total_mov_prop_bs = movimientos_propietarios.filter(tipo_moneda="BS").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
-        total_mov_prop_usd = movimientos_propietarios.filter(tipo_moneda="USD").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
-        total_mov_prop_eur = movimientos_propietarios.filter(tipo_moneda="EUR").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
+        total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+        total_ingresos_usd = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+        total_ingresos_eur = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="EUR").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+        total_mov_prop_bs = movimientos_propietarios.filter(tipo_moneda__iexact="BS").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
+        total_mov_prop_usd = movimientos_propietarios.filter(tipo_moneda__iexact="USD").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
+        total_mov_prop_eur = movimientos_propietarios.filter(tipo_moneda__iexact="EUR").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
         data['t_ingresos'] = {'id_movimiento__monto_movimiento__sum': total_ingresos_bs + total_mov_prop_bs}
         data['t_ingresos_USD'] = {'id_movimiento__monto_movimiento__sum': total_ingresos_usd + total_mov_prop_usd}
         data['t_ingresos_EUR'] = {'id_movimiento__monto_movimiento__sum': total_ingresos_eur + total_mov_prop_eur}
@@ -3353,18 +3915,38 @@ def admin_cierres(request):
 
             deudor = Domicilio.objects.get(id_domicilio=dom.id_domicilio)
 
+            ultima_deuda_pagada = (
+                Deudas.objects.filter(
+                    tipo_deuda="2",
+                    id_domicilio=deudor,
+                    recibos__categoria_recibo="SOLVENTE",
+                )
+                .order_by("-updated_at", "-id_deuda")
+                .first()
+            )
+
+            if not ultima_deuda_pagada or not ultima_deuda_pagada.monto_deuda:
+                continue
+
+            concepto_base = ultima_deuda_pagada.concepto_deuda or "CONDOMINIO"
+            categoria_base = ultima_deuda_pagada.categoria_deuda or "CONDOMINIO"
+
             deudas_prop.fecha_deuda = today.strftime("%Y-%m-%d")
             deudas_prop.tipo_deuda = "2"
-            deudas_prop.categoria_deuda = "CONDOMINIO"
-            deudas_prop.monto_deuda = monto_cuota_base * (Decimal(dom.alicuota_domicilio) / Decimal(100))
+            deudas_prop.categoria_deuda = categoria_base
+            deudas_prop.monto_deuda = ultima_deuda_pagada.monto_deuda
+            deudas_prop.tipo_moneda = ultima_deuda_pagada.tipo_moneda
             deudas_prop.is_active = True
             deudas_prop.created_at = today
             deudas_prop.updated_at = today
             deudas_prop.id_domicilio = deudor
             deudas_prop.id_condominio = datos_condominio
-            deudas_prop.concepto_deuda = "CONDOMINIO"
-            deudas_prop.descripcion_deuda = "CONDOMINIO " + mes[int(today.strftime("%m"))] + " DE " + str(today.strftime("%Y"))
+            deudas_prop.concepto_deuda = concepto_base
+            deudas_prop.descripcion_deuda = concepto_base + " " + mes[int(today.strftime("%m"))] + " DE " + str(today.strftime("%Y"))
             deudas_prop.save()
+
+            if deudas_prop.monto_deuda > 0:
+                Domicilio.objects.filter(id_domicilio=deudor.id_domicilio).update(estado_deuda=True)
 
         return response
 
@@ -3640,6 +4222,44 @@ def readIngresos(request, id):
                                                                      'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
 
 @login_required
+def readPagoMovimiento(request, id):
+    user = request.user
+    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+
+    mov = Movimientos_bancarios.objects.select_related('id_banco').filter(
+        id_movimiento=id,
+        id_banco__id_condominio_id=user.id_condominio_id
+    ).first()
+    if not mov:
+        messages.warning(request, 'No se encontró el pago solicitado.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
+
+    datos_mov = Datos_transaccion.objects.filter(id_movimiento_id=mov.id_movimiento).first()
+    ingreso = Ingresos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related('id_propietario').first()
+    recibos = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related('id_deuda').all()
+
+    propietario = None
+    if ingreso and ingreso.id_propietario:
+        propietario = ingreso.id_propietario
+    elif recibos:
+        first_recibo = recibos.first()
+        if first_recibo.id_deuda and first_recibo.id_deuda.id_domicilio:
+            propietario = first_recibo.id_deuda.id_domicilio.id_propietario
+
+    return render(
+        request,
+        'administrador/read/pagos_read.html',
+        {
+            'movimiento': mov,
+            'datos_mov': datos_mov,
+            'ingreso': ingreso,
+            'recibos': recibos,
+            'propietario': propietario,
+        }
+    )
+
+@login_required
 def readDeudas(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
@@ -3772,8 +4392,14 @@ def updateBancos(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
     
-    codigo = bancos.tlf_titular.split('-')[0]
-    tlf = bancos.tlf_titular.split('-')[1]
+    tlf_titular = bancos.tlf_titular or ""
+    partes_tlf = tlf_titular.split('-', 1)
+    if len(partes_tlf) == 2:
+        codigo = partes_tlf[0]
+        tlf = partes_tlf[1]
+    else:
+        codigo = ""
+        tlf = partes_tlf[0]
 
     cod_tlf = BancosForm(initial={'cod_tlf': codigo})
     tipo_moneda = BancosForm(initial={'tipo_moneda': bancos.tipo_moneda})
@@ -3805,6 +4431,9 @@ def updateBancos(request, id):
                                                 email_titular=request.POST['email_titular'],
                                                 tlf_titular=str(request.POST['cod_tlf'])+"-"+str(request.POST['tlf_titular']),
                                                 updated_at=today)
+            if request.FILES.get('imagen_referencial'):
+                bancos.imagen_referencial = request.FILES['imagen_referencial']
+                bancos.save()
 
             messages.success(request, '¡El banco ha sido actualizado de manera satisfactoria!',
                              extra_tags='alert-success')
@@ -3833,6 +4462,20 @@ def updateGastos(request, id):
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
     gastos = Gastos.objects.select_related("id_movimiento").get(id_gasto=id)
     datos_mov = Datos_transaccion.objects.get(id_movimiento_id=gastos.id_movimiento_id)
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    if cierre and gastos.id_movimiento.fecha_movimiento:
+        cierre_date = cierre.fecha_cierre.date()
+        fecha_gasto = gastos.id_movimiento.fecha_movimiento
+        mov_created_at = gastos.id_movimiento.created_at
+        if (
+            fecha_gasto < cierre_date
+            or (
+                fecha_gasto == cierre_date
+                and (not mov_created_at or mov_created_at <= cierre.fecha_cierre)
+            )
+        ):
+            messages.warning(request, 'No puedes modificar un gasto de un mes ya cerrado.', extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('condominio_app:admin_gastos'))
 
     gastos_form = GastosForm()
     movimientos_form = MovimientoForm()
@@ -4311,6 +4954,20 @@ def destroyGastos(request, id):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     mov = Movimientos_bancarios.objects.select_related("id_banco").get(id_movimiento=id)
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    if cierre and mov.fecha_movimiento:
+        cierre_date = cierre.fecha_cierre.date()
+        fecha_gasto = mov.fecha_movimiento
+        mov_created_at = mov.created_at
+        if (
+            fecha_gasto < cierre_date
+            or (
+                fecha_gasto == cierre_date
+                and (not mov_created_at or mov_created_at <= cierre.fecha_cierre)
+            )
+        ):
+            messages.warning(request, 'No puedes eliminar un gasto de un mes ya cerrado.', extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('condominio_app:admin_gastos'))
 
     mov.id_banco.saldo_actual += mov.monto_movimiento
     mov.id_banco.debitos_banco += mov.monto_movimiento
@@ -4687,7 +5344,6 @@ def obtener_bancos(request):
 def obtener_deudas(request):
     if request.GET.get('aptoDeuda'):
         domicilio = Domicilio.objects.get(id_domicilio=request.GET.get('aptoDeuda'))
-
         if domicilio.id_torre_id:
             torre = Torre.objects.get(id_torre=domicilio.id_torre_id)
 
@@ -4947,6 +5603,45 @@ def link_callback(uri, rel):
   Convert HTML URIs to absolute system paths so xhtml2pdf can access those
   resources
   """
+    def is_subpath(path, parent):
+        try:
+            return os.path.commonpath([path, parent]) == parent
+        except ValueError:
+            return False
+
+    # xhtml2pdf may pass absolute Windows paths (e.g. C:\static\...) or file:// URIs
+    uri_path = uri
+    if uri.startswith("file://"):
+        try:
+            from urllib.parse import urlparse, unquote
+            uri_path = unquote(urlparse(uri).path)
+            if len(uri_path) > 3 and uri_path[0] == "/" and uri_path[2] == ":":
+                uri_path = uri_path[1:]
+        except Exception:
+            uri_path = uri.replace("file://", "")
+
+    drive, _ = os.path.splitdrive(uri_path)
+    if os.path.isabs(uri_path) or drive:
+        abs_uri = os.path.realpath(uri_path)
+        static_root = os.path.realpath(getattr(settings, "STATIC_ROOT", "") or "")
+        media_root = os.path.realpath(getattr(settings, "MEDIA_ROOT", "") or "")
+        base_static = os.path.realpath(os.path.join(settings.BASE_DIR, "static"))
+        static_dirs = [
+            os.path.realpath(p) for p in getattr(settings, "STATICFILES_DIRS", []) or []
+        ]
+
+        # Remap C:\static\... to the project's static directory
+        if abs_uri.lower().startswith(os.path.normpath("C:\\static").lower()):
+            rel_path = os.path.relpath(abs_uri, os.path.normpath("C:\\static"))
+            abs_uri = os.path.realpath(os.path.join(base_static, rel_path))
+
+        allowed_roots = [p for p in [static_root, media_root, base_static] if p] + static_dirs
+        if any(is_subpath(abs_uri, root) for root in allowed_roots) and os.path.isfile(abs_uri):
+            return abs_uri
+        if os.path.isfile(abs_uri):
+            return abs_uri
+        return abs_uri
+
     result = finders.find(uri)
     if result:
         if not isinstance(result, (list, tuple)):

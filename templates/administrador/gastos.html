@@ -341,8 +341,7 @@
             <td class="centered-cell"> {{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
             {% endlanguage %}
             <td class="centered-cell"><span class="text-center text-success">{{ gasto.id_movimiento.monto_movimiento }}</span></td>
-            {% if cierre %}
-            {% if gasto.id_movimiento.fecha_movimiento > cierre.fecha_cierre %}
+            {% if gasto.can_modify %}
             <td>
               <div class="horizontal-cell">
                 <a href="/home/administrar/gastos/ver/{{ gasto.id_gasto }}"
@@ -351,8 +350,9 @@
                 <a href="/home/administrar/gastos/actualizar/{{ gasto.id_gasto }}"
                    class="btn btn-primary btn-option border text-light button-table center-all"
                    data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
-                <a href="/home/administrar/gastos/eliminar/{{ gasto.id_movimiento_id }}"
-                   class="btn btn-primary btn-option border text-light button-table center-all"
+                <a href="#"
+                   class="btn btn-primary btn-option border text-light button-table center-all btn-eliminar-gasto"
+                   data-url="/home/administrar/gastos/eliminar/{{ gasto.id_movimiento_id }}"
                    data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
               </div>
             </td>
@@ -363,26 +363,32 @@
                  data-toggle="popover" data-content="Archivado"><i class="fa fa-eye"></i></a>
             </td>
             {% endif %}
-            {% else %}
-            <td>
-              <div class="horizontal-cell">
-                <a href="/home/administrar/gastos/ver/{{ gasto.id_gasto }}"
-                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                   data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
-                <a href="/home/administrar/gastos/actualizar/{{ gasto.id_gasto }}"
-                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
-                <a href="/home/administrar/gastos/eliminar/{{ gasto.id_movimiento_id }}"
-                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
-              </div>
-            </td>
-            {% endif %}
           </tr>
           {% endfor %}
           {% endif %}
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmar eliminación de gasto -->
+<div class="modal fade" id="modalEliminarGasto" tabindex="-1" role="dialog" aria-labelledby="modalEliminarGastoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-eliminar-gasto-dialog" role="document">
+    <div class="modal-content modal-eliminar-gasto-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEliminarGastoLabel">Eliminar gasto</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        ¿Está seguro que desea eliminar este gasto?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <a href="#" id="confirmEliminarGasto" class="btn btn-danger">Sí, eliminar</a>
       </div>
     </div>
   </div>
@@ -443,6 +449,17 @@
             table.search( this.value ).draw();
         });
     });
+</script>
+
+<script>
+  document.querySelectorAll('.btn-eliminar-gasto').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      var url = btn.getAttribute('data-url');
+      document.getElementById('confirmEliminarGasto').setAttribute('href', url);
+      $('#modalEliminarGasto').modal('show');
+    });
+  });
 </script>
 
 <!-- FIN MAESTRO DE GASTOS -->

@@ -165,6 +165,9 @@ aptoBoton.forEach(function(boton) {
                                 "<div class='question col-sm-12 mt-3 align-left' id='question'><strong>Usted posee " + response.cantidad_deudas + " deudas pendientes. ¿Desea pagar las deudas o acreditar al saldo de la cuenta?</strong></div>"
 
                     contenido.insertAdjacentHTML('afterbegin', datos);
+                    contenido.dataset.saldoBs = response.domicilio.saldo_bs || 0;
+                    contenido.dataset.saldoUsd = response.domicilio.saldo_usd || 0;
+                    contenido.dataset.saldoEur = response.domicilio.saldo_eur || 0;
 
                     var btns = "<div class='col-sm-12 mt-2 d-flex text-center' style='justify-content: space-around;'>" +
                                 "<a class='ver_deudas btn border btn-option text-center' style='width: 170px;' id='Ver_deudas'>Ver deudas</a>" +
@@ -238,6 +241,9 @@ aptoBoton.forEach(function(boton) {
                             "<div class='col-sm-12 mt-3 text-center'><strong>Usted no posee deudas pendientes. ¿Desea abonar al saldo de la cuenta?</strong></div>"
 
                 contenido.insertAdjacentHTML('afterbegin', datos);
+                contenido.dataset.saldoBs = response.domicilio.saldo_bs || 0;
+                contenido.dataset.saldoUsd = response.domicilio.saldo_usd || 0;
+                contenido.dataset.saldoEur = response.domicilio.saldo_eur || 0;
                 // contenido.innerHTML = datos;
 
                 btn = "<div class='col-sm-12 mt-2 d-flex text-center' style='justify-content: space-around;'>" +
@@ -254,15 +260,68 @@ aptoBoton.forEach(function(boton) {
             const montoPago = document.getElementById('montoFinal');
             let ids = []
             const tipo_transaccion = document.getElementById('tipo_transaccion');
+            const monedaHidden = document.getElementById('moneda_seleccionada');
+            const btnPagoNormal = document.getElementById('btnPagoNormal');
+            const btnPagoSaldo = document.getElementById('btnPagoSaldo');
+            const modalMetodoPago = $('#modalMetodoPago');
+            let metodoSeleccionado = null;
+            let pagarPendiente = null;
+
+            function getSaldoDisponible(contenedor) {
+                const moneda = contenedor.dataset.monedaSeleccionada;
+                if (moneda === "USD") {
+                    return parseFloat(contenedor.dataset.saldoUsd || 0);
+                }
+                if (moneda === "EUR") {
+                    return parseFloat(contenedor.dataset.saldoEur || 0);
+                }
+                return parseFloat(contenedor.dataset.saldoBs || 0);
+            }
+
+            btnPagoNormal.addEventListener('click', function() {
+                metodoSeleccionado = "PAGO";
+                tipo_transaccion.value = "PAGO";
+                modalMetodoPago.modal('hide');
+                pagarPendiente = null;
+            });
+
+            btnPagoSaldo.addEventListener('click', function() {
+                metodoSeleccionado = "SALDO";
+                tipo_transaccion.value = "SALDO";
+                modalMetodoPago.modal('hide');
+                pagarPendiente = null;
+            });
 
             //Pagar
             pagarBoton.forEach(pago => {
                 pago.addEventListener('click', function() {
-                    tipo_transaccion.value = "PAGO";
+                    if (!metodoSeleccionado) {
+                        pagarPendiente = pago;
+                        modalMetodoPago.modal('show');
+                        return;
+                    }
                     var deudas_seleccionadas = ids.join(',');
                     document.getElementById('deudas').value = deudas_seleccionadas
-                    document.getElementById('SeleccionarDomicilio').classList.add('d-none');
-                    document.getElementById('PagoDeudas').classList.remove('d-none');
+                    if (metodoSeleccionado === "SALDO") {
+                        const container = pago.closest('.data_domicilio');
+                        const saldoDisponible = getSaldoDisponible(container);
+                        if (montoPago.value > saldoDisponible) {
+                            alert('Saldo insuficiente en la moneda seleccionada. Debe pagar normalmente.');
+                            metodoSeleccionado = "PAGO";
+                            tipo_transaccion.value = "PAGO";
+                        }
+                    }
+                    if (metodoSeleccionado === "SALDO") {
+                        document.getElementById('bancoReceptor').required = false;
+                        document.getElementById('nameTitular').required = false;
+                        document.getElementById('tlfTitular').required = false;
+                        document.getElementById('countryCode').required = false;
+                        document.getElementById('EnviarPago').submit();
+                    } else {
+                        tipo_transaccion.value = "PAGO";
+                        document.getElementById('SeleccionarDomicilio').classList.add('d-none');
+                        document.getElementById('PagoDeudas').classList.remove('d-none');
+                    }
                 });
             });
 
@@ -282,6 +341,7 @@ aptoBoton.forEach(function(boton) {
             checkboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', () => {
                     let total = 0;
+                    ids = [];
                     checkboxes.forEach(checkbox => {
                         if (checkbox.checked) {
                             total += parseFloat(checkbox.value);
@@ -293,9 +353,13 @@ aptoBoton.forEach(function(boton) {
                             }
                         }
                     });
+                    const container = checkbox.closest('.data_domicilio');
+                    if (ids.length > 0 && !metodoSeleccionado) {
+                        pagarPendiente = container.querySelector('.pagar');
+                        modalMetodoPago.modal('show');
+                    }
                     montoPago.value = total;
                     montoPago.max = total;
-                    const container = checkbox.closest('.data_domicilio');
                     const pagar = container.querySelector('.pagar');
                     if (montoPago.value == 0) {
                         pagar.classList.add('d-none')
