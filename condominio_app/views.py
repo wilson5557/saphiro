@@ -1538,6 +1538,10 @@ def admin_ingresos(request):
             recibo = Recibos.objects.filter(id_movimiento_id=ingreso.id_movimiento_id).select_related('id_deuda__id_domicilio__id_propietario').first()
             if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio and recibo.id_deuda.id_domicilio.id_propietario:
                 ingreso.emisor = recibo.id_deuda.id_domicilio.id_propietario.nombre_propietario
+            if not ingreso.emisor:
+                datos_transaccion = Datos_transaccion.objects.filter(id_movimiento_id=ingreso.id_movimiento_id).first()
+                if datos_transaccion and datos_transaccion.nombre_titular:
+                    ingreso.emisor = datos_transaccion.nombre_titular
         if ingreso.id_movimiento.estado_movimiento == 2:
             ingreso.estado_label = "Pendiente"
             ingreso.estado_bloqueado = False
@@ -2173,6 +2177,14 @@ def admin_propietarios(request):
         recibo = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related('id_deuda__id_domicilio__id_propietario').first()
         if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio and recibo.id_deuda.id_domicilio.id_propietario:
             mov.emisor = recibo.id_deuda.id_domicilio.id_propietario.nombre_propietario
+        if not mov.emisor:
+            ingreso = Ingresos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related('id_propietario').first()
+            if ingreso and ingreso.id_propietario:
+                mov.emisor = ingreso.id_propietario.nombre_propietario
+        if not mov.emisor:
+            datos_transaccion = Datos_transaccion.objects.filter(id_movimiento_id=mov.id_movimiento).first()
+            if datos_transaccion and datos_transaccion.nombre_titular:
+                mov.emisor = datos_transaccion.nombre_titular
         if cierre and mov.created_at:
             mov.cerrado = mov.created_at <= cierre.fecha_cierre
         else:
@@ -2231,6 +2243,16 @@ def admin_validacion_pagos(request):
         ).first()
         if recibo and recibo.id_deuda and recibo.id_deuda.id_domicilio and recibo.id_deuda.id_domicilio.id_propietario:
             mov.emisor = recibo.id_deuda.id_domicilio.id_propietario.nombre_propietario
+        if not mov.emisor:
+            ingreso = Ingresos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related(
+                'id_propietario'
+            ).first()
+            if ingreso and ingreso.id_propietario:
+                mov.emisor = ingreso.id_propietario.nombre_propietario
+        if not mov.emisor:
+            datos_transaccion = Datos_transaccion.objects.filter(id_movimiento_id=mov.id_movimiento).first()
+            if datos_transaccion and datos_transaccion.nombre_titular:
+                mov.emisor = datos_transaccion.nombre_titular
         if cierre and mov.created_at:
             mov.cerrado = mov.created_at <= cierre.fecha_cierre
         else:
@@ -2282,6 +2304,9 @@ def admin_propietarios_mov(request):
         banco.save()
 
         prop = None
+        ingreso_existente = Ingresos.objects.filter(id_movimiento=mov).select_related('id_propietario').first()
+        if ingreso_existente and ingreso_existente.id_propietario:
+            prop = ingreso_existente.id_propietario
         
         tipo_transaccion = datos_mov.tipo_transaccion if datos_mov else None
         if not tipo_transaccion:
@@ -2335,12 +2360,11 @@ def admin_propietarios_mov(request):
             mov.id_propietario = prop
             mov.save()
 
-        ingreso = Ingresos.objects.filter(id_movimiento=mov).first()
-        if not ingreso:
-            ingreso = Ingresos()
+        ingreso = ingreso_existente if ingreso_existente else Ingresos()
         ingreso.tipo_ingreso = 'Pago de un propietario'
         ingreso.id_movimiento = mov
-        ingreso.id_propietario = prop
+        if prop:
+            ingreso.id_propietario = prop
         ingreso.save()
 
         if mov.tipo_moneda == 'BS':
