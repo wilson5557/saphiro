@@ -73,7 +73,7 @@
 
         .table td,
         .table th {
-                padding: .75rem;
+                padding: .5rem;
                 vertical-align: top;
                 border-top: 1px solid #dee2e6
         }
@@ -120,7 +120,7 @@
                 font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
                 font-size: 1rem;
                 font-weight: 400;
-                line-height: 1.5;
+                line-height: 1.2;
                 color: #212529;
                 text-align: left;
                 background-color: #fff
@@ -151,7 +151,7 @@
 
 <div id="footer_content">
     <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
-    <span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span>
+    <span class="text-muted text-center">Reporte generado el {{fecha_generado|date:'d/m/Y'}}</span>
 </div>
 
 <h1 class="text-center" style="font-size: 13px; padding-top: 15px;">CIERRE DEL MES DE {{mes_cierre}} DE
@@ -201,13 +201,13 @@
     <tbody>
     <tr>
         {% if t_gastos_USD %}
-        <td> {{t_gastos.id_movimiento__monto_movimiento__sum}}</td>
+        <td> {{t_gastos_USD.id_movimiento__monto_movimiento__sum}}</td>
         {% else %}
         <td> 0</td>
         {% endif %}
 
         {% if t_ingresos_USD %}
-        <td> {{t_ingresos.id_movimiento__monto_movimiento__sum}}</td>
+        <td> {{t_ingresos_USD.id_movimiento__monto_movimiento__sum}}</td>
         {% else %}
         <td> 0</td>
         {% endif %}
@@ -234,13 +234,13 @@
     <tbody>
     <tr>
         {% if t_gastos_EUR %}
-        <td> {{t_gastos.id_movimiento__monto_movimiento__sum}}</td>
+        <td> {{t_gastos_EUR.id_movimiento__monto_movimiento__sum}}</td>
         {% else %}
         <td> 0</td>
         {% endif %}
 
         {% if t_ingresos_EUR %}
-        <td> {{t_ingresos.id_movimiento__monto_movimiento__sum}}</td>
+        <td> {{t_ingresos_EUR.id_movimiento__monto_movimiento__sum}}</td>
         {% else %}
         <td> 0</td>
         {% endif %}

@@ -274,7 +274,9 @@
                       <td class="centered-cell"> {{ deuda.concepto_deuda }}</td>
                       <td class="centered-cell"> {{ deuda.descripcion_deuda }}</td>
                       <td class="centered-cell text-danger"> {{ deuda.monto_deuda }}</td>
-                      <td class="centered-cell"> {{ deuda.fecha_deuda }}</td>
+                      {% language 'es' %}
+                      <td class="centered-cell"> {{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
+                      {% endlanguage %}
                       {% if deuda.is_active %}
                       <td class="centered-cell"> Activa</td>
                       <td>

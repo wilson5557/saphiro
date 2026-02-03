@@ -145,7 +145,7 @@ class="d-none"
                 <table class="table table-hover mt-3 table-responsive-xl table-responsive-lg table-responsive-md"
                        width="100%" id="TablaMovimientos">
                   <thead class="table-header">
-                  <tr>
+                  <tr data-mov-id="{{ mov.id_movimiento }}">
                     <th scope="col">Fecha</th>
                     <th scope="col">Emisor</th>
                     <th scope="col">Descripción</th>
@@ -160,7 +160,9 @@ class="d-none"
                       {% for mov in movimientos %}
                       {% if movimientos %}
                   <tr>
-                    <td class="centered-cell"> {{ mov.fecha_movimiento }}</td>
+                    {% language 'es' %}
+                    <td class="centered-cell"> {{ mov.fecha_movimiento|date:'d/m/Y' }}</td>
+                    {% endlanguage %}
                     <td class="centered-cell">
                         {% if mov.id_propietario %}
                             {{ mov.id_propietario.nombre_propietario }}
@@ -174,15 +176,15 @@ class="d-none"
                     <td class="centered-cell"> {{ mov.banco_emisor }}</td>
 
                     {% if mov.estado_movimiento == 0 %}
-                    <td class="centered-cell text-success">Aprobado</td>
+                    <td class="centered-cell text-success estado-mov">Aceptado</td>
                     {% elif mov.estado_movimiento == 1 %}
-                    <td class="centered-cell text-warning">Rechazado</td>
+                    <td class="centered-cell text-danger estado-mov">Rechazado</td>
                     {% else %}
-                    <td class="centered-cell">Pendiente</td>
+                    <td class="centered-cell estado-mov">Pendiente</td>
                     {% endif %}
 
                     {% if mov.estado_movimiento == 2 %}
-                    <td class="center-all">
+                    <td class="center-all accion-mov">
                       <div class="horizontal-cell">
                           <button type="button" value={{mov.id_movimiento}} class="btn btn-primary btn-option-admin border text-light button-table center-all aceptar"
                                   style="justify-content: unset;" data-toggle="modal" data-target="#consultar" data-content="Aceptar"><i class="fa fa-thumbs-o-up pr-3"></i></button>
@@ -194,7 +196,7 @@ class="d-none"
                       </div>
                     </td>
                     {% else %}
-                    <td class="centered-cell">Revisado</td>
+                    <td class="centered-cell accion-mov">Revisado</td>
                     {% endif %}
                   </tr>
                   {% endif %}
@@ -516,6 +518,9 @@ class="d-none"
 
         var table2 = $('#TablaMovimientos').DataTable( {
           "processing": true,
+          "order": [[0, "desc"]],
+          "pageLength": 25,
+          "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",

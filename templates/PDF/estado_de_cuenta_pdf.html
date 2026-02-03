@@ -61,7 +61,7 @@
 
         .table td,
         .table th {
-                padding: .75rem;
+                padding: .5rem;
                 vertical-align: top;
                 border-top: 1px solid #dee2e6
         }
@@ -108,7 +108,7 @@
                 font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
                 font-size: 1rem;
                 font-weight: 400;
-                line-height: 1.5;
+                line-height: 1.2;
                 color: #212529;
                 text-align: left;
                 background-color: #fff
@@ -132,7 +132,7 @@
             APART HOTEL ESPARTA SUITES RIF J-30456994-7
         </td>
         <td style="text-align: right;"><span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
-            <span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span></td>
+            <span class="text-muted text-center">Reporte generado el {{fecha_generado|date:'d/m/Y'}}</span></td>
     </tr>
     </thead>
 </table>
@@ -141,7 +141,7 @@
     <h2 class="text-center">ESTADO DE CUENTA</h2>
     <h2 class="text-center">{{nombre_banco}}</h2>
     <h2 class="text-center">{{numero_cuenta}}</h2>
-    <h3 class="text-center">Desde {{inicio}} Hasta {{fin}}</h3>
+    <h3 class="text-center">Desde {{inicio|date:'d/m/Y'}} Hasta {{fin|date:'d/m/Y'}}</h3>
 </div>
 
 <table class="table table-bordered text-center mt-5" style="font-size: 12px;">
@@ -164,7 +164,7 @@
         <td> {{ nro_bank }}</td>
 
         {% language 'es' %}
-        <td> {{ fecha_creacion }}</td>
+        <td> {{ fecha_creacion|date:'d/m/Y' }}</td>
         {% endlanguage %}
 
         <td class="text-danger"> {{banco.debitos_banco}}</td>

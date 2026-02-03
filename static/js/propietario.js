@@ -191,7 +191,7 @@ aptoBoton.forEach(function(boton) {
 
                             condoDiv.classList.remove('d-none');
 
-                            var datos_deuda = "<li class='list-group-item d-flex' style='justify-content: space-between;'>" + response.deudas[i].concepto_deuda + "<div class='d-flex'><div id='monto_condo"+ condo_id +"' class='monto_condo'>"+ response.deudas[i].monto_deuda +"</div> <div id='tipo_moneda_condo"+ condo_id +"' class='tipo_moneda_condo ml-1'>" + response.deudas[i].tipo_moneda + "</div> <input id='seleccion_condominio"+ condo_id +"' type='checkbox' class='seleccion_condominio ml-3 checkbox' value='" + response.deudas[i].monto_deuda + "' data-id-deuda='" + response.deudas[i].id_deuda + "' name='montos_deudas' disabled></div></li>"
+                            var datos_deuda = "<li class='list-group-item d-flex' style='justify-content: space-between;'>" + response.deudas[i].concepto_deuda + "<div class='d-flex'><div id='monto_condo"+ condo_id +"' class='monto_condo' data-base-monto='" + response.deudas[i].monto_deuda + "' data-base-moneda='" + response.deudas[i].tipo_moneda + "'>"+ response.deudas[i].monto_deuda +"</div> <div id='tipo_moneda_condo"+ condo_id +"' class='tipo_moneda_condo ml-1'>" + response.deudas[i].tipo_moneda + "</div> <input id='seleccion_condominio"+ condo_id +"' type='checkbox' class='seleccion_condominio ml-3 checkbox' value='" + response.deudas[i].monto_deuda + "' data-id-deuda='" + response.deudas[i].id_deuda + "' name='montos_deudas' disabled></div></li>"
                             deuda_condominio.insertAdjacentHTML('beforeend', datos_deuda);
                             condo_id++;
 
@@ -199,7 +199,7 @@ aptoBoton.forEach(function(boton) {
 
                             cuotaDiv.classList.remove('d-none');
 
-                            var datos_deuda = "<li class='list-group-item d-flex' style='justify-content: space-between;'>" + response.deudas[i].concepto_deuda + "<div class='d-flex'><div id='monto_cuota"+ cuota_id +"' class='monto_cuota'>"+ response.deudas[i].monto_deuda +"</div> <div id='tipo_moneda_cuota"+ cuota_id +"' class='tipo_moneda_cuota ml-1'>" + response.deudas[i].tipo_moneda + "</div> <input id='seleccion_cuota"+ cuota_id +"' type='checkbox' class='seleccion_cuota ml-3 checkbox' value='" + response.deudas[i].monto_deuda + "' data-id-deuda='" + response.deudas[i].id_deuda + "' name='montos_deudas' disabled></div></li>"
+                            var datos_deuda = "<li class='list-group-item d-flex' style='justify-content: space-between;'>" + response.deudas[i].concepto_deuda + "<div class='d-flex'><div id='monto_cuota"+ cuota_id +"' class='monto_cuota' data-base-monto='" + response.deudas[i].monto_deuda + "' data-base-moneda='" + response.deudas[i].tipo_moneda + "'>"+ response.deudas[i].monto_deuda +"</div> <div id='tipo_moneda_cuota"+ cuota_id +"' class='tipo_moneda_cuota ml-1'>" + response.deudas[i].tipo_moneda + "</div> <input id='seleccion_cuota"+ cuota_id +"' type='checkbox' class='seleccion_cuota ml-3 checkbox' value='" + response.deudas[i].monto_deuda + "' data-id-deuda='" + response.deudas[i].id_deuda + "' name='montos_deudas' disabled></div></li>"
                             deuda_cuota.insertAdjacentHTML('beforeend', datos_deuda);
                             cuota_id++;
                         }

@@ -489,13 +489,17 @@
 				data_deuda_cuota = [[], []]
 
 				for (i = 0; i < deudas_condo.length; i++) {
-					data_deuda_condo[0].push(deudas_condo[i].textContent)
-					data_deuda_condo[1].push(condo_moneda[i].textContent)
+					const baseMonto = deudas_condo[i].dataset.baseMonto || deudas_condo[i].textContent
+					const baseMoneda = deudas_condo[i].dataset.baseMoneda || condo_moneda[i].textContent
+					data_deuda_condo[0].push(baseMonto)
+					data_deuda_condo[1].push(baseMoneda)
 				}
 
 				for (i = 0; i < deudas_cuota.length; i++) {
-					data_deuda_cuota[0].push(deudas_cuota[i].textContent)
-					data_deuda_cuota[1].push(cuota_moneda[i].textContent)
+					const baseMonto = deudas_cuota[i].dataset.baseMonto || deudas_cuota[i].textContent
+					const baseMoneda = deudas_cuota[i].dataset.baseMoneda || cuota_moneda[i].textContent
+					data_deuda_cuota[0].push(baseMonto)
+					data_deuda_cuota[1].push(baseMoneda)
 				}
 
 				$.ajax({

@@ -88,7 +88,7 @@
         <div class="dropdown-divider"></div>
         <div class="d-grid pt-3" style="justify-content: right;">
           <a class="btn btn-danger btn-cancel col-sm-12 border text-light move-up"
-             href="/home/administrar/propietarios"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
+             href="{{ back_url|default:'/home/administrar/validacion-pagos/' }}"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
         </div>
       {% endif %}
     </div>

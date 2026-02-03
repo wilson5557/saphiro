@@ -52,12 +52,28 @@ from datetime import datetime, date, timedelta
 from django.conf import settings
 from django.http import HttpResponse
 import django
+from urllib.parse import urlparse
 import condominio.settings as cs
 import sys
 
 def check_static(request):
     print("DJANGO:", django.get_version(), file=sys.stderr)
     print("STATIC_URL settings de django.conf:", settings.STATIC_URL, file=sys.stderr)
+
+
+def get_back_url(request, fallback):
+    referer = request.META.get('HTTP_REFERER')
+    if not referer:
+        return fallback
+    parsed = urlparse(referer)
+    if parsed.netloc and parsed.netloc != request.get_host():
+        return fallback
+    path = parsed.path or ''
+    if not path.startswith('/'):
+        return fallback
+    if parsed.query:
+        return f"{path}?{parsed.query}"
+    return path
     print("STATIC_URL settings de condominio.settings:", cs.STATIC_URL, file=sys.stderr)
     print("condominio.settings.__file__:", cs.__file__, file=sys.stderr)
 
@@ -656,49 +672,71 @@ def home_propietarios(request):
 
 def confirmarPago(request, ids, prop):
 
-    ult_movimiento = Movimientos_bancarios.objects.filter(id_banco_id=request.POST['bancoReceptor']).last()
+    try:
+        banco_receptor = Bancos.objects.get(
+            id_banco=request.POST['bancoReceptor'],
+            id_condominio_id=request.user.id_condominio_id
+        )
+    except Bancos.DoesNotExist:
+        messages.warning(request, 'El banco receptor seleccionado no es válido para su condominio.',
+                         extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+
+    ult_movimiento = Movimientos_bancarios.objects.filter(id_banco_id=banco_receptor.id_banco).last()
     monto_transaccion = Decimal(request.POST['montoPago'])
 
     concepto_pago = request.POST['descripcion_pago']
-    if ult_movimiento:
+    cierre = Cierre_mes.objects.filter(id_condominio_id=request.user.id_condominio_id).order_by('fecha_cierre').last()
+    movimientos_qs = Movimientos_bancarios.objects.filter(
+        referencia_movimiento=request.POST['Referencia'],
+        id_banco_id=banco_receptor.id_banco,
+    )
+    if cierre:
+        movimientos_qs = movimientos_qs.filter(created_at__gt=cierre.fecha_cierre)
+    movimiento = movimientos_qs.order_by('-created_at', '-id_movimiento').first()
+    if not movimiento:
+        debito_val = ult_movimiento.debito_movimiento if ult_movimiento else 0
+        credito_val = ult_movimiento.credito_movimiento if ult_movimiento else 0
+        movimiento = Movimientos_bancarios.objects.create(
+            referencia_movimiento=request.POST['Referencia'],
+            fecha_movimiento=request.POST['dateTransferencia'],
+            concepto_movimiento=concepto_pago,
+            descripcion_movimiento=request.POST['descripcion_pago'],
+            debito_movimiento=debito_val,
+            credito_movimiento=credito_val,
+            monto_movimiento=request.POST['montoPago'],
+            banco_emisor=request.POST['bancoEmisor'],
+            estado_movimiento=2,
+            tipo_moneda=request.POST['moneda_pago'],
+            id_banco_id=banco_receptor.id_banco,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
 
-        movimiento = Movimientos_bancarios.objects.get_or_create(referencia_movimiento=request.POST['Referencia'],
-                                                               defaults={'fecha_movimiento': request.POST['dateTransferencia'],
-                                                                         'concepto_movimiento': concepto_pago,
-                                                                         'descripcion_movimiento': request.POST['descripcion_pago'],
-                                                                         'debito_movimiento': ult_movimiento.debito_movimiento, 
-                                                                         'credito_movimiento': ult_movimiento.credito_movimiento,
-                                                                         'monto_movimiento': request.POST['montoPago'], 
-                                                                         'banco_emisor': request.POST['bancoEmisor'],
-                                                                         'estado_movimiento': 2, 
-                                                                         'tipo_moneda': request.POST['moneda_pago'],
-                                                                         'id_banco_id': request.POST['bancoReceptor'],
-                                                                         'created_at': datetime.now(), 
-                                                                         'updated_at': datetime.now()})
-    else:
-        movimiento = Movimientos_bancarios.objects.get_or_create(referencia_movimiento=request.POST['Referencia'],
-                                                               defaults={'fecha_movimiento': request.POST['dateTransferencia'],
-                                                                         'concepto_movimiento': concepto_pago,
-                                                                         'descripcion_movimiento': request.POST['descripcion_pago'],
-                                                                         'debito_movimiento': 0, 
-                                                                         'credito_movimiento': 0,
-                                                                         'monto_movimiento': request.POST['montoPago'], 
-                                                                         'banco_emisor': request.POST['bancoEmisor'],
-                                                                         'estado_movimiento': 2, 
-                                                                         'tipo_moneda': request.POST['moneda_pago'],
-                                                                         'id_banco_id': request.POST['bancoReceptor'],
-                                                                         'created_at': datetime.now(), 
-                                                                         'updated_at': datetime.now()})
+    # Asegurar estado pendiente para pagos normales/abonos aunque ya existiera la referencia
+    mov_obj = movimiento
+    mov_obj.fecha_movimiento = request.POST['dateTransferencia']
+    mov_obj.concepto_movimiento = concepto_pago
+    mov_obj.descripcion_movimiento = request.POST['descripcion_pago']
+    mov_obj.monto_movimiento = request.POST['montoPago']
+    mov_obj.banco_emisor = request.POST['bancoEmisor']
+    mov_obj.estado_movimiento = 2
+    mov_obj.tipo_moneda = request.POST['moneda_pago']
+    mov_obj.id_banco_id = banco_receptor.id_banco
+    mov_obj.updated_at = timezone.now()
+    if not mov_obj.created_at:
+        mov_obj.created_at = timezone.now()
+    mov_obj.save()
 
-    if not movimiento[0].concepto_movimiento:
-        movimiento[0].concepto_movimiento = concepto_pago
-        movimiento[0].save()
+    if not movimiento.concepto_movimiento:
+        movimiento.concepto_movimiento = concepto_pago
+        movimiento.save()
 
-    ingreso = Ingresos.objects.filter(id_movimiento_id=movimiento[0].id_movimiento).first()
+    ingreso = Ingresos.objects.filter(id_movimiento_id=movimiento.id_movimiento).first()
     if not ingreso:
         ingreso = Ingresos()
     ingreso.tipo_ingreso = 'Pago de un propietario'
-    ingreso.id_movimiento_id = movimiento[0].id_movimiento
+    ingreso.id_movimiento_id = movimiento.id_movimiento
     ingreso.id_propietario = prop
     if request.FILES.get('imgReferencia'):
         ingreso.imagen_referencial = request.FILES['imgReferencia']
@@ -708,7 +746,7 @@ def confirmarPago(request, ids, prop):
                                             telefono_titular=request.POST['tlfTitular'],
                                             codigo_area=request.POST['countryCode'],
                                             correo_titular=request.POST['emailTitular'],
-                                            tipo_transaccion=request.POST['tipo_transaccion'], id_movimiento_id=movimiento[0].id_movimiento)
+                                            tipo_transaccion=request.POST['tipo_transaccion'], id_movimiento_id=movimiento.id_movimiento)
 
     print(request.POST)
 
@@ -720,7 +758,7 @@ def confirmarPago(request, ids, prop):
                                      monto=montos, categoria_recibo="ABONO",
                                      fecha_creacion=request.POST['dateTransferencia'],
                                      hora_creacion=datetime.now(),
-                                     id_movimiento_id=movimiento[0].id_movimiento)
+                                     id_movimiento_id=movimiento.id_movimiento)
             guardar_recibo.save()
 
         else:
@@ -731,7 +769,7 @@ def confirmarPago(request, ids, prop):
                                          monto=montos, categoria_recibo="SOLVENTE",
                                          fecha_creacion=request.POST['dateTransferencia'],
                                          hora_creacion=datetime.now(),
-                                         id_movimiento_id=movimiento[0].id_movimiento,
+                                         id_movimiento_id=movimiento.id_movimiento,
                                          id_deuda=deudas)
                 guardar_recibo.save()
                 print("pago de la deuda")
@@ -745,7 +783,7 @@ def confirmarPago(request, ids, prop):
                                          monto=monto_abonado, categoria_recibo="ABONADO",
                                          fecha_creacion=request.POST['dateTransferencia'],
                                          hora_creacion=datetime.now(),
-                                         id_movimiento_id=movimiento[0].id_movimiento,
+                                         id_movimiento_id=movimiento.id_movimiento,
                                          id_deuda=deudas)
                 guardar_recibo.save()
                 print("pago por abono de la deuda")
@@ -1253,7 +1291,9 @@ def admin_gastos(request):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
-    gastos = Gastos.objects.filter(id_movimiento__id_banco__id_condominio_id=user.id_condominio_id).select_related("id_movimiento__id_banco")
+    gastos = Gastos.objects.filter(
+        id_movimiento__id_banco__id_condominio_id=user.id_condominio_id
+    ).select_related("id_movimiento__id_banco")
     bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
     propietarios = Domicilio.objects.filter(id_condominio_id=user.id_condominio_id).select_related('id_propietario')
     categorias = Categoria.objects.all()
@@ -1261,6 +1301,13 @@ def admin_gastos(request):
         Categoria.objects.create(nombre_categoria="General")
         categorias = Categoria.objects.all()
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
+    if cierre:
+        gastos = gastos.filter(id_movimiento__created_at__gt=cierre.fecha_cierre)
+    gastos = gastos.order_by(
+        '-id_movimiento__fecha_movimiento',
+        '-id_movimiento__created_at',
+        '-id_gasto'
+    )
     cierre_fecha = cierre.fecha_cierre if cierre else None
     for gasto_item in gastos:
         if not cierre_fecha or not gasto_item.id_movimiento.created_at:
@@ -1474,7 +1521,11 @@ def admin_ingresos(request):
     ingresos = Ingresos.objects.filter(
         id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
         id_movimiento__estado_movimiento=0,
-    ).select_related("id_movimiento__id_banco")
+    ).select_related("id_movimiento__id_banco").order_by(
+        '-id_movimiento__fecha_movimiento',
+        '-id_movimiento__created_at',
+        '-id_ingreso'
+    )
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).last()
     for ingreso in ingresos:
         ingreso.emisor = ""
@@ -2107,7 +2158,13 @@ def admin_propietarios(request):
     tasa_euro = tasas['tasa_BCV_EUR']
 
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
-    movimientos = Movimientos_bancarios.objects.filter(estado_movimiento=2, id_banco__id_condominio_id=user.id_condominio_id)
+    movimientos = Movimientos_bancarios.objects.filter(
+        id_banco__id_condominio_id=user.id_condominio_id,
+        estado_movimiento=2,
+    )
+    if cierre:
+        movimientos = movimientos.filter(created_at__gt=cierre.fecha_cierre)
+    movimientos = movimientos.order_by('-fecha_movimiento', '-created_at', '-id_movimiento')
     for mov in movimientos:
         mov.emisor = ""
         recibo = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related('id_deuda__id_domicilio__id_propietario').first()
@@ -2157,9 +2214,11 @@ def admin_validacion_pagos(request):
 
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
     movimientos = Movimientos_bancarios.objects.filter(
-        estado_movimiento=2,
         id_banco__id_condominio_id=user.id_condominio_id
     )
+    if cierre:
+        movimientos = movimientos.filter(created_at__gt=cierre.fecha_cierre)
+    movimientos = movimientos.order_by('-fecha_movimiento', '-created_at', '-id_movimiento')
     for mov in movimientos:
         mov.emisor = ""
         recibo = Recibos.objects.filter(id_movimiento_id=mov.id_movimiento).select_related(
@@ -2206,13 +2265,15 @@ def admin_propietarios_mov(request):
         except Bancos.DoesNotExist:
             return JsonResponse({'mensaje': 'No se encontro el banco del movimiento.'}, status=400)
 
+        if mov.monto_movimiento is None:
+            return JsonResponse({'mensaje': 'El movimiento no tiene monto para aprobar.'}, status=400)
         mov.estado_movimiento = 0
         mov.updated_at = timezone.now()
-        mov.credito_movimiento += mov.monto_movimiento
+        mov.credito_movimiento = (mov.credito_movimiento or 0) + mov.monto_movimiento
         mov.save()
 
-        banco.creditos_banco += mov.monto_movimiento
-        banco.saldo_actual += mov.monto_movimiento
+        banco.creditos_banco = (banco.creditos_banco or 0) + mov.monto_movimiento
+        banco.saldo_actual = (banco.saldo_actual or 0) + mov.monto_movimiento
         banco.save()
 
         prop = None
@@ -2299,8 +2360,9 @@ def admin_propietarios_mov(request):
         mov = Movimientos_bancarios.objects.get(id_movimiento=request.GET.get('id'))
         recibo = Recibos.objects.filter(id_movimiento_id=request.GET.get('id')).select_related('id_deuda')
         for deudas in recibo:
-            deudas.id_deuda.is_active = True
-            deudas.id_deuda.save()
+            if deudas.id_deuda:
+                deudas.id_deuda.is_active = True
+                deudas.id_deuda.save()
 
         mov.estado_movimiento = 1
         mov.updated_at = timezone.now()
@@ -4164,8 +4226,16 @@ def readBancos(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
-    return render(request, 'administrador/read/bancos_read.html', {'bancos': bancos, 'conf': condominio,
-                                                                   'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+    return render(request, 'administrador/read/bancos_read.html', {
+        'bancos': bancos,
+        'conf': condominio,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'back_url': get_back_url(
+            request,
+            reverse('condominio_app:admin_configuracion', kwargs={'type': "bancos"})
+        ),
+    })
 
 
 @login_required
@@ -4190,8 +4260,13 @@ def readGastos(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
-    return render(request, 'administrador/read/gastos_read.html', {'gastos': gastos, 'conf': condominio,
-                                                                   'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+    return render(request, 'administrador/read/gastos_read.html', {
+        'gastos': gastos,
+        'conf': condominio,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'back_url': get_back_url(request, reverse('condominio_app:admin_gastos')),
+    })
 
 
 @login_required
@@ -4217,9 +4292,14 @@ def readIngresos(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
-    return render(request, 'administrador/read/ingresos_read.html', {'ingresos': ingresos, 'conf': condominio,
-                                                                     'propietario': propietario,
-                                                                     'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+    return render(request, 'administrador/read/ingresos_read.html', {
+        'ingresos': ingresos,
+        'conf': condominio,
+        'propietario': propietario,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'back_url': get_back_url(request, reverse('condominio_app:admin_ingresos')),
+    })
 
 @login_required
 def readPagoMovimiento(request, id):
@@ -4256,6 +4336,7 @@ def readPagoMovimiento(request, id):
             'ingreso': ingreso,
             'recibos': recibos,
             'propietario': propietario,
+            'back_url': get_back_url(request, reverse('condominio_app:admin_validacion_pagos')),
         }
     )
 
@@ -4286,8 +4367,13 @@ def readDeudas(request, id):
     else:
         deudas = deuda_prop
 
-    return render(request, 'administrador/read/deudas_read.html', {'deudas': deudas, 'conf': condominio,
-                                                                     'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+    return render(request, 'administrador/read/deudas_read.html', {
+        'deudas': deudas,
+        'conf': condominio,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'back_url': get_back_url(request, reverse('condominio_app:admin_deudas')),
+    })
 
 
 def readPropDeudas(request, id):
@@ -4310,8 +4396,13 @@ def readPropDeudas(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
-    return render(request, 'administrador/read/deudas_prop_read.html', {'deudas_prop': deudas_prop, 'conf': condominio,
-                                                                   'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+    return render(request, 'administrador/read/deudas_prop_read.html', {
+        'deudas_prop': deudas_prop,
+        'conf': condominio,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'back_url': get_back_url(request, reverse('condominio_app:admin_deudas')),
+    })
 
 
 @login_required
@@ -4364,9 +4455,14 @@ def readCuentas(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
-    return render(request, 'administrador/read/cuentas_read.html', {'propietarios': propietarios,
-                                                                    'usuarios': usuarios, 'conf': condominio,
-                                                                    'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+    return render(request, 'administrador/read/cuentas_read.html', {
+        'propietarios': propietarios,
+        'usuarios': usuarios,
+        'conf': condominio,
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'back_url': get_back_url(request, reverse('condominio_app:admin_cuentas')),
+    })
 
 
 # ------------------------------UPDATE VIEWS------------------------------
@@ -5423,8 +5519,10 @@ def eliminar_publicacion(request):
 def cambiar_monto(request):
     if request.GET.get('moneda_seleccionada'):
 
-        bancos = list(Bancos.objects.filter(tipo_moneda=request.GET.get('moneda_seleccionada')).values())
-        c = CurrencyConverter(decimal=True)
+        bancos = list(Bancos.objects.filter(
+            id_condominio_id=request.user.id_condominio_id,
+            tipo_moneda=request.GET.get('moneda_seleccionada')
+        ).values())
 
         ultima_tasa = Tasas.objects.last()
         today = timezone.now()
@@ -5435,8 +5533,8 @@ def cambiar_monto(request):
         tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
                                today.strftime("%A"), tasa_bs, tasa_euro)
 
-        tasa_bs = tasas['tasa_BCV_USD']
-        tasa_euro = tasas['tasa_BCV_EUR']
+        tasa_bs = Decimal(tasas['tasa_BCV_USD'])
+        tasa_euro = Decimal(tasas['tasa_BCV_EUR'])
 
         data_condo = json.loads(request.GET.get('deuda_condo'))
         data_cuota = json.loads(request.GET.get('deuda_cuota'))
@@ -5447,75 +5545,40 @@ def cambiar_monto(request):
         print(data_condo)
         print(data_cuota)
 
+        def convert_monto(monto, moneda_origen, moneda_destino):
+            monto = Decimal(monto)
+            if moneda_origen == moneda_destino:
+                return monto
+            if moneda_destino == "BS":
+                if moneda_origen == "USD":
+                    return monto * tasa_bs
+                if moneda_origen == "EUR":
+                    return monto * tasa_euro
+            if moneda_destino == "USD":
+                if moneda_origen == "BS":
+                    return monto / tasa_bs
+                if moneda_origen == "EUR":
+                    return (monto * tasa_euro) / tasa_bs
+            if moneda_destino == "EUR":
+                if moneda_origen == "BS":
+                    return monto / tasa_euro
+                if moneda_origen == "USD":
+                    return (monto * tasa_bs) / tasa_euro
+            return monto
+
         if all(not data for data in data_condo):
             pass
         else:
             for monto, moneda in zip(data_condo[0], data_condo[1]):
-
-                if moneda == request.GET.get('moneda_seleccionada'):
-                    monto_condo.append(monto)
-                else:
-                    if request.GET.get('moneda_seleccionada') == "BS":
-
-                        if moneda == "USD":
-                            resultado = Decimal(monto) * tasa_bs
-                            monto_condo.append(round(resultado, 2))
-                        else:
-                            resultado = Decimal(monto) * tasa_euro
-                            monto_condo.append(round(resultado, 2))
-
-                    elif request.GET.get('moneda_seleccionada') == "USD":
-
-                        if moneda == "BS":
-                            resultado = Decimal(monto) / tasa_bs
-                            monto_condo.append(round(resultado, 2))
-                        else:
-                            monto_convertido = c.convert(monto, 'EUR', 'USD')
-                            monto_condo.append(round(monto_convertido, 2))
-
-                    else:
-
-                        if moneda == "BS":
-                            resultado = Decimal(monto) / tasa_euro
-                            monto_condo.append(round(resultado, 2))
-                        else:
-                            monto_convertido = c.convert(monto, 'USD', 'EUR')
-                            monto_condo.append(round(monto_convertido, 2))
+                resultado = convert_monto(monto, moneda, request.GET.get('moneda_seleccionada'))
+                monto_condo.append(round(resultado, 2))
 
         if all(not data for data in data_cuota):
             pass
         else:
             for monto, moneda in zip(data_cuota[0], data_cuota[1]):
-
-                if moneda == request.GET.get('moneda_seleccionada'):
-                    monto_cuota.append(monto)
-                else:
-                    if request.GET.get('moneda_seleccionada') == "BS":
-
-                        if moneda == "USD":
-                            resultado = Decimal(monto) * tasa_bs
-                            monto_cuota.append(round(resultado, 2))
-                        else:
-                            resultado = Decimal(monto) * tasa_euro
-                            monto_cuota.append(round(resultado, 2))
-
-                    elif request.GET.get('moneda_seleccionada') == "USD":
-
-                        if moneda == "BS":
-                            resultado = Decimal(monto) / tasa_bs
-                            monto_cuota.append(round(resultado, 2))
-                        else:
-                            monto_convertido = c.convert(monto, 'EUR', 'USD')
-                            monto_cuota.append(round(monto_convertido, 2))
-
-                    else:
-
-                        if moneda == "BS":
-                            resultado = Decimal(monto) / tasa_euro
-                            monto_cuota.append(round(resultado, 2))
-                        else:
-                            monto_convertido = c.convert(monto, 'USD', 'EUR')
-                            monto_cuota.append(round(monto_convertido, 2))
+                resultado = convert_monto(monto, moneda, request.GET.get('moneda_seleccionada'))
+                monto_cuota.append(round(resultado, 2))
 
         data = {
             'monto_condo': monto_condo,

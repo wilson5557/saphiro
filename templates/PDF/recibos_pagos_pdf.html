@@ -7,6 +7,21 @@
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <title>Recibo de Pago</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 4px 6px;
+      vertical-align: top;
+    }
+  </style>
 </head>
 <body>
   <div class="web-container">
@@ -34,7 +49,7 @@
               <td>
                 {% for data in datosRecibo %}
                   {% if forloop.first %}
-                    Fecha de Recibo: <strong>{{ data.fecha_creacion }}</strong>
+                    Fecha de Recibo: <strong>{{ data.fecha_creacion|date:'d/m/Y' }}</strong>
                   {% endif %}
                 {% endfor %}
               </td>

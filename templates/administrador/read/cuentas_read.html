@@ -78,8 +78,8 @@
           <div class="dropdown-divider"></div>
           <div class="row pt-3">
             <a class="btn btn-danger col-sm-12 border text-light move-up"
-              href="/home/administrar/cuentas"><i class="fa fa-arrow-left float-left pt-1"></i>
-                r al inicio</a>
+              href="{{ back_url|default:'/home/administrar/cuentas' }}"><i class="fa fa-arrow-left float-left pt-1"></i>
+                Volver al inicio</a>
           </div>
 
       {% else %}
@@ -89,7 +89,7 @@
 
       <div class="d-grid pt-3" style="justify-content: right;">
         <a class="btn btn-danger btn-cancel col-sm-6 border text-light mx-auto move-up"
-          href="/home/administrar/cuentas"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
+          href="{{ back_url|default:'/home/administrar/cuentas' }}"><i class="fa fa-arrow-left float-left pt-1"></i> Volver al inicio</a>
       </div>
       {% endif %}
 

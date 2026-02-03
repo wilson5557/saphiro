@@ -421,6 +421,7 @@ class="col-lg-3 end-padding-left"
     $(document).ready(function() {
         var table = $('#TablaIngresos').DataTable( {
           "processing": true,
+          "order": [[5, "desc"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",

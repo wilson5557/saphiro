@@ -52,7 +52,9 @@
                             <td class="centered-cell">{{movimiento.descripcion_movimiento}}</td>
                             <td class="centered-cell">{{movimiento.monto_movimiento}}</td>
                             <td class="centered-cell">{{movimiento.banco_emisor}}</td>
-                            <td class="centered-cell">{{movimiento.fecha_movimiento}}</td>
+                            {% language 'es' %}
+                            <td class="centered-cell">{{movimiento.fecha_movimiento|date:'d/m/Y'}}</td>
+                            {% endlanguage %}
                             {% if movimiento.estado_movimiento == 0 %}
                             <td class="centered-cell text-success">Aprobado</td>
                             {% elif movimiento.estado_movimiento == 1 %}

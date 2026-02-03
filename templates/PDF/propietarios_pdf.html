@@ -60,7 +60,7 @@
 
 		.table td,
 		.table th {
-				padding: .75rem;
+				padding: .5rem;
 				vertical-align: top;
 				border-top: 1px solid #dee2e6
 		}
@@ -107,7 +107,7 @@
 				font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
 				font-size: 1rem;
 				font-weight: 400;
-				line-height: 1.5;
+				line-height: 1.2;
 				color: #212529;
 				text-align: left;
 				background-color: #fff
@@ -130,7 +130,7 @@
 				CONDOMINIO APARTHOTEL ESPARTA SUITES <br>
 				APART HOTEL ESPARTA SUITES RIF J-30456994-7</td>
 				<td style="text-align: right;"> <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
-					<span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span></td>
+					<span class="text-muted text-center">Reporte generado el {{fecha_generado|date:'d/m/Y'}}</span></td>
 			</tr>
 		</thead>
 	</table>

@@ -289,7 +289,9 @@ class="col-lg-3 end-padding-left"
                     {% if fondos %}
                     {% for fondo in fondos %}
                     <tr>
-                        <td class="centered-cell"> {{ fondo.id_movimiento.fecha_movimiento }}</td>
+                        {% language 'es' %}
+                        <td class="centered-cell"> {{ fondo.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
+                        {% endlanguage %}
                         <td class="centered-cell"> {{ fondo.tipo_fondo }}</td>
                         <td class="centered-cell"> {{ fondo.id_movimiento.concepto_movimiento }}</td>
                         <td class="centered-cell"> {{ fondo.id_movimiento.monto_movimiento }}</td>

@@ -73,7 +73,7 @@
 
         .table td,
         .table th {
-                padding: .75rem;
+                padding: .5rem;
                 vertical-align: top;
                 border-top: 1px solid #dee2e6
         }
@@ -120,7 +120,7 @@
                 font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
                 font-size: 1rem;
                 font-weight: 400;
-                line-height: 1.5;
+                line-height: 1.2;
                 color: #212529;
                 text-align: left;
                 background-color: #fff
@@ -179,7 +179,7 @@
 
 <div id="footer_content">
     <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
-    <span class="text-muted text-center">Reporte generado el {{fecha_generado}}</span>
+    <span class="text-muted text-center">Reporte generado el {{fecha_generado|date:'d/m/Y'}}</span>
 </div>
 
 <h1 class="text-center" style="font-size: 13px; padding-top: 20px;">CIERRE DEL MES DEL PROPIETARIO {{datos_propietario.nombre_propietario}} DE {{mes_cierre}} DEL
@@ -201,7 +201,7 @@
     {% if movimientos %}
     <tr>
         {% for movimiento in movimientos %}
-        <td> {{movimiento.fecha_movimiento}}</td>
+        <td> {{movimiento.fecha_movimiento|date:'d/m/Y'}}</td>
         <td> {{movimiento.descripcion_movimiento}}</td>
         <td> {{movimiento.referencia_movimiento}}</td>
         <td> {{movimiento.monto_movimiento}}</td>
@@ -233,11 +233,11 @@
     {% if deudas %}
     <tr>
         {% for deuda in deudas %}
-        <td> {{deuda.fecha_deuda}}</td>
+        <td> {{deuda.fecha_deuda|date:'d/m/Y'}}</td>
         <td> {{deuda.concepto_deuda}}</td>
-        <td> {{movimiento.descripcion_deuda}}</td>
-        <td> {{movimiento.monto_deuda}}</td>
-        <td> {{movimiento.id_domicilio.nombre_domicilio}}</td>
+        <td> {{deuda.descripcion_deuda}}</td>
+        <td> {{deuda.monto_deuda}}</td>
+        <td> {{deuda.id_domicilio.nombre_domicilio}}</td>
         {% endfor %}
     </tr>
     {% else %}

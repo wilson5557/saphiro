@@ -419,6 +419,7 @@
     $(document).ready(function() {
         var table = $('#TablaGastos').DataTable( {
           "processing": true,
+          "order": [[4, "desc"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",
