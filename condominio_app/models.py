@@ -164,7 +164,7 @@ class Bancos(models.Model):
     saldo_actual = models.DecimalField(verbose_name="Saldo actual en el banco", max_digits=30, decimal_places=2)
     saldo_apertura = models.DecimalField(verbose_name="Saldo actual en el banco", max_digits=30, decimal_places=2, null=True)
     tipo_banco = models.CharField(verbose_name="Tipo de banco", max_length=100, null=True)
-    imagen_referencial = models.ImageField(upload_to=img_bancos, null=True, blank=True)
+    imagen_referencial = models.ImageField(upload_to=img_bancos, null=True, blank=True, max_length=255)
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
@@ -262,7 +262,7 @@ class Ingresos(models.Model):
     tipo_ingreso = models.CharField(verbose_name="Tipo de ingreso", max_length=255, null=True)
     factura = models.CharField(verbose_name="Número de Factura", max_length=10, null=True)
     metodo_pago = models.IntegerField(verbose_name="Método Pago", choices=MetodoPago.choices, null=True)
-    imagen_referencial = models.ImageField(upload_to=img_ingresos, null=True, blank=True)
+    imagen_referencial = models.ImageField(upload_to=img_ingresos, null=True, blank=True, max_length=255)
     id_propietario = models.ForeignKey('Propietario', on_delete=models.DO_NOTHING, null=True)
     id_movimiento = models.ForeignKey('Movimientos_bancarios', on_delete=models.CASCADE, null=True)
     
@@ -297,7 +297,7 @@ class Reservacion(models.Model):
     Fecha_salida = models.DateField(verbose_name="Fecha de salida", null=True)
     id_alquiler = models.ForeignKey('Alquiler', on_delete=models.DO_NOTHING, null=True)
     estado = models.BooleanField(verbose_name="estado de reserva", null=True, default=False)#nuevo
-    soporte_pago = models.ImageField(upload_to=img_reservacion, null=True)#nuevo
+    soporte_pago = models.ImageField(upload_to=img_reservacion, null=True, max_length=255)#nuevo
     
     class Meta:
          db_table = 'Reservacion'  
@@ -323,7 +323,7 @@ class Gastos(models.Model):
         GERENTE = 3, _('Depósito')
 
     id_gasto = models.AutoField(primary_key=True)
-    imagen_referencial = models.ImageField(upload_to=img_gastos, null=True, blank=True)
+    imagen_referencial = models.ImageField(upload_to=img_gastos, null=True, blank=True, max_length=255)
     tipo_gasto = models.CharField(verbose_name="Tipo de gasto", max_length=100)
     factura = models.CharField(verbose_name="Número de Factura", max_length=10, null=True)
     metodo_pago = models.IntegerField(verbose_name="Método Pago", choices=MetodoPago.choices, null=True)
@@ -367,7 +367,7 @@ class Fondos(models.Model):
     tipo_fondo = models.CharField(verbose_name="Tipo de fondo", max_length=255)
     factura = models.CharField(verbose_name="Número de Factura", max_length=10, null=True)
     metodo_pago = models.IntegerField(verbose_name="Método Pago", choices=MetodoPago.choices, null=True)
-    imagen_referencial = models.ImageField(upload_to=img_fondos, null=True, blank=True)
+    imagen_referencial = models.ImageField(upload_to=img_fondos, null=True, blank=True, max_length=255)
     id_movimiento = models.ForeignKey('Movimientos_bancarios', on_delete=models.CASCADE, null=True)
 
     class Meta:
@@ -386,7 +386,7 @@ def upload_cierres(instance, filename):
 class Cierre_mes(models.Model):
     id_cierre = models.AutoField(primary_key=True)
     fecha_cierre = models.DateTimeField(auto_now_add=True, null=True)
-    pdf_cierre = models.FileField(upload_to=upload_cierres, null=True)
+    pdf_cierre = models.FileField(upload_to=upload_cierres, null=True, max_length=255)
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     class Meta:
@@ -548,7 +548,7 @@ class Noticia(models.Model):
     id = models.AutoField(primary_key=True)
     titulo = models.CharField(max_length=50, null=False, blank=False)
     descripcion = models.TextField(max_length=5000, null=False, blank=False)
-    imagen = models.ImageField(upload_to=upload_location, null=True, blank=True)
+    imagen = models.ImageField(upload_to=upload_location, null=True, blank=True, max_length=255)
     fecha_publicacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de publicación")
     fecha_actualizado = models.DateTimeField(auto_now=True, verbose_name="Fecha actualizado")
     autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -591,7 +591,7 @@ class Alquiler(models.Model):
     estado = models.BooleanField(verbose_name="Disponibilidad el inmueble", null=True, default=False)
     titulo = models.CharField(max_length=50, null=False, blank=False)
     descripcion = models.TextField(max_length=5000, null=True, blank=False)
-    imagen = models.ImageField(upload_to=upload_location_prop, null=True, blank=True)
+    imagen = models.ImageField(upload_to=upload_location_prop, null=True, blank=True, max_length=255)
     cod_tlf = models.CharField(verbose_name="Código de área habitación", max_length=50)
     contacto = models.CharField(verbose_name="Número teléfonico", max_length=20, null=True)
     horario_desde = models.TimeField(verbose_name="Horario para empezar a contactar")
