@@ -1349,14 +1349,21 @@ def admin_gastos(request):
                 return HttpResponseRedirect(reverse('condominio_app:admin_ingresos'))
 
             # La fecha es menor por lo que se prosigue con el registro de gastos
-            if 'banco_gasto_BS' in request.POST:
+            id_bank = None
+            if request.POST.get('banco_gasto_BS'):
                 id_bank = Bancos.objects.get(id_banco=request.POST['banco_gasto_BS'])
 
-            if 'banco_gasto_USD' in request.POST:
+            if request.POST.get('banco_gasto_USD'):
                 id_bank = Bancos.objects.get(id_banco=request.POST['banco_gasto_USD'])
 
-            if 'banco_gasto_EUR' in request.POST:
+            if request.POST.get('banco_gasto_EUR'):
                 id_bank = Bancos.objects.get(id_banco=request.POST['banco_gasto_EUR'])
+
+            if not id_bank:
+                messages.warning(request,
+                                 'Debe seleccionar un banco para registrar el gasto.',
+                                 extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_gastos'))
 
             monto = Decimal(request.POST['monto_movimiento'])
 
