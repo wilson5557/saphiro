@@ -264,7 +264,7 @@
                         <label class="col-sm-12 text-dark">Seleccione los inmuebles:</label>
                         <div class="col-sm-12">
                             {% if domicilios_propietarios %}
-                                <select name="domicilio" class="form-control text-dark" id="select_domicilio_prop" disabled>
+                                <select class="form-control text-dark" id="select_domicilio_prop" disabled>
                                     <option value="">Seleccione una torre primero...</option>
                                     {% for dom in domicilios_propietarios %}
                                         <option value="{{ dom.id_domicilio }}" data-torre="{{ dom.id_torre_id }}">{{ dom.nombre_domicilio }}</option>
@@ -273,6 +273,25 @@
                             {% else %}
                                 <p class="text-danger">No hay inmuebles disponibles.</p>
                             {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row d-none" id="domicilios_seleccionados_wrap">
+                    <div class="form-group col-sm-12">
+                        <label class="col-sm-12 text-dark">Inmuebles:</label>
+                        <div class="col-sm-12">
+                            <table id="tabla_domicilios_seleccionados" width="100%" style="font-size: 14px;"
+                                   class="table table-sm table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-2">
+                                <thead class="table-header">
+                                    <tr>
+                                        <th style="font-weight: 400;">Inmueble</th>
+                                        <th style="font-weight: 400;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="domicilios_seleccionados">
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -301,7 +320,9 @@
   (function() {
     var torreSelect = document.getElementById('select_torre_prop');
     var domicilioSelect = document.getElementById('select_domicilio_prop');
-    if (!torreSelect || !domicilioSelect) return;
+    var listaSeleccionados = document.getElementById('domicilios_seleccionados');
+    var listaWrap = document.getElementById('domicilios_seleccionados_wrap');
+    if (!torreSelect || !domicilioSelect || !listaSeleccionados || !listaWrap) return;
 
     function filtrarDomicilios() {
       var torreVal = torreSelect.value;
@@ -319,24 +340,95 @@
       }
     }
 
-    torreSelect.addEventListener('change', filtrarDomicilios);
-    torreSelect.addEventListener('change', function() {
+    function setSelectPlaceholder(text) {
+      if (domicilioSelect.options.length) {
+        domicilioSelect.options[0].textContent = text;
+      }
+    }
+
+    function habilitarSelect() {
       var torreVal = torreSelect.value;
       if (!torreVal) {
         domicilioSelect.disabled = true;
         domicilioSelect.value = '';
-        if (domicilioSelect.options.length) {
-          domicilioSelect.options[0].textContent = 'Seleccione una torre primero...';
-        }
+        setSelectPlaceholder('Seleccione una torre primero...');
       } else {
         domicilioSelect.disabled = false;
-        if (domicilioSelect.options.length) {
-          domicilioSelect.options[0].textContent = 'Seleccione un inmueble...';
-        }
+        setSelectPlaceholder('Seleccione un inmueble...');
       }
       filtrarDomicilios();
+    }
+
+    function actualizarListaVisible() {
+      if (listaSeleccionados.children.length > 0) {
+        listaWrap.classList.remove('d-none');
+      } else {
+        listaWrap.classList.add('d-none');
+      }
+    }
+
+    function crearItemSeleccionado(id, nombre, torre) {
+      var item = document.createElement('tr');
+      item.setAttribute('data-id', id);
+
+      var tdNombre = document.createElement('td');
+      tdNombre.className = 'centered-cell';
+      tdNombre.textContent = nombre;
+
+      var tdAccion = document.createElement('td');
+      tdAccion.className = 'centered-cell d-flex justify-content-center';
+      var btn = document.createElement('a');
+      btn.href = '#';
+      btn.className = 'btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-prop';
+      btn.setAttribute('data-toggle', 'popover');
+      btn.setAttribute('data-content', 'Eliminar');
+      btn.innerHTML = '<i class="fa fa-trash-o"></i>';
+      btn.addEventListener('click', function() {
+        event.preventDefault();
+        item.remove();
+        var option = domicilioSelect.querySelector('option[value="' + id + '"]');
+        if (option) {
+          option.hidden = false;
+        }
+        if (domicilioSelect.value === id) {
+          domicilioSelect.value = '';
+        }
+        actualizarListaVisible();
+      });
+
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'domicilio';
+      hidden.value = id;
+
+      tdAccion.appendChild(btn);
+      tdAccion.appendChild(hidden);
+      item.appendChild(tdNombre);
+      item.appendChild(tdAccion);
+      listaSeleccionados.appendChild(item);
+      actualizarListaVisible();
+    }
+
+    function yaSeleccionado(id) {
+      return !!listaSeleccionados.querySelector('[data-id="' + id + '"]');
+    }
+
+    domicilioSelect.addEventListener('change', function() {
+      var opt = domicilioSelect.selectedOptions[0];
+      if (!opt || !opt.value) return;
+      var id = opt.value;
+      if (yaSeleccionado(id)) {
+        domicilioSelect.value = '';
+        return;
+      }
+      crearItemSeleccionado(id, opt.textContent, opt.getAttribute('data-torre') || '');
+      opt.hidden = true;
+      domicilioSelect.value = '';
     });
-    filtrarDomicilios();
+
+    torreSelect.addEventListener('change', habilitarSelect);
+    habilitarSelect();
+    actualizarListaVisible();
   })();
 </script>
 

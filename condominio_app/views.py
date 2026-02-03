@@ -2078,6 +2078,12 @@ def procesar_propietario_post(request):
                          extra_tags='alert-danger')
         return False
 
+    if Usuario.objects.filter(email=dataUsuario['email']).exists():
+        messages.warning(request,
+                         'Ha ocurrido un error durante el registro. El correo ya está registrado.',
+                         extra_tags='alert-danger')
+        return False
+
     propietarios_form = PropietariosForm(data=dataPropietario)
     if propietarios_form.is_valid():
         prop = propietarios_form.save()
@@ -5131,12 +5137,7 @@ def destroyPropietarios(request, id):
 
     propietarios = Propietario.objects.get(id_propietario=id)
     
-    try:
-        domicilio = Domicilio.objects.get(id_propietario_id=id)
-        domicilio.id_propietario_id = None
-        domicilio.save()
-    except Domicilio.DoesNotExist:
-        pass
+    Domicilio.objects.filter(id_propietario_id=id).update(id_propietario_id=None)
 
     if propietarios.id_usuario_id:
         usuarios = Usuario.objects.get(id=propietarios.id_usuario_id)
