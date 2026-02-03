@@ -1521,12 +1521,15 @@ def admin_ingresos(request):
     ingresos = Ingresos.objects.filter(
         id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
         id_movimiento__estado_movimiento=0,
-    ).select_related("id_movimiento__id_banco").order_by(
+    ).select_related("id_movimiento__id_banco")
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).last()
+    if cierre:
+        ingresos = ingresos.filter(id_movimiento__created_at__gt=cierre.fecha_cierre)
+    ingresos = ingresos.order_by(
         '-id_movimiento__fecha_movimiento',
         '-id_movimiento__created_at',
         '-id_ingreso'
     )
-    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).last()
     for ingreso in ingresos:
         ingreso.emisor = ""
         if ingreso.id_propietario:
@@ -2214,7 +2217,9 @@ def admin_validacion_pagos(request):
 
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
     movimientos = Movimientos_bancarios.objects.filter(
-        id_banco__id_condominio_id=user.id_condominio_id
+        id_banco__id_condominio_id=user.id_condominio_id,
+    ).exclude(
+        datos_transaccion__tipo_transaccion="GASTO",
     )
     if cierre:
         movimientos = movimientos.filter(created_at__gt=cierre.fecha_cierre)
