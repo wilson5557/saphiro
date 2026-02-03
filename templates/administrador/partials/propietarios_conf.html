@@ -231,12 +231,30 @@
 
                 <div class="inner-wrap form-row">
                     <div class="form-group col-sm-12">
-                        <label for="{{ propietarios_form.correo.name }}" class="col-sm-12 text-dark">{{ propietarios_form.correo.label }}:</label>
+                        <label for="{{ user_form.email.name }}" class="col-sm-12 text-dark">{{ user_form.email.label }}:</label>
                         <div class="col-sm-12">
-                            {% render_field propietarios_form.correo class="form-control text-dark" placeholder="Ingrese el correo electrónico" name="email" %}
-                            {% for error in propietarios_form.correo.errors %}
+                            {% render_field user_form.email class="form-control text-dark" name=user_form.email.name placeholder="Ingrese el correo electrónico" %}
+                            {% for error in user_form.email.errors %}
                             <div class="alert alert-danger mt-2">{{ error }}</div>
                             {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inner-wrap form-row">
+                    <div class="form-group col-sm-6">
+                        <label for="select_torre_prop" class="col-sm-12 text-dark">Torre:</label>
+                        <div class="col-sm-12">
+                            <select name="torre_prop" class="form-control text-dark" id="select_torre_prop">
+                                {% if torres %}
+                                <option value="">Seleccione una torre...</option>
+                                {% for t in torres %}
+                                <option value="{{ t.id_torre }}">{{ t.nombre_torre }}</option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="">No hay torres disponibles</option>
+                                {% endif %}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -246,9 +264,10 @@
                         <label class="col-sm-12 text-dark">Seleccione los inmuebles:</label>
                         <div class="col-sm-12">
                             {% if domicilios_propietarios %}
-                                <select name="domicilio" class="form-control text-dark" multiple>
+                                <select name="domicilio" class="form-control text-dark" id="select_domicilio_prop" disabled>
+                                    <option value="">Seleccione una torre primero...</option>
                                     {% for dom in domicilios_propietarios %}
-                                        <option value="{{ dom.id_domicilio }}">{{ dom.nombre_domicilio }}</option>
+                                        <option value="{{ dom.id_domicilio }}" data-torre="{{ dom.id_torre_id }}">{{ dom.nombre_domicilio }}</option>
                                     {% endfor %}
                                 </select>
                             {% else %}
@@ -277,6 +296,48 @@
       $('#modalEliminarPropConf').modal('show');
     });
   });
+</script>
+<script>
+  (function() {
+    var torreSelect = document.getElementById('select_torre_prop');
+    var domicilioSelect = document.getElementById('select_domicilio_prop');
+    if (!torreSelect || !domicilioSelect) return;
+
+    function filtrarDomicilios() {
+      var torreVal = torreSelect.value;
+      Array.from(domicilioSelect.options).forEach(function(opt) {
+        if (!opt.value) return;
+        var optTorre = opt.getAttribute('data-torre') || '';
+        var okTorre = !torreVal || optTorre === torreVal;
+        opt.hidden = !okTorre;
+      });
+      if (domicilioSelect.value && domicilioSelect.selectedOptions.length) {
+        var selected = domicilioSelect.selectedOptions[0];
+        if (selected.hidden) {
+          domicilioSelect.value = '';
+        }
+      }
+    }
+
+    torreSelect.addEventListener('change', filtrarDomicilios);
+    torreSelect.addEventListener('change', function() {
+      var torreVal = torreSelect.value;
+      if (!torreVal) {
+        domicilioSelect.disabled = true;
+        domicilioSelect.value = '';
+        if (domicilioSelect.options.length) {
+          domicilioSelect.options[0].textContent = 'Seleccione una torre primero...';
+        }
+      } else {
+        domicilioSelect.disabled = false;
+        if (domicilioSelect.options.length) {
+          domicilioSelect.options[0].textContent = 'Seleccione un inmueble...';
+        }
+      }
+      filtrarDomicilios();
+    });
+    filtrarDomicilios();
+  })();
 </script>
 
 <script>
