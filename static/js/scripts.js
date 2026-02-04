@@ -78,22 +78,28 @@ function MoverDerecha6() {
 
 var Intervalo = setInterval(MoverDerecha, 10000);
 
-SliderDerecho.addEventListener("click", function () {
-  clearInterval(Intervalo);
-  MoverDerecha();
-  Intervalo = setInterval(MoverDerecha, 10000);
-})
+if (SliderDerecho) {
+  SliderDerecho.addEventListener("click", function () {
+    clearInterval(Intervalo);
+    MoverDerecha();
+    Intervalo = setInterval(MoverDerecha, 10000);
+  })
+}
 
-SliderDerecho1.addEventListener("click", function () {
-  clearInterval(Intervalo);
-  MoverDerecha2();
-  Intervalo = setInterval(MoverDerecha2, 10000);
-})
-SliderDerecho2.addEventListener("click", function(){
-  clearInterval(Intervalo);
-  MoverDerecha3();
-  Intervalo = setInterval(MoverDerecha3, 10000);
-})
+if (SliderDerecho1) {
+  SliderDerecho1.addEventListener("click", function () {
+    clearInterval(Intervalo);
+    MoverDerecha2();
+    Intervalo = setInterval(MoverDerecha2, 10000);
+  })
+}
+if (SliderDerecho2) {
+  SliderDerecho2.addEventListener("click", function(){
+    clearInterval(Intervalo);
+    MoverDerecha3();
+    Intervalo = setInterval(MoverDerecha3, 10000);
+  })
+}
 ;
 
 
@@ -120,22 +126,28 @@ function MoverIzquierda3() {
 
 
 
-SliderIzquierdo.addEventListener("click", function () {
-  clearInterval(Intervalo);
-  MoverIzquierda();
-  Intervalo = setInterval(MoverIzquierda, 10000);
-})
+if (SliderIzquierdo) {
+  SliderIzquierdo.addEventListener("click", function () {
+    clearInterval(Intervalo);
+    MoverIzquierda();
+    Intervalo = setInterval(MoverIzquierda, 10000);
+  })
+}
 
-SliderIzquierdo1.addEventListener("click", function () {
-  clearInterval(Intervalo);
-  MoverIzquierda2();
-  Intervalo = setInterval(MoverIzquierda2, 10000);
-})
-SliderIzquierdo2.addEventListener("click", function() {
-  clearInterval(Intervalo);
-  MoverIzquierda3();
-  Intervalo = setInterval(MoverIzquierda3, 10000);
-});
+if (SliderIzquierdo1) {
+  SliderIzquierdo1.addEventListener("click", function () {
+    clearInterval(Intervalo);
+    MoverIzquierda2();
+    Intervalo = setInterval(MoverIzquierda2, 10000);
+  })
+}
+if (SliderIzquierdo2) {
+  SliderIzquierdo2.addEventListener("click", function() {
+    clearInterval(Intervalo);
+    MoverIzquierda3();
+    Intervalo = setInterval(MoverIzquierda3, 10000);
+  });
+}
 
 
 
