@@ -4308,7 +4308,7 @@ def readGastos(request, id):
         'conf': condominio,
         'tasa_bs': tasa_bs,
         'tasa_euro': tasa_euro,
-        'back_url': get_back_url(request, reverse('condominio_app:admin_gastos')),
+        'back_url': reverse('condominio_app:admin_gastos') + '?lista=1',
     })
 
 
@@ -4341,7 +4341,7 @@ def readIngresos(request, id):
         'propietario': propietario,
         'tasa_bs': tasa_bs,
         'tasa_euro': tasa_euro,
-        'back_url': get_back_url(request, reverse('condominio_app:admin_ingresos')),
+        'back_url': reverse('condominio_app:admin_ingresos') + '?lista=1',
     })
 
 @login_required

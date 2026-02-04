@@ -1041,6 +1041,30 @@ const modulo = path[path.length - 1];
 const params = new URLSearchParams(window.location.search);
 
 switch(modulo) {
+    case 'gastos':
+        if (params.get('lista') === '1') {
+            ShowOrHide('ShowListaGastos');
+        }
+        if (params.get('lista') === '1') {
+            params.delete('lista');
+            var cleanedGastos = window.location.pathname;
+            var nextGastos = params.toString();
+            if (nextGastos) cleanedGastos += '?' + nextGastos;
+            window.history.replaceState({}, '', cleanedGastos);
+        }
+        break;
+    case 'ingresos':
+        if (params.get('lista') === '1') {
+            ShowOrHide('ShowListaIngresos');
+        }
+        if (params.get('lista') === '1') {
+            params.delete('lista');
+            var cleanedIngresos = window.location.pathname;
+            var nextIngresos = params.toString();
+            if (nextIngresos) cleanedIngresos += '?' + nextIngresos;
+            window.history.replaceState({}, '', cleanedIngresos);
+        }
+        break;
     case 'tasa':
         ConfMenu('ShowTasas');
         break;
