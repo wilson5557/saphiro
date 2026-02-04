@@ -694,7 +694,8 @@ class="d-none"
                                        data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
                                     <a href="/home/administrar/bancos/eliminar/{{ banco.id_banco }}"
                                        class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                                       data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
+                                       data-toggle="popover" data-content="Eliminar"
+                                       onclick="return confirm('¿Eliminar banco?')"><i class="fa fa-trash-o"></i></a>
                                 </div>
                             </td>
                         </tr>
@@ -752,7 +753,8 @@ class="d-none"
                     <button type="submit" class="btn btn-success col-sm-3 mt-3 move-up"><i class="fa fa-plus"></i>
                         Registrar
                     </button>
-                    <a href="/home/administrador/" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i
+                    <a href="/home/administrar/configuracion/condominio?tab=torres"
+                       class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"><i
                             class="fa fa-remove"></i> Cancelar</a>
                 </form>
 

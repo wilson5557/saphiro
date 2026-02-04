@@ -1079,6 +1079,11 @@ switch(modulo) {
             } else if (params.get('lista') === '1') {
                 ShowOrHide('ShowListaBancos');
             }
+        } else if (params.get('tab') === 'torres') {
+            ConfMenu('ShowTorres');
+            if (params.get('lista') === '1') {
+                ShowOrHide('ShowListaTorres');
+            }
         }
         if (params.get('lista') === '1' || params.get('form') === '1') {
             params.delete('lista');

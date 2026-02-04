@@ -4256,7 +4256,10 @@ def readBancos(request, id):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
-    bancos = Bancos.objects.get(id_banco=id)
+    bancos = Bancos.objects.filter(id_banco=id).first()
+    if not bancos:
+        messages.warning(request, 'El banco solicitado no existe o ya fue eliminado.', extra_tags='alert-warning')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "bancos"}))
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
