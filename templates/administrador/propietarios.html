@@ -88,17 +88,10 @@ class="d-none"
                         <td class="centered-cell"> Femenino </td>
                         {% endif %}
                         <td>
-                            <div class="horizontal-cell">
+                            <div class="horizontal-cell justify-content-center">
                                 <a href="/home/administrar/propietarios/ver/{{ propietario.id_propietario }} "
                                    class="btn btn-primary btn-option-admin border text-light button-table center-all"
                                    data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
-                                <a href="/home/administrar/propietarios/actualizar/{{ propietario.id_propietario }}"
-                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
-                                <a href="#"
-                                   class="btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-prop"
-                                   data-url="/home/administrar/propietarios/eliminar/{{ propietario.id_propietario }}"
-                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
                             </div>
                         </td>
                     </tr>

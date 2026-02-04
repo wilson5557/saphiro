@@ -2142,8 +2142,9 @@ def procesar_propietario_post(request):
                              usuario.errors[primera_key].as_text().replace('*', ''),
                              extra_tags='alert-danger')
     else:
+        primera_key = next(iter(propietarios_form.errors))
         messages.warning(request,
-                         'Ha ocurrido un error durante el registro. El formulario es invalido.',
+                         propietarios_form.errors[primera_key].as_text().replace('*', ''),
                          extra_tags='alert-danger')
 
     return False
@@ -4273,10 +4274,7 @@ def readBancos(request, id):
         'conf': condominio,
         'tasa_bs': tasa_bs,
         'tasa_euro': tasa_euro,
-        'back_url': get_back_url(
-            request,
-            reverse('condominio_app:admin_configuracion', kwargs={'type': "bancos"})
-        ),
+        'back_url': reverse('condominio_app:admin_configuracion', kwargs={'type': "condominio"}) + '?tab=bancos&lista=1',
     })
 
 
@@ -4471,8 +4469,13 @@ def readPropietarios(request, id):
     tasa_bs = tasas['tasa_BCV_USD']
     tasa_euro = tasas['tasa_BCV_EUR']
 
+    back_fallback = reverse('condominio_app:admin_configuracion', kwargs={'type': 'condominio'}) + '?tab=propietarios'
+    back_url = get_back_url(request, back_fallback)
+    if request.GET.get('back') == 'propietarios':
+        back_url = back_fallback
     return render(request, 'administrador/read/propietario_read.html', {'prop': prop, 'domicilios': domicilios, 'dom': dom, 'conf': condominio,
-                                                                        'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+                                                                        'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
+                                                                        'back_url': back_url})
 
 
 @login_required
@@ -4783,6 +4786,11 @@ def updatePropietarios(request, id):
     propietario = Propietario.objects.select_related('id_usuario').get(id_propietario=id)
     propietarios_form = PropietariosForm()
     user_form = RegistrationForm()
+    torres = Torre.objects.filter(id_condominio_id=user.id_condominio_id)
+    domicilios_disponibles = Domicilio.objects.filter(
+        id_condominio_id=user.id_condominio_id,
+        id_propietario_id__isnull=True,
+    ).order_by('nombre_domicilio')
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
@@ -4814,6 +4822,18 @@ def updatePropietarios(request, id):
     select_cod_mov = cod_mov
 
     if request.method == 'POST':
+        if request.POST.get('form_origen') == 'agregar_inmueble':
+            seleccionados = request.POST.getlist('domicilio')
+            if not seleccionados:
+                messages.warning(request,
+                                 'Debe seleccionar al menos un inmueble.',
+                                 extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:updatePropietarios', kwargs={'id': id}))
+            Domicilio.objects.filter(id_domicilio__in=seleccionados).update(id_propietario_id=id)
+            messages.success(request,
+                             '¡Los inmuebles fueron asignados correctamente!',
+                             extra_tags='alert-success')
+            return HttpResponseRedirect(reverse('condominio_app:updatePropietarios', kwargs={'id': id}))
 
         # Se revisa si se es cogió un tipo de cedúla de identidad, en caso de no ser escogido entonces se arroja un error
         if request.POST['tipo_dni'] == '':
@@ -4881,7 +4901,9 @@ def updatePropietarios(request, id):
                                                                             'select_genero': select_genero,
                                                                             'select_tipo_doc': select_tipo_doc,
                                                                             'select_cod_hab': select_cod_hab,
-                                                                            'select_cod_mov': select_cod_mov})
+                                                                            'select_cod_mov': select_cod_mov,
+                                                                            'torres': torres,
+                                                                            'domicilios_disponibles': domicilios_disponibles})
 
 
 class DeudasUpdateView(UpdateView):

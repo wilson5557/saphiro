@@ -680,10 +680,12 @@ class PropietariosForm(forms.ModelForm):
     
   def clean_telefono_movil(self):
     telefono_movil = self.cleaned_data.get('telefono_movil')
+    if telefono_movil is None or telefono_movil == '':
+      return telefono_movil
+    telefono_movil = str(telefono_movil).strip()
     if not telefono_movil.isdigit():
       raise forms.ValidationError("Por favor ingrese solamente números en este campo")
-    else:
-      return telefono_movil
+    return telefono_movil
 
   def clean_piso(self):
     piso = self.cleaned_data.get('piso')

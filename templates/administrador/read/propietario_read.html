@@ -92,7 +92,7 @@
           </div>
           <div class="d-grid pt-3" style="justify-content: right;">
             <a class="btn btn-danger col-sm-12 border text-light move-up btn-cancel"
-              href="/home/administrar/propietarios"><i class="fa fa-arrow-left float-left pt-1"></i> Volver</a>
+              href="{{ back_url|default:'/home/administrar/propietarios' }}"><i class="fa fa-arrow-left float-left pt-1"></i> Volver</a>
           </div>
         {% endif %}
     </div>

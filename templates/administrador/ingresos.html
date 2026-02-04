@@ -365,7 +365,7 @@ class="col-lg-3 end-padding-left"
                         <td class="centered-cell">{{ ingreso.estado_label }}</td>
                         {% if ingreso.estado_bloqueado %}
                         <td class="center-all">
-                          <div class="horizontal-cell">
+                          <div class="horizontal-cell justify-content-center">
                             <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
                                class="btn btn-primary btn-option-admin border text-light button-table center-all"
                                data-toggle="popover" data-content="{{ ingreso.estado_label }}"><i class="fa fa-eye"></i></a>
@@ -373,16 +373,10 @@ class="col-lg-3 end-padding-left"
                         </td>
                         {% else %}
                         <td>
-                            <div class="horizontal-cell">
+                            <div class="horizontal-cell justify-content-center">
                                 <a href="/home/administrar/ingresos/ver/{{ ingreso.id_ingreso }}"
                                    class="btn btn-primary btn-option-admin border text-light button-table center-all"
                                    data-toggle="popover" data-content="Ver"><i class="fa fa-eye"></i></a>
-                                <a href="/home/administrar/ingresos/actualizar/{{ ingreso.id_ingreso }}"
-                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                                   data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
-                                <a href="/home/administrar/ingresos/eliminar/{{ ingreso.id_movimiento_id }}"
-                                   class="btn btn-primary btn-option-admin border text-light button-table center-all"
-                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
                             </div>
                         </td>
                         {% endif %}

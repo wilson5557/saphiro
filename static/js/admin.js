@@ -773,6 +773,33 @@ function ShowOrHide(param)
 }
 
 function ConfMenu(param) {
+  function clearConfigTabParam() {
+    if (param === 'ShowPropietarios') return;
+    if (window.location.pathname.indexOf('/home/administrar/configuracion/') === -1) return;
+
+    var url = new URL(window.location.href);
+    if (!url.searchParams.has('tab')) return;
+
+    url.searchParams.delete('tab');
+    var next = url.pathname;
+    var search = url.searchParams.toString();
+    if (search) next += '?' + search;
+    if (url.hash) next += url.hash;
+    window.history.replaceState({}, '', next);
+  }
+
+  clearConfigTabParam();
+
+  function resetPropietariosConf() {
+    var verPropConf = document.getElementById("VerPropietariosConf");
+    var formPropConf = document.getElementById("AgregarPropietariosConf");
+    var btnShowPropConf = document.getElementById("ShowPropietariosConf");
+    var btnHidePropConf = document.getElementById("HidePropietariosConf");
+    if (verPropConf) verPropConf.classList.add("d-none");
+    if (formPropConf) formPropConf.classList.add("d-none");
+    if (btnShowPropConf) btnShowPropConf.classList.remove("d-none");
+    if (btnHidePropConf) btnHidePropConf.classList.add("d-none");
+  }
 
   var condominio = document.getElementById("Condominio");
   var bancos = document.getElementById("Bancos");
@@ -791,9 +818,24 @@ function ConfMenu(param) {
   var btn_recargo = document.getElementById("btn_recargos");
   var btn_propietarios = document.getElementById("btn_propietarios_conf");
 
+  function resetConfigButtons() {
+    if (btn_condominio) btn_condominio.classList.remove("btn-option-selected");
+    if (btn_banco) btn_banco.classList.remove("btn-option-selected");
+    if (btn_torre) btn_torre.classList.remove("btn-option-selected");
+    if (btn_domicilio) btn_domicilio.classList.remove("btn-option-selected");
+    if (btn_precio) btn_precio.classList.remove("btn-option-selected");
+    if (btn_tasa) btn_tasa.classList.remove("btn-option-selected");
+    if (btn_recargo) btn_recargo.classList.remove("btn-option-selected");
+    if (btn_propietarios) btn_propietarios.classList.remove("btn-option-selected");
+  }
+
   switch (param)
   {
+    default:
+      resetConfigButtons();
+      break;
     case 'ShowCondominio':
+      resetConfigButtons();
 
       bancos.classList.add("d-none");
       torres.classList.add("d-none");
@@ -826,6 +868,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowBancos':
+      resetConfigButtons();
 
       condominio.classList.add("d-none");
       torres.classList.add("d-none");
@@ -833,6 +876,8 @@ function ConfMenu(param) {
       precios.classList.add("d-none");
       tasas.classList.add("d-none");
       recargos.classList.add("d-none");
+      if (propietarios) propietarios.classList.add("d-none");
+      resetPropietariosConf();
 
       bancos.classList.remove("d-none");
       btn_banco.classList.add("btn-option-selected");
@@ -846,6 +891,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowTorres':
+      resetConfigButtons();
 
       condominio.classList.add("d-none");
       bancos.classList.add("d-none");
@@ -853,6 +899,8 @@ function ConfMenu(param) {
       precios.classList.add("d-none");
       tasas.classList.add("d-none");
       recargos.classList.add("d-none");
+      if (propietarios) propietarios.classList.add("d-none");
+      resetPropietariosConf();
 
       torres.classList.remove("d-none");
       btn_torre.classList.add("btn-option-selected");
@@ -866,6 +914,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowDomicilios':
+      resetConfigButtons();
 
       condominio.classList.add("d-none");
       bancos.classList.add("d-none");
@@ -873,6 +922,8 @@ function ConfMenu(param) {
       precios.classList.add("d-none");
       tasas.classList.add("d-none");
       recargos.classList.add("d-none");
+      if (propietarios) propietarios.classList.add("d-none");
+      resetPropietariosConf();
 
       domicilios.classList.remove("d-none");
       btn_domicilio.classList.add("btn-option-selected");
@@ -886,6 +937,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowPrecios':
+      resetConfigButtons();
 
       condominio.classList.add("d-none");
       bancos.classList.add("d-none");
@@ -893,6 +945,8 @@ function ConfMenu(param) {
       domicilios.classList.add("d-none");
       tasas.classList.add("d-none");
       recargos.classList.add("d-none");
+      if (propietarios) propietarios.classList.add("d-none");
+      resetPropietariosConf();
 
       precios.classList.remove("d-none");
       btn_precio.classList.add("btn-option-selected");
@@ -906,6 +960,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowTasas':
+      resetConfigButtons();
 
       condominio.classList.add("d-none");
       bancos.classList.add("d-none");
@@ -914,6 +969,7 @@ function ConfMenu(param) {
       precios.classList.add("d-none");
       recargos.classList.add("d-none");
       if (propietarios) propietarios.classList.add("d-none");
+      resetPropietariosConf();
 
       tasas.classList.remove("d-none");
       btn_tasa.classList.add("btn-option-selected");
@@ -928,6 +984,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowRecargos':
+      resetConfigButtons();
 
       condominio.classList.add("d-none");
       bancos.classList.add("d-none");
@@ -935,6 +992,8 @@ function ConfMenu(param) {
       domicilios.classList.add("d-none");
       precios.classList.add("d-none");
       tasas.classList.add("d-none");
+      if (propietarios) propietarios.classList.add("d-none");
+      resetPropietariosConf();
 
       recargos.classList.remove("d-none");
       btn_recargo.classList.add("btn-option-selected");
@@ -949,6 +1008,7 @@ function ConfMenu(param) {
       break;
 
     case 'ShowPropietarios':
+      resetConfigButtons();
 
       if (condominio) condominio.classList.add("d-none");
       if (bancos) bancos.classList.add("d-none");
@@ -959,6 +1019,9 @@ function ConfMenu(param) {
       if (recargos) recargos.classList.add("d-none");
 
       if (propietarios) propietarios.classList.remove("d-none");
+      resetPropietariosConf();
+      var verPropConf = document.getElementById("VerPropietariosConf");
+      if (verPropConf) verPropConf.classList.remove("d-none");
       if (btn_propietarios) btn_propietarios.classList.add("btn-option-selected");
 
       if (btn_condominio) btn_condominio.classList.remove("btn-option-selected");
@@ -975,6 +1038,7 @@ function ConfMenu(param) {
 const pathname = window.location.pathname;
 const path = pathname.split('/');
 const modulo = path[path.length - 1];
+const params = new URLSearchParams(window.location.search);
 
 switch(modulo) {
     case 'tasa':
@@ -999,6 +1063,31 @@ switch(modulo) {
 
     case 'torres':
         ConfMenu('ShowTorres');
+        break;
+    case 'condominio':
+        if (params.get('tab') === 'propietarios') {
+            ConfMenu('ShowPropietarios');
+        } else if (params.get('tab') === 'domicilios') {
+            ConfMenu('ShowDomicilios');
+            if (params.get('lista') === '1') {
+                ShowOrHide('ShowListaDomicilios');
+            }
+        } else if (params.get('tab') === 'bancos') {
+            ConfMenu('ShowBancos');
+            if (params.get('form') === '1') {
+                ShowOrHide('HideListaBancos');
+            } else if (params.get('lista') === '1') {
+                ShowOrHide('ShowListaBancos');
+            }
+        }
+        if (params.get('lista') === '1' || params.get('form') === '1') {
+            params.delete('lista');
+            params.delete('form');
+            var cleaned = window.location.pathname;
+            var nextQuery = params.toString();
+            if (nextQuery) cleaned += '?' + nextQuery;
+            window.history.replaceState({}, '', cleaned);
+        }
         break;
 
 }
