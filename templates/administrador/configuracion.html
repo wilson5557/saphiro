@@ -647,8 +647,10 @@ class="d-none"
                         Nuevo Banco
                     </button>
 
-                    <a type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" href="/home/administrador"><i
-                            class="fa fa-remove"></i> Cancelar</a>
+                    <button type="button" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"
+                            onclick="clearForm('AgregarBancos')">
+                        <i class="fa fa-remove"></i> Cancelar
+                    </button>
                 </form>
 
                 <div class="d-none" id="VerBancos">
@@ -1108,7 +1110,10 @@ class="d-none"
                   {% endif %}
 
                   <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar datos</button>
-                  <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio"><i class="fa fa-remove"></i> Cancelar</a>
+                  <button type="button" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"
+                          onclick="clearFormEmpty('AgregarPrecios')">
+                      <i class="fa fa-remove"></i> Cancelar
+                  </button>
                 </form>
             </div>
         </div>
@@ -1170,7 +1175,10 @@ class="d-none"
 
 
                   <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar datos</button>
-                  <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
+                  <button type="button" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"
+                          onclick="clearFormEmpty('ModificarTasas')">
+                      <i class="fa fa-remove"></i> Cancelar
+                  </button>
                 </form>
             </div>
         </div>
@@ -1281,7 +1289,10 @@ class="d-none"
                     {% endif %}
 
                     <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar datos</button>
-                    <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
+                    <button type="button" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up"
+                            onclick="clearFormEmpty('EstablecerRecargos')">
+                        <i class="fa fa-remove"></i> Cancelar
+                    </button>
 
                 </form>
             </div>
@@ -1485,6 +1496,42 @@ $(document).ready(function() {
         }
     });
 });
+</script>
+
+<script>
+  window.addEventListener('load', function () {
+    var params = new URLSearchParams(window.location.search);
+    var tab = params.get('tab');
+    var lista = params.get('lista');
+
+    if (tab === 'bancos') {
+      ConfMenu('ShowBancos');
+      if (lista === '1') {
+        ShowOrHide('ShowListaBancos');
+      }
+      return;
+    }
+
+    if (tab === 'torres') {
+      ConfMenu('ShowTorres');
+      if (lista === '1') {
+        ShowOrHide('ShowListaTorres');
+      }
+      return;
+    }
+
+    if (tab === 'domicilios') {
+      ConfMenu('ShowDomicilios');
+      if (lista === '1') {
+        ShowOrHide('ShowListaDomicilios');
+      }
+      return;
+    }
+
+    if (tab === 'propietarios') {
+      ConfMenu('ShowPropietarios');
+    }
+  });
 </script>
 
 <!-- FIN MAESTRO DEL EDIFICIO -->

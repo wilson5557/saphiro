@@ -189,4 +189,43 @@ function clearForm(id_form) {
   document.getElementById(id_form).reset();
 }
 
+function clearFormEmpty(id_form) {
+  var form = document.getElementById(id_form);
+  if (!form) return;
+
+  var fields = form.querySelectorAll('input, select, textarea');
+  fields.forEach(function (field) {
+    var type = (field.type || '').toLowerCase();
+    var name = field.name || '';
+
+    if (type === 'hidden' && name === 'csrfmiddlewaretoken') {
+      return;
+    }
+
+    if (type === 'checkbox' || type === 'radio') {
+      field.checked = false;
+      return;
+    }
+
+    if (field.tagName && field.tagName.toLowerCase() === 'select') {
+      var hasEmpty = false;
+      Array.prototype.forEach.call(field.options, function (opt) {
+        if (opt.value === '') {
+          hasEmpty = true;
+        }
+        opt.selected = false;
+      });
+      if (hasEmpty) {
+        field.value = '';
+      } else {
+        field.selectedIndex = 0;
+      }
+      return;
+    }
+
+    field.value = '';
+    field.removeAttribute('value');
+  });
+}
+
 

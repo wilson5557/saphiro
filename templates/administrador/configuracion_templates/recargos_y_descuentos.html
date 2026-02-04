@@ -70,7 +70,7 @@
 
 {% block modulo_config_block %}
 
-  <form method="POST">
+  <form method="POST" id="RecargosForm">
     {% csrf_token %}
     {% if recargos_descuentos %}
       {% for recargo_descuento in recargos_descuentos %}
@@ -166,7 +166,9 @@
     
 
     <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar datos</button>
-    <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
+    <button type="button" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" onclick="clearFormEmpty('RecargosForm')">
+      <i class="fa fa-remove"></i> Cancelar
+    </button>
   </form>
 
 {% endblock modulo_config_block %}
