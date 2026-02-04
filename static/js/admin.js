@@ -1035,8 +1035,9 @@ function ConfMenu(param) {
   }
 }
 
+window.addEventListener('load', function () {
 const pathname = window.location.pathname;
-const path = pathname.split('/');
+const path = pathname.split('/').filter(Boolean);
 const modulo = path[path.length - 1];
 const params = new URLSearchParams(window.location.search);
 
@@ -1120,6 +1121,7 @@ switch(modulo) {
         break;
 
 }
+});
 
 var dni = document.getElementById('dni_titular');
 var tipo_id = document.getElementById('tipo_dni_titular');

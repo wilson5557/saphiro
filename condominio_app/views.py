@@ -1506,7 +1506,7 @@ def admin_gastos(request):
 
             messages.success(request, '¡El gasto ha sido registrado de manera satisfactoria!',
                              extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('condominio_app:admin_gastos'))
+            return HttpResponseRedirect(reverse('condominio_app:admin_gastos').rstrip('/') + '?lista=1')
 
     return render(request, 'administrador/gastos.html', {'gastos': gastos, 'bancos': bancos,
                                                          'gastos_form': gastos_form, 'movimiento_form': movimiento_form,
@@ -4308,7 +4308,7 @@ def readGastos(request, id):
         'conf': condominio,
         'tasa_bs': tasa_bs,
         'tasa_euro': tasa_euro,
-        'back_url': reverse('condominio_app:admin_gastos') + '?lista=1',
+        'back_url': reverse('condominio_app:admin_gastos').rstrip('/') + '?lista=1',
     })
 
 
