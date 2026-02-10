@@ -351,7 +351,7 @@ class="col-lg-3 end-padding-left"
                         <td class="centered-cell"> {{ ingreso.id_movimiento.concepto_movimiento }}</td>
                         <td class="centered-cell stadistics-text"> {{ ingreso.id_movimiento.descripcion_movimiento }}</td>
                         <td class="centered-cell"><span
-                                class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento }}</span></td>
+                                class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento }}{% if ingreso.id_movimiento.tipo_moneda %} {{ ingreso.id_movimiento.tipo_moneda }}{% endif %}</span></td>
                         {% if ingreso.emisor %}
                         <td class="centered-cell stadistics-text"> {{ ingreso.emisor }}</td>
                         {% else %}

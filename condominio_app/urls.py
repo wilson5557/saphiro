@@ -130,6 +130,7 @@ urlpatterns = [
     # UTILS
     path('home/administrar/propietarios/enviar_email/<int:id>', views.enviar_email, name="enviar_email"),
     path('obtener_pisos/', views.obtener_pisos, name='obtener_pisos'),
+    path('obtener_inmuebles_propietario/', views.obtener_inmuebles_propietario, name='obtener_inmuebles_propietario'),
     path('obtener_bancos/', views.obtener_bancos, name='obtener_bancos'),
     path('admin_propietarios_mov/', views.admin_propietarios_mov, name='admin_propietarios_mov'),
     path('cierre_propietario/', views.cierre_propietario, name='cierre_propietario'),

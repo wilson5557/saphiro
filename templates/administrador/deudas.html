@@ -87,18 +87,45 @@
 
 
             <div class="form-group row d-none" id="prop_seleccionado">
-                <label for="apto_deudor" class="col-sm-3 col-form-label text-dark">Seleccione un propietario:</label>
+                <label for="propietario_deudor" class="col-sm-3 col-form-label text-dark">Seleccione un propietario:</label>
                 <div class="col-sm-8">
-                    <select class="form-control text-dark" id="apto_deudor" name="apto_deudor">
+                    <select class="form-control text-dark" id="propietario_deudor" name="propietario_deudor">
                         {% if propietarios %}
                         <option value="opcion" selected disabled>Elige un propietario...</option>
                         {% for propietario in propietarios %}
-                        <option value="{{propietario.id_domicilio}}">{{propietario.nombre_domicilio}} - {{ propietario.id_propietario.nombre_propietario }}</option>
+                        <option value="{{propietario.id_propietario}}">{{ propietario.nombre_propietario }}</option>
                         {% endfor %}
                         {% else %}
                         <option value="opcion" selected disabled>NO HAY PROPIETARIOS REGISTRADOS</option>
                         {% endif %}
                     </select>
+                </div>
+            </div>
+
+            <div class="form-group row d-none" id="domicilios_select_wrapper">
+                <label class="col-sm-3 col-form-label text-dark">Seleccione los inmuebles:</label>
+                <div class="col-sm-8">
+                    <select class="form-control text-dark" id="select_domicilio_prop">
+                        <option value="">Seleccione un inmueble...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group row d-none" id="domicilios_tabla_wrapper">
+                <div class="form-group col-sm-12">
+                    <label class="col-sm-12 text-dark">Inmuebles:</label>
+                    <div class="col-sm-12">
+                        <table id="tabla_domicilios_seleccionados" width="100%" style="font-size: 14px;" class="table table-sm table-hover table-responsive-xl table-responsive-lg table-responsive-md mt-2">
+                            <thead class="table-header">
+                                <tr>
+                                    <th style="font-weight: 400;">Inmueble</th>
+                                    <th style="font-weight: 400;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="domicilios_seleccionados">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -315,6 +342,24 @@
 <script>
     var select_prop_deuda = document.getElementById("tipo_deuda");
     var prop_seleccionado = document.getElementById('prop_seleccionado');
+    var domiciliosSelectWrapper = document.getElementById('domicilios_select_wrapper');
+    var domiciliosTablaWrapper = document.getElementById('domicilios_tabla_wrapper');
+    var propietario_deudor = document.getElementById('propietario_deudor');
+    var domiciliosBody = document.getElementById('domicilios_seleccionados');
+    var selectDomicilioProp = document.getElementById('select_domicilio_prop');
+
+    function resetDomicilios() {
+      if (!domiciliosBody) {
+        return;
+      }
+      domiciliosBody.innerHTML = '';
+      if (selectDomicilioProp) {
+        selectDomicilioProp.innerHTML = '<option value="">Seleccione un inmueble...</option>';
+      }
+      if (domiciliosTablaWrapper) {
+        domiciliosTablaWrapper.classList.add('d-none');
+      }
+    }
 
     if (select_prop_deuda)
     {
@@ -322,11 +367,138 @@
           if (select_prop_deuda.value == "2")
           {
             prop_seleccionado.classList.remove('d-none');
+            resetDomicilios();
           } else {
             prop_seleccionado.classList.add('d-none');
+            if (domiciliosSelectWrapper) {
+              domiciliosSelectWrapper.classList.add('d-none');
+            }
+            if (domiciliosTablaWrapper) {
+              domiciliosTablaWrapper.classList.add('d-none');
+            }
+            if (propietario_deudor) {
+              propietario_deudor.value = "opcion";
+            }
+            resetDomicilios();
           };
       });
     };
+</script>
+
+<script>
+  var propietarioSelect = document.getElementById("propietario_deudor");
+  var domiciliosContainer = document.getElementById("domicilios_select_wrapper");
+  var domiciliosTablaContainer = document.getElementById("domicilios_tabla_wrapper");
+  var domiciliosBody = document.getElementById("domicilios_seleccionados");
+  var selectDomicilioProp = document.getElementById("select_domicilio_prop");
+
+  if (propietarioSelect) {
+    propietarioSelect.addEventListener('change', function () {
+      if (!propietarioSelect.value || propietarioSelect.value === "opcion") {
+        if (domiciliosContainer) {
+          domiciliosContainer.classList.add('d-none');
+        }
+        if (domiciliosTablaContainer) {
+          domiciliosTablaContainer.classList.add('d-none');
+        }
+        if (domiciliosBody) {
+          domiciliosBody.innerHTML = '';
+        }
+        if (selectDomicilioProp) {
+          selectDomicilioProp.innerHTML = '<option value="">Seleccione un inmueble...</option>';
+        }
+        return;
+      }
+
+      $.ajax({
+        url: '/obtener_inmuebles_propietario/',
+        data: {
+          'id_propietario': propietarioSelect.value
+        },
+        success: function(response) {
+          if (!domiciliosBody || !selectDomicilioProp) {
+            return;
+          }
+
+          var contenido = '<option value="">Seleccione un inmueble...</option>';
+          if (response.inmuebles && response.inmuebles.length > 0) {
+            for (var i = 0; i < response.inmuebles.length; i++) {
+              contenido += '<option value="' + response.inmuebles[i].id + '">' +
+                           response.inmuebles[i].nombre +
+                           '</option>';
+            }
+          } else {
+            contenido = '<option value="">NO HAY INMUEBLES REGISTRADOS</option>';
+          }
+
+          selectDomicilioProp.innerHTML = contenido;
+          if (domiciliosContainer) {
+            domiciliosContainer.classList.remove('d-none');
+          }
+        },
+        error: function() {
+          alert('Error al obtener los inmuebles');
+        }
+      });
+    });
+  }
+</script>
+
+<script>
+  if (selectDomicilioProp && domiciliosBody) {
+    selectDomicilioProp.addEventListener('change', function () {
+      var selectedOption = selectDomicilioProp.options[selectDomicilioProp.selectedIndex];
+      if (!selectedOption || !selectedOption.value) {
+        return;
+      }
+
+      var domicilioId = selectedOption.value;
+      var domicilioNombre = selectedOption.textContent;
+
+      if (domiciliosBody.querySelector('tr[data-id="' + domicilioId + '"]')) {
+        return;
+      }
+
+      var row = document.createElement('tr');
+      row.setAttribute('data-id', domicilioId);
+      row.innerHTML = '<td class="centered-cell">' + domicilioNombre + '</td>' +
+                      '<td class="centered-cell d-flex justify-content-center">' +
+                        '<a href="#" class="btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-prop" data-toggle="popover" data-content="Eliminar">' +
+                          '<i class="fa fa-trash-o"></i>' +
+                        '</a>' +
+                        '<input type="hidden" name="domicilios_deudor" value="' + domicilioId + '">' +
+                      '</td>';
+
+      domiciliosBody.appendChild(row);
+      selectedOption.hidden = true;
+      selectDomicilioProp.value = "";
+
+      if (domiciliosTablaContainer) {
+        domiciliosTablaContainer.classList.remove('d-none');
+      }
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var target = event.target;
+    if (target && target.closest && target.closest('.btn-eliminar-prop')) {
+      event.preventDefault();
+      var row = target.closest('tr');
+      if (row) {
+        var domicilioId = row.getAttribute('data-id');
+        if (selectDomicilioProp) {
+          var option = selectDomicilioProp.querySelector('option[value="' + domicilioId + '"]');
+          if (option) {
+            option.hidden = false;
+          }
+        }
+        row.remove();
+        if (domiciliosBody && domiciliosBody.children.length === 0 && domiciliosTablaContainer) {
+          domiciliosTablaContainer.classList.add('d-none');
+        }
+      }
+    }
+  });
 </script>
 
 <script>

@@ -316,7 +316,7 @@ class="col-lg-3 end-padding-left"
                         <td class="centered-cell"> {{ ingreso.concepto_ingreso }}</td>
                         <td class="centered-cell stadistics-text"> {{ ingreso.descripcion_ingreso }}</td>
                         <td class="centered-cell"><span
-                                class="text-center text-success">{{ ingreso.monto_ingreso }}</span></td>
+                                class="text-center text-success">{{ ingreso.monto_ingreso }}{% if ingreso.tipo_moneda %} {{ ingreso.tipo_moneda }}{% endif %}</span></td>
                         {% for propietario in propietarios %}
                         {% if propietario.id_domicilio == ingreso.id_domicilio_id %}
                         <td class="centered-cell stadistics-text"> {{ propietario.id_propietario.nombre_propietario }}</td>

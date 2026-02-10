@@ -342,7 +342,7 @@
             {% language 'es' %}
             <td class="centered-cell"> {{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
             {% endlanguage %}
-            <td class="centered-cell"><span class="text-center text-success">{{ gasto.id_movimiento.monto_movimiento }}</span></td>
+            <td class="centered-cell"><span class="text-center text-success">{{ gasto.id_movimiento.monto_movimiento }}{% if gasto.id_movimiento.tipo_moneda %} {{ gasto.id_movimiento.tipo_moneda }}{% endif %}</span></td>
             {% if gasto.can_modify %}
             <td>
               <div class="horizontal-cell">

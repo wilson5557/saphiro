@@ -1728,13 +1728,13 @@ def admin_deudas(request):
         id_domicilio__estado_deuda=True,
         tipo_deuda="2",
         id_domicilio__id_condominio_id=user.id_condominio_id,
-    ).distinct('id_domicilio')
+    ).order_by('id_domicilio__id_propietario_id').distinct('id_domicilio__id_propietario_id')
     deudas_condo = Deudas.objects.filter(
         is_active=True,
         tipo_deuda="1",
         id_domicilio__id_condominio_id=user.id_condominio_id,
     )
-    propietarios = Domicilio.objects.filter(id_condominio_id=user.id_condominio_id, id_propietario__isnull=False)
+    propietarios = Propietario.objects.filter(prop_dom__id_condominio_id=user.id_condominio_id).distinct()
     totales_deudas = Deudas.objects.filter(
         is_active=True,
         tipo_deuda="2",
@@ -1783,23 +1783,45 @@ def admin_deudas(request):
                 messages.warning(request, 'El monto no puede ser menor a 0.', extra_tags='alert-danger')
             else:
                 if request.POST['tipo_deuda'] == "2":
+                    propietario_id = request.POST.get('propietario_deudor')
+                    domicilios_ids = request.POST.getlist('domicilios_deudor')
 
-                    deuda.fecha_deuda = request.POST['fecha_deuda']
-                    deuda.concepto_deuda = request.POST['concepto_deuda']
-                    deuda.descripcion_deuda = request.POST['descripcion_deuda']
-                    deuda.tipo_deuda = request.POST['tipo_deuda']
-                    deuda.categoria_deuda = "CUOTA EXTRA"
-                    deuda.monto_deuda = request.POST['monto_deuda']
-                    deuda.tipo_moneda = request.POST['tipo_moneda']
-                    deuda.is_active = True
-                    deuda.created_at = today
-                    deuda.updated_at = today
-                    deuda.id_domicilio_id = request.POST['apto_deudor']
-                    deuda.is_moroso = False
+                    if not propietario_id or not domicilios_ids:
+                        messages.warning(request,
+                                         'Debe seleccionar un propietario y al menos un inmueble.',
+                                         extra_tags='alert-danger')
+                        return HttpResponseRedirect(reverse('condominio_app:admin_deudas'))
 
-                    Domicilio.objects.filter(id_domicilio=request.POST['apto_deudor']).update(estado_deuda=True)
+                    domicilios = Domicilio.objects.filter(
+                        id_domicilio__in=domicilios_ids,
+                        id_propietario_id=propietario_id,
+                        id_condominio_id=user.id_condominio_id
+                    )
 
-                    deuda.save()
+                    if not domicilios:
+                        messages.warning(request,
+                                         'No se encontraron inmuebles válidos para el propietario seleccionado.',
+                                         extra_tags='alert-danger')
+                        return HttpResponseRedirect(reverse('condominio_app:admin_deudas'))
+
+                    for domicilio in domicilios:
+                        deuda = Deudas()
+                        deuda.fecha_deuda = request.POST['fecha_deuda']
+                        deuda.concepto_deuda = request.POST['concepto_deuda']
+                        deuda.descripcion_deuda = request.POST['descripcion_deuda']
+                        deuda.tipo_deuda = request.POST['tipo_deuda']
+                        deuda.categoria_deuda = "CUOTA EXTRA"
+                        deuda.monto_deuda = request.POST['monto_deuda']
+                        deuda.tipo_moneda = request.POST['tipo_moneda']
+                        deuda.is_active = True
+                        deuda.created_at = today
+                        deuda.updated_at = today
+                        deuda.id_domicilio = domicilio
+                        deuda.is_moroso = False
+
+                        Domicilio.objects.filter(id_domicilio=domicilio.id_domicilio).update(estado_deuda=True)
+
+                        deuda.save()
 
                     # No descontar saldo al crear la deuda. El descuento solo ocurre
                     # cuando el usuario elige "Descontar del saldo".
@@ -5429,6 +5451,24 @@ def obtener_pisos(request):
             'pisos': pisos
         }
         return JsonResponse(data)
+
+@require_http_methods(['GET'])
+def obtener_inmuebles_propietario(request):
+    if request.GET.get('id_propietario'):
+        domicilios = Domicilio.objects.filter(id_propietario_id=request.GET.get('id_propietario'))
+        inmuebles = []
+        for domicilio in domicilios:
+            inmuebles.append({
+                'id': domicilio.id_domicilio,
+                'nombre': domicilio.nombre_domicilio
+            })
+
+        data = {
+            'inmuebles': inmuebles
+        }
+        return JsonResponse(data)
+
+    return JsonResponse({'inmuebles': []})
 
 @require_http_methods(['GET'])
 def obtener_bancos(request):
