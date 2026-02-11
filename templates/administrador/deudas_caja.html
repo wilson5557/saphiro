@@ -1,0 +1,381 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title_page %}
+  Esparta Suites - Administracion
+{% endblock title_page %}
+
+{% block modulo_label %}
+  <span class="">Caja</span>
+{% endblock modulo_label %}
+
+{% block opc_panel_class %}
+  class="col-lg-3 end-padding-left"
+{% endblock opc_panel_class %}
+
+{% block body_block %}
+  <div class="col-lg-12 mb-5 mb-lg-0 end-padding-right end-padding-left">
+    <div class="container rounded modulo pb-3">
+      <div class="container pt-3 pb-1">
+        <div class="form-group d-flex justify-content-center">
+          <a class="btn-option mx-auto move-up"
+             href="{% url 'condominio_app:admin_deudas' %}"
+             data-toggle="popover"
+             data-content="Haz click aqui para volver a deudas.">
+            <i class="fa fa-arrow-left"></i> Volver a Deudas
+          </a>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="pt-4">
+          <div class="form-group row">
+            <label for="id_tipo_moneda" class="col-sm-3 col-form-label text-dark">{{ deudas_form.tipo_moneda.label }}:</label>
+            <div class="col-sm-8">
+              {% render_field deudas_form.tipo_moneda %}
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <label for="tipo_deuda" class="col-sm-3 col-form-label text-dark">La deuda sera registrada a:</label>
+            <div class="col-sm-8">
+              <select name="tipo_deuda" id="tipo_deuda" class="form-control text-dark">
+                <option value="" disabled selected>Seleccione...</option>
+                <option value="2">PROPIETARIO</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group row d-none" id="prop_seleccionado">
+            <label for="propietario_deudor" class="col-sm-3 col-form-label text-dark">Seleccione un propietario:</label>
+            <div class="col-sm-8">
+              <select class="form-control text-dark" id="propietario_deudor" name="propietario_deudor">
+                {% if propietarios %}
+                <option value="opcion" selected disabled>Elige un propietario...</option>
+                {% for propietario in propietarios %}
+                <option value="{{ propietario.id_propietario }}">{{ propietario.nombre_propietario }}</option>
+                {% endfor %}
+                {% else %}
+                <option value="opcion" selected disabled>NO HAY PROPIETARIOS REGISTRADOS</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group row d-none" id="deudas_select_wrapper">
+            <label class="col-sm-3 col-form-label text-dark">Deudas del propietario:</label>
+            <div class="col-sm-8">
+              <div class="d-none" id="solvente_texto">
+                <strong>SOLVENTE</strong>
+              </div>
+              <div class="container mt-3 deudas_dom d-none" id="deudas_dom">
+                <div class="row d-none" id="condo">
+                  <div class="col-12 mb-2">
+                    <ul class="list-group condo" id="deuda_condominio">
+                      <li class="list-group-item"><strong>Condominio</strong></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="row d-none" id="cuota">
+                  <div class="col-12 mb-2">
+                    <ul class="list-group cuota" id="deuda_cuota">
+                      <li class="list-group-item"><strong>Cuotas extras</strong></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="opcionesBtn col-sm-12 mt-2 d-flex text-center d-none" style="justify-content: space-around;" id="opcionesBtn">
+                  <a class="pagar btn border btn-option text-center" style="width: 170px;" id="Pagar">Pagar</a>
+                </div>
+
+                <div class="row mt-2 d-none" id="total_fila">
+                  <div class="col-12 mb-2">
+                    <ul class="list-group">
+                      <li class="list-group-item d-flex" style="justify-content: space-between;">
+                        <strong>TOTAL</strong>
+                        <div>
+                          <strong><span id="total_moneda">BS</span> <span id="total_monto">0.00</span></strong>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <form id="PagoDeudasForm" class="pt-2 d-none" method="POST" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <input type="hidden" id="moneda_pago" name="moneda_pago" value="">
+                  <input type="hidden" id="propietario_pago" name="propietario_pago" value="">
+
+                  <div class="form-group row mt-4">
+                    <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del pago:</label>
+                    <div class="col-sm-5">
+                      <input type="date" class="form-control text-dark" id="fecha_movimiento" name="fecha_movimiento" required>
+                    </div>
+                  </div>
+
+                  <div class="form-group row mt-4">
+                    <label for="id_concepto_movimiento" class="col-sm-3 col-form-label text-dark">Concepto del pago:</label>
+                    <div class="col-sm-8">
+                      <input type="text" name="concepto_movimiento" maxlength="255" placeholder="Concepto del pago" class="form-control text-dark" required id="id_concepto_movimiento">
+                    </div>
+                  </div>
+
+                  <div class="form-group row">
+                    <label for="id_monto_movimiento" class="col-sm-3 col-form-label text-dark">Monto movimiento:</label>
+                    <div class="col-sm-8">
+                      <input type="number" name="monto_movimiento" step="0.01" placeholder="Monto total seleccionado" class="form-control text-dark" required id="id_monto_movimiento" readonly>
+                    </div>
+                  </div>
+
+                  <div class="form-group row">
+                    <label for="id_nombre_titular" class="col-sm-3 col-form-label text-dark">Nombre del titular de la cuenta:</label>
+                    <div class="col-sm-8">
+                      <input type="text" name="nombre_titular" maxlength="255" placeholder="Ingrese el nombre del titular" class="form-control text-dark" required id="id_nombre_titular">
+                    </div>
+                  </div>
+
+                  <div class="form-group row">
+                    <label for="tipo_dni_titular" class="col-sm-3 col-form-label text-dark">Identificacion del emisor:</label>
+                    <div class="col-sm-2">
+                      <select name="tipo_dni_titular" id="tipo_dni_titular" class="form-control text-dark">
+                        <option value="V">V</option>
+                        <option value="J">J</option>
+                        <option value="E">E</option>
+                        <option value="G">G</option>
+                        <option value="P">P</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-6">
+                      <input type="text" name="dni_titular" maxlength="20" placeholder="Ingrese el numero de identificacion del titular" class="form-control text-dark" required id="id_dni_titular">
+                    </div>
+                  </div>
+
+                  <div class="form-group row">
+                    <label for="imgIngreso" class="col-sm-3 col-form-label text-dark">Imagen Referencial:</label>
+                    <div class="col-sm-8">
+                      <input type="file" class="custom-control-input" accept="image/*" name="imgIngreso" id="imgIngreso">
+                      <label class="col-sm-12 custom-file-label" for="imgIngreso">Suba la referencia aqui</label>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover"
+                          data-content="Haz click aqui para agregar el nuevo ingreso a la lista"><i class="fa fa-check pr-1"></i> Aceptar
+                  </button>
+                  <button type="reset" class="btn btn-danger col-sm-2 mt-3 ml-3 move-up" id="CancelarPagoCaja"><i class="fa fa-times pr-1"></i>
+                    Cancelar
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var tipoDeudaSelect = document.getElementById("tipo_deuda");
+      var propSeleccionado = document.getElementById("prop_seleccionado");
+      var propietarioSelect = document.getElementById("propietario_deudor");
+      var deudasWrapper = document.getElementById("deudas_select_wrapper");
+      var deudasDom = document.getElementById("deudas_dom");
+      var deudaCondominio = document.getElementById("deuda_condominio");
+      var deudaCuota = document.getElementById("deuda_cuota");
+      var condoRow = document.getElementById("condo");
+      var cuotaRow = document.getElementById("cuota");
+      var monedaSelect = document.getElementById("id_tipo_moneda");
+      var totalFila = document.getElementById("total_fila");
+      var totalMonedaLabel = document.getElementById("total_moneda");
+      var totalMontoLabel = document.getElementById("total_monto");
+      var opcionesBtn = document.getElementById("opcionesBtn");
+      var pagarBtn = document.getElementById("Pagar");
+      var propietarioPagoInput = document.getElementById("propietario_pago");
+      var pagoDeudasForm = document.getElementById("PagoDeudasForm");
+      var montoMovimientoInput = document.getElementById("id_monto_movimiento");
+      var monedaPagoInput = document.getElementById("moneda_pago");
+      var cancelarPagoCajaBtn = document.getElementById("CancelarPagoCaja");
+      var solventeTexto = document.getElementById("solvente_texto");
+
+      if (!tipoDeudaSelect || !propSeleccionado || !propietarioSelect || !deudasWrapper || !deudasDom || !deudaCondominio || !deudaCuota || !condoRow || !cuotaRow || !monedaSelect || !totalFila || !totalMonedaLabel || !totalMontoLabel || !opcionesBtn || !pagarBtn || !propietarioPagoInput || !pagoDeudasForm || !montoMovimientoInput || !monedaPagoInput || !solventeTexto) {
+        return;
+      }
+
+      function formatMonto(valor) {
+        return (Math.round((valor + Number.EPSILON) * 100) / 100).toFixed(2);
+      }
+
+      function updateSelectedTotals() {
+        var monedaSeleccionada = (monedaSelect.value || "BS").toUpperCase();
+        var totalSeleccionado = 0;
+        var seleccionados = deudasDom.querySelectorAll('input.checkbox:checked');
+        for (var j = 0; j < seleccionados.length; j++) {
+          var item = seleccionados[j];
+          var monto = parseFloat(item.getAttribute("data-monto") || "0");
+          var moneda = (item.getAttribute("data-moneda") || "").toUpperCase();
+          if (isNaN(monto)) monto = 0;
+
+          if (moneda === monedaSeleccionada) {
+            totalSeleccionado += monto;
+          }
+        }
+
+        totalMonedaLabel.textContent = monedaSeleccionada;
+        totalMontoLabel.textContent = formatMonto(totalSeleccionado);
+        montoMovimientoInput.value = formatMonto(totalSeleccionado);
+        monedaPagoInput.value = monedaSeleccionada;
+        propietarioPagoInput.value = propietarioSelect.value || "";
+
+        if (seleccionados.length > 0) {
+          totalFila.classList.remove("d-none");
+        } else {
+          totalFila.classList.add("d-none");
+        }
+      }
+
+      function resetDeudasDom() {
+        deudaCondominio.innerHTML = '<li class="list-group-item"><strong>Condominio</strong></li>';
+        deudaCuota.innerHTML = '<li class="list-group-item"><strong>Cuotas extras</strong></li>';
+        condoRow.classList.add("d-none");
+        cuotaRow.classList.add("d-none");
+        deudasDom.classList.add("d-none");
+        totalFila.classList.add("d-none");
+        pagoDeudasForm.classList.add("d-none");
+        solventeTexto.classList.add("d-none");
+        opcionesBtn.classList.add("d-none");
+        totalMonedaLabel.textContent = (monedaSelect.value || "BS").toUpperCase();
+        totalMontoLabel.textContent = "0.00";
+      }
+
+      tipoDeudaSelect.addEventListener("change", function () {
+        if (tipoDeudaSelect.value === "2") {
+          propSeleccionado.classList.remove("d-none");
+          return;
+        }
+
+        propSeleccionado.classList.add("d-none");
+        deudasWrapper.classList.add("d-none");
+        propietarioSelect.value = "opcion";
+        resetDeudasDom();
+      });
+
+      propietarioSelect.addEventListener("change", function () {
+        var propietarioId = propietarioSelect.value;
+
+        if (!propietarioId || propietarioId === "opcion") {
+          deudasWrapper.classList.add("d-none");
+          resetDeudasDom();
+          return;
+        }
+
+        fetch("/deudas_list/?id=" + encodeURIComponent(propietarioId))
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            var deudas = (data && data.deudas) ? data.deudas : [];
+            var hayCondo = false;
+            var hayCuota = false;
+            resetDeudasDom();
+            solventeTexto.classList.add("d-none");
+
+            if (deudas.length === 0) {
+              deudasWrapper.classList.remove("d-none");
+              solventeTexto.classList.remove("d-none");
+              return;
+            }
+
+            if (deudas.length > 0) {
+              for (var i = 0; i < deudas.length; i++) {
+                var deuda = deudas[i];
+                var monto = deuda.monto_deuda || 0;
+                var moneda = deuda.tipo_moneda || '';
+                var concepto = deuda.concepto_deuda || 'Sin concepto';
+                var categoria = deuda.categoria_deuda || '';
+                var monedaSeleccionada = (monedaSelect.value || "").toUpperCase();
+
+                if (String(moneda).toUpperCase() !== monedaSeleccionada) {
+                  continue;
+                }
+
+                var itemHtml = '<li class="list-group-item d-flex" style="justify-content: space-between;">' +
+                  concepto +
+                  '<div class="d-flex">' +
+                  '<div class="monto_cuota" data-base-monto="' + monto + '" data-base-moneda="' + moneda + '">' + monto + '</div>' +
+                  '<div class="tipo_moneda_cuota ml-1">' + moneda + '</div>' +
+                  '<input type="checkbox" class="seleccion_cuota ml-3 checkbox" value="' + deuda.id_deuda + '" data-monto="' + monto + '" data-moneda="' + moneda + '" data-id-deuda="' + deuda.id_deuda + '" name="montos_deudas" form="PagoDeudasForm">' +
+                  '</div>' +
+                  '</li>';
+
+                if (String(categoria).toUpperCase().indexOf('CONDOMINIO') !== -1) {
+                  deudaCondominio.insertAdjacentHTML('beforeend', itemHtml.replace(/monto_cuota/g, 'monto_condo').replace(/tipo_moneda_cuota/g, 'tipo_moneda_condo').replace(/seleccion_cuota/g, 'seleccion_condo'));
+                  hayCondo = true;
+                } else {
+                  deudaCuota.insertAdjacentHTML('beforeend', itemHtml);
+                  hayCuota = true;
+                }
+              }
+            }
+
+            deudasWrapper.classList.remove("d-none");
+            if (hayCondo) {
+              condoRow.classList.remove("d-none");
+            }
+            if (hayCuota) {
+              cuotaRow.classList.remove("d-none");
+            }
+            if (hayCondo || hayCuota) {
+              deudasDom.classList.remove("d-none");
+              opcionesBtn.classList.remove("d-none");
+            }
+            if (!hayCondo && !hayCuota) {
+              deudasWrapper.classList.remove("d-none");
+              solventeTexto.classList.remove("d-none");
+            }
+            updateSelectedTotals();
+          })
+          .catch(function () {
+            resetDeudasDom();
+            deudasWrapper.classList.remove("d-none");
+            deudaCuota.insertAdjacentHTML('beforeend', '<li class="list-group-item">Error al obtener deudas</li>');
+            cuotaRow.classList.remove("d-none");
+            deudasDom.classList.remove("d-none");
+          });
+      });
+
+      monedaSelect.addEventListener("change", function () {
+        resetDeudasDom();
+        if (propietarioSelect.value && propietarioSelect.value !== "opcion") {
+          propietarioSelect.dispatchEvent(new Event("change"));
+        }
+      });
+
+      deudasDom.addEventListener("change", function (event) {
+        var target = event.target;
+        if (target && target.classList.contains("checkbox")) {
+          updateSelectedTotals();
+        }
+      });
+
+      pagarBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        var seleccionados = deudasDom.querySelectorAll('input.checkbox:checked');
+        if (seleccionados.length === 0) {
+          pagoDeudasForm.classList.add("d-none");
+          return;
+        }
+        updateSelectedTotals();
+        pagoDeudasForm.classList.remove("d-none");
+      });
+
+      if (cancelarPagoCajaBtn) {
+        cancelarPagoCajaBtn.addEventListener("click", function () {
+          pagoDeudasForm.classList.add("d-none");
+        });
+      }
+    })();
+  </script>
+{% endblock body_block %}

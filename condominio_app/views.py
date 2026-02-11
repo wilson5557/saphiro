@@ -1854,6 +1854,189 @@ def admin_deudas(request):
                                                          'total_deudas_eur': total_deudas_eur})
 
 
+@login_required
+def admin_deudas_caja(request):
+    user = request.user
+    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+
+    condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
+    propietarios = Propietario.objects.filter(prop_dom__id_condominio_id=user.id_condominio_id).distinct()
+    deudas_form = DeudasForm()
+    ultima_tasa = Tasas.objects.last()
+    today = timezone.now()
+
+    tasa_bs = 0
+    tasa_euro = 0
+    if ultima_tasa:
+        tasa_bs = ultima_tasa.tasa_BCV_USD
+        tasa_euro = ultima_tasa.tasa_BCV_EUR
+        tasas = comprobar_tasa(
+            request,
+            today.strftime("%d/%m/%Y"),
+            ultima_tasa.updated_at.strftime("%d/%m/%Y"),
+            today.strftime("%A"),
+            tasa_bs,
+            tasa_euro,
+        )
+        tasa_bs = tasas['tasa_BCV_USD']
+        tasa_euro = tasas['tasa_BCV_EUR']
+
+    if request.method == 'POST':
+        try:
+            fecha_pago = request.POST.get('fecha_movimiento', '')
+            if fecha_pago and fecha_pago > str(date.today()):
+                messages.warning(
+                    request,
+                    'La fecha del pago no puede ser mayor a la fecha actual.',
+                    extra_tags='alert-danger',
+                )
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            moneda_form = (request.POST.get('tipo_moneda') or request.POST.get('moneda_pago') or '').upper()
+            moneda_pago = (request.POST.get('moneda_pago') or '').upper()
+            if moneda_form != moneda_pago:
+                messages.warning(
+                    request,
+                    'La moneda del pago no coincide con la moneda seleccionada.',
+                    extra_tags='alert-danger',
+                )
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            propietario_id = request.POST.get('propietario_pago')
+            if not propietario_id:
+                messages.warning(request, 'Debe seleccionar un propietario.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            deudas_ids = request.POST.getlist('montos_deudas')
+            if not deudas_ids:
+                messages.warning(request, 'Debe seleccionar al menos una deuda.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            deudas_qs = Deudas.objects.filter(
+                id_deuda__in=deudas_ids,
+                is_active=True,
+                tipo_deuda=Deudas.TipoDeuda.PROPIETARIO,
+                tipo_moneda=moneda_pago,
+                id_domicilio__id_propietario_id=propietario_id,
+                id_domicilio__id_condominio_id=user.id_condominio_id,
+            ).select_related('id_domicilio')
+
+            if deudas_qs.count() != len(deudas_ids):
+                messages.warning(
+                    request,
+                    'Las deudas seleccionadas no son validas para el propietario o moneda indicada.',
+                    extra_tags='alert-danger',
+                )
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            total_deuda = deudas_qs.aggregate(total=Sum('monto_deuda'))['total'] or Decimal('0')
+            monto_movimiento = Decimal(request.POST.get('monto_movimiento', '0'))
+            if monto_movimiento <= 0:
+                messages.warning(request, 'El monto debe ser mayor a 0.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            if monto_movimiento.quantize(Decimal('0.01')) != total_deuda.quantize(Decimal('0.01')):
+                messages.warning(
+                    request,
+                    'El monto enviado no coincide con la suma de las deudas seleccionadas.',
+                    extra_tags='alert-danger',
+                )
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            banco = Bancos.objects.filter(
+                id_condominio_id=user.id_condominio_id,
+                tipo_moneda__iexact=moneda_pago,
+            ).order_by('id_banco').first()
+            if not banco:
+                messages.warning(
+                    request,
+                    'No existe un banco configurado para la moneda seleccionada.',
+                    extra_tags='alert-danger',
+                )
+                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+            ultimo_movimiento = Movimientos_bancarios.objects.filter(id_banco_id=banco.id_banco).order_by('id_movimiento').last()
+            debito_acumulado = ultimo_movimiento.debito_movimiento if (ultimo_movimiento and ultimo_movimiento.debito_movimiento) else Decimal('0')
+            credito_acumulado = ultimo_movimiento.credito_movimiento if (ultimo_movimiento and ultimo_movimiento.credito_movimiento) else Decimal('0')
+
+            movimiento = Movimientos_bancarios.objects.create(
+                concepto_movimiento=(request.POST.get('concepto_movimiento') or 'PAGO DE DEUDAS').upper(),
+                descripcion_movimiento='PAGO DE DEUDAS EN CAJA',
+                referencia_movimiento=f"CAJA-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                monto_movimiento=monto_movimiento,
+                debito_movimiento=debito_acumulado,
+                credito_movimiento=credito_acumulado + monto_movimiento,
+                estado_movimiento=0,
+                tipo_moneda=moneda_pago,
+                id_banco=banco,
+            )
+
+            ingreso = Ingresos(
+                tipo_ingreso='PAGO DE DEUDA',
+                metodo_pago=2,
+                id_movimiento=movimiento,
+            )
+            if 'imgIngreso' in request.FILES:
+                ingreso.imagen_referencial = request.FILES['imgIngreso']
+            ingreso.save()
+
+            Datos_transaccion.objects.create(
+                nombre_titular=request.POST.get('nombre_titular', ''),
+                tipo_transaccion='INGRESO',
+                dni_titular=(request.POST.get('tipo_dni_titular', '') + "-" + request.POST.get('dni_titular', '')).strip('-'),
+                id_movimiento=movimiento,
+            )
+
+            Bancos.objects.filter(pk=banco.id_banco).update(
+                saldo_anterior=banco.saldo_actual,
+                saldo_actual=(banco.saldo_actual or Decimal('0')) + monto_movimiento,
+                creditos_banco=(banco.creditos_banco or Decimal('0')) + monto_movimiento,
+                ultimo_credito=timezone.now(),
+            )
+
+            deudas_listado = list(deudas_qs)
+            for deuda in deudas_listado:
+                Recibos.objects.create(
+                    descripcion_recibo=f"Pago deuda {deuda.concepto_deuda or deuda.id_deuda}",
+                    monto=deuda.monto_deuda,
+                    fecha_creacion=date.today(),
+                    hora_creacion=timezone.now().time(),
+                    categoria_recibo='SOLVENTE',
+                    id_movimiento=movimiento,
+                    id_deuda=deuda,
+                )
+                deuda.is_active = False
+                deuda.save(update_fields=['is_active', 'updated_at'])
+
+            domicilios_afectados = {deuda.id_domicilio_id for deuda in deudas_listado if deuda.id_domicilio_id}
+            for domicilio_id in domicilios_afectados:
+                tiene_deuda_activa = Deudas.objects.filter(id_domicilio_id=domicilio_id, is_active=True).exists()
+                Domicilio.objects.filter(id_domicilio=domicilio_id).update(estado_deuda=tiene_deuda_activa)
+
+            messages.success(request, 'Pago registrado y reflejado en ingresos correctamente.', extra_tags='alert-success')
+            return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+        except Exception:
+            messages.warning(
+                request,
+                'Ocurrio un error al registrar el pago en caja. Verifique los datos e intente nuevamente.',
+                extra_tags='alert-danger',
+            )
+            return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
+
+    return render(
+        request,
+        'administrador/deudas_caja.html',
+        {
+            'conf': condominio,
+            'tasa_bs': tasa_bs,
+            'tasa_euro': tasa_euro,
+            'deudas_form': deudas_form,
+            'propietarios': propietarios,
+        },
+    )
+
+
 # envia los datos al modal
 def deudas_list(request):
 
@@ -1867,6 +2050,7 @@ def deudas_list(request):
             moroso = "Si" if deuda.is_active else "No"
 
             data_deuda = {
+                'id_deuda': deuda.id_deuda,
                 'concepto_deuda': deuda.concepto_deuda,
                 'descripcion_deuda': deuda.descripcion_deuda,
                 'monto_deuda': deuda.monto_deuda,
@@ -4077,12 +4261,37 @@ def admin_cierres(request):
 
         return response
 
+    total_ingresos_bs = resultado_ingreso.filter(
+        id_movimiento__tipo_moneda__iexact="BS"
+    ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_ingresos_usd = resultado_ingreso.filter(
+        id_movimiento__tipo_moneda__iexact="USD"
+    ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_ingresos_eur = resultado_ingreso.filter(
+        id_movimiento__tipo_moneda__iexact="EUR"
+    ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_gastos_bs = resultado_gasto.filter(
+        id_movimiento__tipo_moneda__iexact="BS"
+    ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_gastos_usd = resultado_gasto.filter(
+        id_movimiento__tipo_moneda__iexact="USD"
+    ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_gastos_eur = resultado_gasto.filter(
+        id_movimiento__tipo_moneda__iexact="EUR"
+    ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+
     return render(request, 'administrador/cierre.html', {'conf': condominio,
                                                           'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro, 'gasto_monto': g_monto,
                                                          'ingreso_monto': i_monto, 'resultado_ingreso': resultado_ingreso,
                                                          'resultado_gasto': resultado_gasto, 'resultado_fondo': resultado_fondo,
                                                          'meses_graficos': mes_final, 'deudas': deudas,
-                                                         'deudas_prop': deudas_prop})
+                                                         'deudas_prop': deudas_prop,
+                                                         'total_ingresos_bs': total_ingresos_bs,
+                                                         'total_ingresos_usd': total_ingresos_usd,
+                                                         'total_ingresos_eur': total_ingresos_eur,
+                                                         'total_gastos_bs': total_gastos_bs,
+                                                         'total_gastos_usd': total_gastos_usd,
+                                                         'total_gastos_eur': total_gastos_eur})
 
 @login_required
 def cierre_propietario(request, prop, cierre, user):
