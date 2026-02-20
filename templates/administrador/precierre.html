@@ -1,0 +1,143 @@
+{% extends "layouts/admin-layout.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}Precierre - Vista previa del cierre{% endblock title_page %}
+
+{% block body_block %}
+<div class="col-12 mb-4">
+    <div class="alert alert-info text-center py-3" role="alert">
+        <strong><i class="fa fa-eye"></i> VISTA PREVIA - PRECIERRE</strong><br>
+        <span class="small">Estos son los datos que se llevarían al cierre del mes. No se ha ejecutado ningún cierre.</span>
+    </div>
+</div>
+
+<div class="col-12">
+    <h1 class="text-center" style="font-size: 1.1rem;">CIERRE DEL MES DE {{ mes_cierre }} DE {{ año_cierre }}</h1>
+
+    <table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+        <thead class="thead-light">
+        <tr>
+            <th>Total de gastos (BS)</th>
+            <th>Total de ingresos (BS)</th>
+            <th>Resultado neto (BS)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }}</td>
+            <td>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }}</td>
+            <td class="{% if Diferencia > 0 %}text-success{% elif Diferencia < 0 %}text-danger{% endif %}"><strong>{{ Diferencia|default:0 }}</strong></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+        <thead class="thead-light">
+        <tr>
+            <th>Total de gastos (USD)</th>
+            <th>Total de ingresos (USD)</th>
+            <th>Resultado neto (USD)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ t_gastos_USD.id_movimiento__monto_movimiento__sum|default:0 }}</td>
+            <td>{{ t_ingresos_USD.id_movimiento__monto_movimiento__sum|default:0 }}</td>
+            <td class="{% if Diferencia_USD > 0 %}text-success{% elif Diferencia_USD < 0 %}text-danger{% endif %}"><strong>{{ Diferencia_USD|default:0 }}</strong></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <table class="table table-bordered text-center mt-3" style="font-size: 12px;">
+        <thead class="thead-light">
+        <tr>
+            <th>Total de gastos (EUR)</th>
+            <th>Total de ingresos (EUR)</th>
+            <th>Resultado neto (EUR)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ t_gastos_EUR.id_movimiento__monto_movimiento__sum|default:0 }}</td>
+            <td>{{ t_ingresos_EUR.id_movimiento__monto_movimiento__sum|default:0 }}</td>
+            <td class="{% if Diferencia_EUR > 0 %}text-success{% elif Diferencia_EUR < 0 %}text-danger{% endif %}"><strong>{{ Diferencia_EUR|default:0 }}</strong></td>
+        </tr>
+        </tbody>
+    </table>
+
+    {% if ingresos %}
+    <h3 class="text-center mt-4" style="font-size: 12px;">INGRESOS</h3>
+    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+        <thead class="thead-light">
+        <tr><th>Concepto</th><th>Descripción</th><th>Total (BS)</th></tr>
+        </thead>
+        <tbody>
+        {% for ingreso in ingresos %}
+        <tr><td>{{ ingreso.concepto }}</td><td>{{ ingreso.descripcion }}</td><td>{{ ingreso.monto }} Bs</td></tr>
+        {% endfor %}
+        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td></td><td><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} Bs</strong></td></tr>
+        </tbody>
+    </table>
+    {% else %}
+    <h3 class="text-center mt-4" style="font-size: 12px;">INGRESOS</h3>
+    <p class="text-center text-danger"><strong>No hay ingresos en el período.</strong></p>
+    {% endif %}
+
+    {% if gastos %}
+    <h3 class="text-center mt-4" style="font-size: 12px;">GASTOS</h3>
+    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+        <thead class="thead-light">
+        <tr><th>Concepto</th><th>Descripción</th><th>Total (BS)</th></tr>
+        </thead>
+        <tbody>
+        {% for gasto in gastos %}
+        <tr><td>{{ gasto.concepto }}</td><td>{{ gasto.descripcion }}</td><td>{{ gasto.monto }} Bs</td></tr>
+        {% endfor %}
+        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td></td><td><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} Bs</strong></td></tr>
+        </tbody>
+    </table>
+    {% else %}
+    <h3 class="text-center mt-4" style="font-size: 12px;">GASTOS</h3>
+    <p class="text-center text-danger"><strong>No hay gastos en el período.</strong></p>
+    {% endif %}
+
+    <h3 class="text-center mt-4" style="font-size: 12px;">DEUDAS ACUMULADAS</h3>
+    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+        <tr><td>Por impagos de los propietarios</td><td class="text-center">{{ monto_deuda_prop|default:0 }} BS</td></tr>
+    </table>
+
+    <h3 class="text-center mt-4" style="font-size: 12px;">FONDOS</h3>
+    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+        <tr><td>De reserva</td><td class="text-center">{{ fondo_reserva|default:0 }}</td></tr>
+        <tr><td>Operacional</td><td class="text-center">{{ fondo_operacional|default:0 }}</td></tr>
+        <tr><td>Otros fondos</td><td class="text-center">{{ fondo_otros|default:0 }}</td></tr>
+    </table>
+
+    <h3 class="text-center mt-4" style="font-size: 12px;">MONTOS ESTABLECIDOS Y PARÁMETROS</h3>
+    <div class="row mt-2">
+        <div class="col-md-6">
+            <table class="table table-sm table-bordered" style="font-size: 11px;">
+                <thead class="thead-light"><tr><th colspan="2">Precios establecidos</th></tr></thead>
+                <tbody>
+                {% for precio, tipo_precio in precios %}
+                <tr><td>{{ tipo_precio }}</td><td>{{ precio }} BS</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <table class="table table-sm table-bordered" style="font-size: 11px;">
+                <thead class="thead-light"><tr><th colspan="2">Recargos y descuentos</th></tr></thead>
+                <tbody>
+                {% for recargo_descuento, tipo_recargo_descuento in recargos_descuentos %}
+                <tr><td>{{ tipo_recargo_descuento }}</td><td>{{ recargo_descuento }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="text-muted small text-center mt-4">Generado el {{ fecha_generado|date:"d/m/Y" }} {{ fecha_generado|time:"H:i:s" }}</p>
+</div>
+{% endblock body_block %}

@@ -252,6 +252,16 @@
         </div>
       </div>
 
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-6 row">
+          <label for="superficie_total_m2" class="col-sm-12 col-form-label text-dark">Superficie total del edificio (m²):</label>
+          <div class="col-sm-12">
+            <input type="number" name="superficie_total_m2" id="superficie_total_m2" step="0.01" min="0" class="form-control text-dark" placeholder="Ej: 1200.50" value="{{ conf.superficie_total_m2|default:'' }}">
+          </div>
+          <small class="col-sm-12 text-muted">Opcional. Para calcular alícuotas por m² en el cierre del mes.</small>
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i> Guardar cambios</button>
       <a type="reset" class="btn btn-danger col-sm-5 col-lg-4 mt-3 ml-3 move-up" href="/home/administrar/configuracion/edificio/"><i class="fa fa-remove"></i> Cancelar</a>
     </form>
@@ -371,6 +381,16 @@
             <textarea name="{{config_form.direccion_condominio.name}}" id="{{config_form.direccion_condominio.name}}"
                       cols="30" rows="5" class="form-control text-dark" placeholder="Ingrese la dirección"></textarea>
           </div>
+        </div>
+      </div>
+
+      <div class="inner-wrap form-row">
+        <div class="form-group col-sm-6 row">
+          <label for="superficie_total_m2" class="col-sm-12 col-form-label text-dark">Superficie total del edificio (m²):</label>
+          <div class="col-sm-12">
+            <input type="number" name="superficie_total_m2" id="superficie_total_m2" step="0.01" min="0" class="form-control text-dark" placeholder="Ej: 1200.50">
+          </div>
+          <small class="col-sm-12 text-muted">Opcional. Para calcular alícuotas por m² en el cierre del mes.</small>
         </div>
       </div>
 

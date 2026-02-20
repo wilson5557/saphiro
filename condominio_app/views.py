@@ -1987,6 +1987,7 @@ def admin_deudas_caja(request):
                 estado_movimiento=0,
                 tipo_moneda=moneda_pago,
                 id_banco=banco,
+                banco_emisor=request.POST.get('nombre_banco', ''),
             )
 
             ingreso = Ingresos(
@@ -2000,6 +2001,7 @@ def admin_deudas_caja(request):
 
             Datos_transaccion.objects.create(
                 nombre_titular=request.POST.get('nombre_titular', ''),
+                nombre_banco=request.POST.get('nombre_banco', ''),
                 tipo_transaccion='INGRESO',
                 dni_titular=(request.POST.get('tipo_dni_titular', '') + "-" + request.POST.get('dni_titular', '')).strip('-'),
                 id_movimiento=movimiento,
@@ -2927,20 +2929,30 @@ def admin_configuracion(request, type=''):
                 saldo_edificio = request.POST['saldo_edificio']
                 saldo_usd = request.POST['saldo_edificio_usd']
                 saldo_eur = request.POST['saldo_edificio_eur']
+                raw_superficie = request.POST.get('superficie_total_m2', '').strip()
+                try:
+                    superficie_total_m2 = Decimal(raw_superficie.replace(',', '.')) if raw_superficie else None
+                except (ValueError, Exception):
+                    superficie_total_m2 = None
+
+                defaults_condominio = {
+                    'nombre_condominio': nombre_condominio,
+                    'rif_condominio': rif_condominio,
+                    'codigo_tlf_1': codigo_tlf_1,
+                    'tlf_1': tlf_1, 'tipo_condominio': tipo_condominio,
+                    'codigo_tlf_2': codigo_tlf_2,
+                    'tlf_2': tlf_2,
+                    'direccion_condominio': direccion_condominio,
+                    'email': email,
+                    'saldo_edificio': saldo_edificio,
+                    'saldo_edificio_usd': saldo_usd,
+                    'saldo_edificio_eur': saldo_eur,
+                }
+                if superficie_total_m2 is not None:
+                    defaults_condominio['superficie_total_m2'] = superficie_total_m2
 
                 # Se busca el objeto o se crea
-                c, created = Condominio.objects.get_or_create(id_condominio=user.id_condominio_id,
-                                                              defaults={'nombre_condominio': nombre_condominio,
-                                                                        'rif_condominio': rif_condominio,
-                                                                        'codigo_tlf_1': codigo_tlf_1,
-                                                                        'tlf_1': tlf_1, 'tipo_condominio': tipo_condominio,
-                                                                        'codigo_tlf_2': codigo_tlf_2,
-                                                                        'tlf_2': tlf_2,
-                                                                        'direccion_condominio': direccion_condominio,
-                                                                        'email': email,
-                                                                        'saldo_edificio': saldo_edificio,
-                                                                        'saldo_edificio_usd': saldo_usd,
-                                                                        'saldo_edificio_eur': saldo_eur})
+                c, created = Condominio.objects.get_or_create(id_condominio=user.id_condominio_id, defaults=defaults_condominio)
 
                 if created:
                     
@@ -2974,11 +2986,16 @@ def admin_configuracion(request, type=''):
             tlf_2 = request.POST['tlf_2']
             direccion_condominio = request.POST['direccion_condominio']
             email = request.POST['email']
+            raw_superficie = request.POST.get('superficie_total_m2', '').strip()
+            try:
+                superficie_total_m2 = Decimal(raw_superficie.replace(',', '.')) if raw_superficie else None
+            except (ValueError, Exception):
+                superficie_total_m2 = None
 
             Condominio.objects.filter(id_condominio=user.id_condominio_id).update(
                 nombre_condominio=nombre_condominio, rif_condominio=rif_condominio, codigo_tlf_1=codigo_tlf_1,
                 tlf_1=tlf_1, codigo_tlf_2=codigo_tlf_2, tlf_2=tlf_2, direccion_condominio=direccion_condominio,
-                email=email)
+                email=email, superficie_total_m2=superficie_total_m2)
 
             messages.success(request, '¡La configuración ha sido actualizada de manera satisfactoria!',
                              extra_tags='alert-success')
@@ -4243,6 +4260,8 @@ def admin_cierres(request):
 
         data['mes_cierre'] = mes[int(today.strftime("%m"))]
         data['año_cierre'] = today.strftime("%Y")
+        data['datos_condominio'] = datos_condominio
+        data['bancos'] = list(Bancos.objects.filter(id_condominio=datos_condominio).order_by('nombre_banco'))
 
         nombre_pdf = "cierre_mes/{}.pdf".format(today.strftime("%d-%m-%Y_%H.%M.%S"))
 
@@ -4282,15 +4301,18 @@ def admin_cierres(request):
 
         # Solo domicilios de este condominio
         domicilios_qs = Domicilio.objects.filter(id_condominio=datos_condominio)
-        # Total m² en Python (size_domicilio puede ser CharField)
-        total_m2 = Decimal('0')
-        for d in domicilios_qs:
-            try:
-                val = d.size_domicilio
-                if val is not None and str(val).strip():
-                    total_m2 += Decimal(str(val).replace(',', '.'))
-            except (TypeError, ValueError):
-                pass
+        # Total m²: si el condominio tiene superficie total definida, usarla; si no, suma de m² de domicilios
+        if getattr(datos_condominio, 'superficie_total_m2', None) is not None and datos_condominio.superficie_total_m2 > 0:
+            total_m2 = datos_condominio.superficie_total_m2
+        else:
+            total_m2 = Decimal('0')
+            for d in domicilios_qs:
+                try:
+                    val = d.size_domicilio
+                    if val is not None and str(val).strip():
+                        total_m2 += Decimal(str(val).replace(',', '.'))
+                except (TypeError, ValueError):
+                    pass
 
         # Desactivar deudas CONDOMINIO anteriores de este condominio (no se borran; solo dejan de mostrarse en pagos)
         ids_domicilios = [dom.id_domicilio for dom in domicilios_qs]
@@ -4378,6 +4400,225 @@ def admin_cierres(request):
                                                          'total_gastos_usd': total_gastos_usd,
                                                          'total_gastos_eur': total_gastos_eur,
                                                          'total_monto_deudas': total_monto_deudas})
+
+
+def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimientos_propietarios,
+                               tasa_bs, tasa_euro, today, resultado_fondo):
+    """Construye el diccionario de datos para el PDF de cierre o la vista precierre (sin guardar nada)."""
+    datos_condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id).first()
+    if not datos_condominio:
+        return None
+    ingreso_ids = resultado_ingreso.values_list('id_movimiento_id', flat=True)
+    movimientos_propietarios = movimientos_propietarios.exclude(id_movimiento__in=ingreso_ids)
+
+    gastos_lista = []
+    for gasto in resultado_gasto:
+        if gasto.id_movimiento.tipo_moneda == "BS":
+            gastos_lista.append({
+                'concepto': gasto.id_movimiento.concepto_movimiento,
+                'descripcion': gasto.id_movimiento.descripcion_movimiento,
+                'monto': gasto.id_movimiento.monto_movimiento
+            })
+        elif gasto.id_movimiento.tipo_moneda == "USD":
+            gastos_lista.append({
+                'concepto': gasto.id_movimiento.concepto_movimiento,
+                'descripcion': gasto.id_movimiento.descripcion_movimiento,
+                'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
+            })
+        elif gasto.id_movimiento.tipo_moneda == "EUR":
+            gastos_lista.append({
+                'concepto': gasto.id_movimiento.concepto_movimiento,
+                'descripcion': gasto.id_movimiento.descripcion_movimiento,
+                'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
+            })
+
+    ingresos_lista = []
+    for ingreso in resultado_ingreso:
+        if ingreso.id_movimiento.tipo_moneda == "BS":
+            ingresos_lista.append({
+                'concepto': ingreso.id_movimiento.concepto_movimiento,
+                'descripcion': ingreso.id_movimiento.descripcion_movimiento,
+                'monto': ingreso.id_movimiento.monto_movimiento
+            })
+        elif ingreso.id_movimiento.tipo_moneda == "USD":
+            ingresos_lista.append({
+                'concepto': ingreso.id_movimiento.concepto_movimiento,
+                'descripcion': ingreso.id_movimiento.descripcion_movimiento,
+                'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
+            })
+        elif ingreso.id_movimiento.tipo_moneda == "EUR":
+            ingresos_lista.append({
+                'concepto': ingreso.id_movimiento.concepto_movimiento,
+                'descripcion': ingreso.id_movimiento.descripcion_movimiento,
+                'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
+            })
+    for mov_prop in movimientos_propietarios:
+        if mov_prop.tipo_moneda == "BS":
+            ingresos_lista.append({
+                'concepto': mov_prop.concepto_movimiento,
+                'descripcion': mov_prop.descripcion_movimiento,
+                'monto': mov_prop.monto_movimiento
+            })
+        elif mov_prop.tipo_moneda == "USD":
+            ingresos_lista.append({
+                'concepto': mov_prop.concepto_movimiento,
+                'descripcion': mov_prop.descripcion_movimiento,
+                'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)
+            })
+        elif mov_prop.tipo_moneda == "EUR":
+            ingresos_lista.append({
+                'concepto': mov_prop.concepto_movimiento,
+                'descripcion': mov_prop.descripcion_movimiento,
+                'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)
+            })
+
+    total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_ingresos_usd = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_ingresos_eur = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="EUR").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
+    total_mov_prop_bs = movimientos_propietarios.filter(tipo_moneda__iexact="BS").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
+    total_mov_prop_usd = movimientos_propietarios.filter(tipo_moneda__iexact="USD").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
+    total_mov_prop_eur = movimientos_propietarios.filter(tipo_moneda__iexact="EUR").aggregate(Sum('monto_movimiento'))['monto_movimiento__sum'] or 0
+
+    data = {
+        'gastos': gastos_lista,
+        'ingresos': ingresos_lista,
+        't_gastos': resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento')),
+        't_gastos_USD': resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento')),
+        't_gastos_EUR': resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="EUR").aggregate(Sum('id_movimiento__monto_movimiento')),
+        't_ingresos': {'id_movimiento__monto_movimiento__sum': total_ingresos_bs + total_mov_prop_bs},
+        't_ingresos_USD': {'id_movimiento__monto_movimiento__sum': total_ingresos_usd + total_mov_prop_usd},
+        't_ingresos_EUR': {'id_movimiento__monto_movimiento__sum': total_ingresos_eur + total_mov_prop_eur},
+    }
+
+    if Precios.objects.exists():
+        precios = Precios.objects.all().last()
+        precio = [precios.maleteros, precios.salon_fiesta, precios.otras_areas]
+    else:
+        precio = [0, 0, 0]
+    tipo_precio = ["Maleteros", "Mantenimiento de Áreas", "Mantenimiento del Edificio", "Jardinería"]
+    data['precios'] = zip(precio, tipo_precio)
+
+    if Recargos_y_Descuentos.objects.filter(id_condominio=datos_condominio).exists():
+        recargos_descuentos = Recargos_y_Descuentos.objects.filter(id_condominio=datos_condominio).last()
+        recargo_descuento = [str(recargos_descuentos.recargo_moratorio) + "%", recargos_descuentos.dia_recargo,
+                             str(recargos_descuentos.descuento_pronto_pago) + "%", recargos_descuentos.dia_descuento]
+    else:
+        recargo_descuento = ["0%", 1, "0%", 1]
+    tipo_recargo_descuento = ["Recargo por morosidad", "Dia de aplicación de la mororsidad", "Descuento por pronto pago", "Dia de finalización del descuento"]
+    data['recargos_descuentos'] = zip(recargo_descuento, tipo_recargo_descuento)
+
+    monto_deuda_condo = Deudas.objects.filter(is_active=True, tipo_deuda="1").aggregate(Sum('monto_deuda'))['monto_deuda__sum'] or 0
+    monto_deuda_prop = Deudas.objects.filter(is_active=True, tipo_deuda="2", id_domicilio__id_condominio=datos_condominio).aggregate(Sum('monto_deuda'))['monto_deuda__sum'] or 0
+    data['monto_deuda_condo'] = monto_deuda_condo
+    data['monto_deuda_prop'] = monto_deuda_prop
+    data['t_deudas'] = monto_deuda_condo + monto_deuda_prop
+
+    filtro_fondos_condo = {'id_movimiento__id_banco__id_condominio_id': user.id_condominio_id}
+    fondo_reserva = Fondos.objects.filter(tipo_fondo="RESERVA", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+    fondo_operacional = Fondos.objects.filter(tipo_fondo="OPERACIONAL", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+    fondo_otros = Fondos.objects.filter(tipo_fondo="OTROS FONDOS", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+    data['fondo_reserva'] = fondo_reserva
+    data['fondo_operacional'] = fondo_operacional
+    data['fondo_otros'] = fondo_otros
+    total_fondos = fondo_reserva + fondo_operacional + fondo_otros
+
+    t_g = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
+    t_i = data['t_ingresos']['id_movimiento__monto_movimiento__sum'] or 0
+    t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
+    t_i_usd = data['t_ingresos_USD']['id_movimiento__monto_movimiento__sum'] or 0
+    t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
+    t_i_eur = data['t_ingresos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
+    data["Diferencia"] = t_i - t_g
+    data["Diferencia_USD"] = t_i_usd - t_g_usd
+    data["Diferencia_EUR"] = t_i_eur - t_g_eur
+    data['fecha_generado'] = today
+    mes = ["", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
+    data['mes_cierre'] = mes[int(today.strftime("%m"))]
+    data['año_cierre'] = today.strftime("%Y")
+    data['datos_condominio'] = datos_condominio
+    return data
+
+
+@login_required
+def precierre(request):
+    """Vista previa del cierre del mes: mismos datos que el cierre pero sin ejecutarlo."""
+    user = request.user
+    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+
+    condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
+    datos_condominio = condominio.first()
+    if not datos_condominio:
+        messages.warning(request, 'No hay condominio configurado.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_cierres'))
+
+    ultima_tasa = Tasas.objects.last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas antes de ver el precierre.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_cierres'))
+
+    today = timezone.now()
+    tasa_bs = ultima_tasa.tasa_BCV_USD
+    tasa_euro = ultima_tasa.tasa_BCV_EUR
+    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
+                           today.strftime("%A"), tasa_bs, tasa_euro)
+    tasa_bs = tasas['tasa_BCV_USD']
+    tasa_euro = tasas['tasa_BCV_EUR']
+
+    cierre_mes = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id)
+    if cierre_mes.exists():
+        ultimo_cierre = cierre_mes.last()
+        resultado_ingreso = Ingresos.objects.filter(
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__estado_movimiento=0,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento")
+        movimientos_propietarios = Movimientos_bancarios.objects.filter(
+            estado_movimiento=0,
+            id_banco__id_condominio_id=user.id_condominio_id,
+            created_at__gt=ultimo_cierre.fecha_cierre,
+        ).select_related("id_banco")
+        resultado_gasto = Gastos.objects.filter(
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento")
+        resultado_fondo = Fondos.objects.filter(
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento")
+    else:
+        filtro_condo = {'id_movimiento__id_banco__id_condominio_id': user.id_condominio_id}
+        ingresos = Ingresos.objects.filter(**filtro_condo).first()
+        gastos = Gastos.objects.filter(**filtro_condo).first()
+        fondos = Fondos.objects.filter(**filtro_condo).first()
+        resultado_ingreso = Ingresos.objects.filter(
+            id_movimiento__created_at__gte=ingresos.id_movimiento.created_at,
+            id_movimiento__estado_movimiento=0,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento") if ingresos else Ingresos.objects.none()
+        movimientos_propietarios = Movimientos_bancarios.objects.filter(
+            estado_movimiento=0,
+            id_banco__id_condominio_id=user.id_condominio_id,
+            created_at__gte=ingresos.id_movimiento.created_at,
+        ).select_related("id_banco") if ingresos else Movimientos_bancarios.objects.none()
+        resultado_gasto = Gastos.objects.filter(
+            id_movimiento__created_at__gte=gastos.id_movimiento.created_at,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento") if gastos else Gastos.objects.none()
+        resultado_fondo = Fondos.objects.filter(
+            id_movimiento__created_at__gte=fondos.id_movimiento.created_at,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).select_related("id_movimiento") if fondos else Fondos.objects.none()
+
+    data = _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimientos_propietarios, tasa_bs, tasa_euro, today, resultado_fondo)
+    if not data:
+        return HttpResponseRedirect(reverse('condominio_app:admin_cierres'))
+
+    bancos = Bancos.objects.filter(id_condominio=datos_condominio).order_by('nombre_banco')
+    data['bancos_cabecera'] = bancos
+    data['es_precierre'] = True
+    return render(request, 'administrador/precierre.html', data)
+
 
 @login_required
 def cierre_propietario(request, prop, cierre, user):
@@ -5840,10 +6081,41 @@ def obtener_bancos(request):
 
         return JsonResponse(data)
 
+def _alicuota_para_display(domicilio):
+    """Devuelve la alícuota a mostrar: la guardada o la calculada por m² si aplica."""
+    if domicilio.alicuota_domicilio is not None:
+        a = float(domicilio.alicuota_domicilio)
+        return round((a * 100) if a <= 1 else a, 2)
+    if not domicilio.id_condominio_id:
+        return None
+    try:
+        condominio = Condominio.objects.get(id_condominio=domicilio.id_condominio_id)
+    except Condominio.DoesNotExist:
+        return None
+    total_m2 = getattr(condominio, 'superficie_total_m2', None)
+    if total_m2 is None or total_m2 <= 0:
+        total_m2 = Decimal('0')
+        for d in Domicilio.objects.filter(id_condominio_id=domicilio.id_condominio_id):
+            try:
+                val = d.size_domicilio
+                if val is not None and str(val).strip():
+                    total_m2 += Decimal(str(val).replace(',', '.'))
+            except (TypeError, ValueError):
+                pass
+    try:
+        m2_dom = Decimal(str(domicilio.size_domicilio).replace(',', '.')) if domicilio.size_domicilio else Decimal('0')
+    except (TypeError, ValueError):
+        m2_dom = Decimal('0')
+    if total_m2 and total_m2 > 0 and m2_dom > 0:
+        return round(float(m2_dom / total_m2) * 100, 2)
+    return None
+
+
 @require_http_methods(['GET'])
 def obtener_deudas(request):
     if request.GET.get('aptoDeuda'):
         domicilio = Domicilio.objects.get(id_domicilio=request.GET.get('aptoDeuda'))
+        alicuota_display = _alicuota_para_display(domicilio)
         if domicilio.id_torre_id:
             torre = Torre.objects.get(id_torre=domicilio.id_torre_id)
 
@@ -5862,7 +6134,7 @@ def obtener_deudas(request):
                     'torre': "-",
                     'estacionamientos': domicilio.estacionamientos,
                     'size': domicilio.size_domicilio,
-                    'alicuota': domicilio.alicuota_domicilio,
+                    'alicuota': alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio,
                     'saldo_bs': domicilio.saldo,
                     'saldo_usd': domicilio.saldo_usd,
                     'saldo_eur': domicilio.saldo_eur,
@@ -5889,7 +6161,7 @@ def obtener_deudas(request):
                     'torre': "-",
                     'estacionamientos': domicilio.estacionamientos,
                     'size': domicilio.size_domicilio,
-                    'alicuota': domicilio.alicuota_domicilio,
+                    'alicuota': alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio,
                     'saldo_bs': domicilio.saldo,
                     'saldo_usd': domicilio.saldo_usd,
                     'saldo_eur': domicilio.saldo_eur,

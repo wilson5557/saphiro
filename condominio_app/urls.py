@@ -80,6 +80,7 @@ urlpatterns = [
     path('home/administrar/cuentas/', views.admin_cuentas, name="admin_cuentas"),
     path('home/administrar/reportes/', views.admin_reportes, name="admin_reportes"),
     path('home/administrar/cierres/', views.admin_cierres, name="admin_cierres"),
+    path('home/administrar/cierres/precierre/', views.precierre, name="precierre"),
     path('home/administrar/configuracion/<str:type>', views.admin_configuracion, name="admin_configuracion"),
     path('home/administrar/configuracion/domicilios/', views.admin_domicilios, name="admin_domicilios"),
     path('home/administrar/reservacion/', views.reservacion, name='reservacion'),

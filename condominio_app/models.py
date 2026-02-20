@@ -105,6 +105,14 @@ class Condominio(models.Model):
     codigo_tlf_2 = models.CharField(verbose_name="Codigo de área 2", max_length=15, null=True, blank=True)
     tlf_2 = models.CharField(verbose_name="Telefono 2 del condominio (opcional)", max_length=255, null=True, blank=True)
     email = models.EmailField(verbose_name="Correo electrónico del condominio", max_length=100)
+    superficie_total_m2 = models.DecimalField(
+        verbose_name="Superficie total del edificio (m²)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Opcional. Si se define, las alícuotas se calculan como (m² del inmueble / este total)."
+    )
 
     # TIMESTAMPS
     created_at = models.DateTimeField(auto_now_add=True, null=True)
@@ -208,6 +216,7 @@ class Movimientos_bancarios(models.Model):
 class Datos_transaccion(models.Model):
     id_transaccion = models.AutoField(primary_key=True)
     nombre_titular = models.CharField(verbose_name="Nombre del titular", max_length=30)
+    nombre_banco = models.CharField(verbose_name="Nombre del banco (emisor)", max_length=255, null=True, blank=True)
     codigo_area = models.CharField(verbose_name="Codigo de área", max_length=7, null=True)
     telefono_titular = models.CharField(verbose_name="Teléfono del titular", max_length=20, null=True)
     correo_titular = models.CharField(verbose_name="Correo del titular", max_length=30, null=True)
