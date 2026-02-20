@@ -40,14 +40,8 @@ col-lg-12
                 <div class="margin-left-20">
                     {% if resultado_ingreso.exists %}
                     <p class="stadistics-number">{{ resultado_ingreso.count }}</p>
-                    <p class="stadistics-text">BS: {{ total_ingresos_bs|floatformat:2 }}</p>
-                    <p class="stadistics-text">USD: {{ total_ingresos_usd|floatformat:2 }}</p>
-                    <p class="stadistics-text">EUR: {{ total_ingresos_eur|floatformat:2 }}</p>
                     {% else %}
                     <p class="stadistics-number">0</p>
-                    <p class="stadistics-text">BS: 0.00</p>
-                    <p class="stadistics-text">USD: 0.00</p>
-                    <p class="stadistics-text">EUR: 0.00</p>
                     {% endif %}
                 </div>
             </div>
@@ -131,8 +125,8 @@ col-lg-12
     <div class="container rounded modulo pb-3 pt-2">
         <div class="margenes-grafico">
             <canvas class="graphic rounded"
-                    style="width: 680px; display: block; box-sizing: border-box; height: 260px; font-family: Helvetica, sans-serif !important;"
-                    id="grafico_2" width="850" height="325"></canvas>
+                    style="font-family: Helvetica, sans-serif !important; width: 100%; display: block; box-sizing: border-box; height: 260px;"
+                    id="grafico_2"></canvas>
         </div>
         <form style="text-align: center;" method="POST" id="form-grafico-2">
             {% csrf_token %}
@@ -175,7 +169,7 @@ col-lg-12
     var ultimoMes = meses_graficos.length ? meses_graficos[ultimoIndice] : "MES ACTUAL";
     var totalIngresoUltimoMes = ingreso_monto.length ? ingreso_monto[ultimoIndice] : 0;
     var totalGastoUltimoMes = gasto_monto.length ? gasto_monto[ultimoIndice] : 0;
-    var totalDeudas = Number('{{ deudas.count|default:0 }}');
+    var totalDeudas = parseLocaleAmount('{{ total_monto_deudas|default:0 }}');
     var ingresosBS = parseLocaleAmount('{{ total_ingresos_bs|default:0 }}');
     var ingresosUSD = parseLocaleAmount('{{ total_ingresos_usd|default:0 }}');
     var ingresosEUR = parseLocaleAmount('{{ total_ingresos_eur|default:0 }}');
@@ -256,32 +250,35 @@ col-lg-12
         options: options
     });
 
-    // Configuración independiente para el segundo gráfico (último semestre)
+    // Segundo gráfico: misma separación por moneda que el cuadro 1 (BS, USD, EUR para Ingresos y Gastos) + Deudas
     var dataSemestre = {
-        labels: meses_graficos,
+        labels: ['BS', 'USD', 'EUR', 'BS', 'USD', 'EUR', 'Deudas'],
         datasets: [{
             label: "Ingresos",
-            data: ingreso_monto,
-            fill: false,
-            borderColor: 'rgba(0, 128, 0, 1)',
+            data: [ingresosBS, ingresosUSD, ingresosEUR, null, null, null, null],
             backgroundColor: 'green',
-            tension: 0.1
+            borderColor: 'green',
+            borderWidth: 1,
+            barPercentage: 0.65,
+            categoryPercentage: 0.7
         },
         {
             label: "Gastos",
-            data: gasto_monto,
-            fill: false,
-            borderColor: 'red',
+            data: [null, null, null, gastosBS, gastosUSD, gastosEUR, null],
             backgroundColor: 'red',
-            tension: 0.1
+            borderColor: 'red',
+            borderWidth: 1,
+            barPercentage: 0.65,
+            categoryPercentage: 0.7
         },
         {
             label: "Deudas",
-            data: meses_graficos.map(function(_, idx) { return idx === ultimoIndice ? totalDeudas : null; }),
-            fill: false,
-            borderColor: '#f1c40f',
-            backgroundColor: '#f4d03f',
-            tension: 0.1
+            data: [null, null, null, null, null, null, totalDeudas],
+            backgroundColor: '#f1c40f',
+            borderColor: '#d4ac0d',
+            borderWidth: 1,
+            barPercentage: 0.65,
+            categoryPercentage: 0.7
         }]
     };
 
@@ -289,6 +286,13 @@ col-lg-12
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+            legend: {
+                display: true,
+                labels: {
+                    boxWidth: 18,
+                    boxHeight: 18
+                }
+            },
             title: {
                 display: true,
                 text: 'INGRESOS Y GASTOS DEL ULTIMO SEMESTRE',
@@ -301,15 +305,21 @@ col-lg-12
             }
         },
         scales: {
+            x: {
+                grid: { display: false },
+                ticks: { maxRotation: 0, minRotation: 0 }
+            },
             y: {
-                beginAtZero: true
+                beginAtZero: true,
+                max: 200000000,
+                ticks: { precision: 0 }
             }
         }
     };
 
-    // Crea el segundo gráfico independiente
-    var lineChart2 = new Chart(ctx2, {
-        type: 'line',
+    // Segundo gráfico: barras (ingresos, gastos, deudas)
+    var chartSemestre = new Chart(ctx2, {
+        type: 'bar',
         data: dataSemestre,
         options: optionsSemestre
     });

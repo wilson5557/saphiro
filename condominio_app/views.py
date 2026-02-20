@@ -964,9 +964,12 @@ def propietario_recibo_pago(request, id):
 
     ruta_logo = os.path.join(os.getcwd(), 'static', 'img-inverdata', 'logo_inverdata_pdf.png')
 
+    nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+    bancos_cabecera = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in Bancos.objects.filter(id_condominio_id=condominio.id_condominio)]
     html_string = render_to_string('PDF/recibos_pagos_pdf.html', {'datosRecibo': recibos, 'propietarios': propietarios,
                                                                   'datosMovimiento': movimientos, 'datosCondo': condominio,
-                                                                  'ruta_logo': ruta_logo})
+                                                                  'datos_condominio': condominio, 'fecha_generado': timezone.now(),
+                                                                  'bancos_cabecera': bancos_cabecera, 'ruta_logo': ruta_logo})
 
     # Crear un objeto HTML a partir de la cadena HTML
     # html = HTML(string=html_string, base_url=request.build_absolute_uri())  # DESACTIVADO - Windows GTK
@@ -1670,6 +1673,8 @@ def admin_ingresos(request):
             ingreso.tipo_ingreso = request.POST['tipo_ingreso']
             ingreso.metodo_pago = request.POST['metodo_pago']
             ingreso.id_movimiento_id = mov_realizado.id_movimiento
+            if id_owner is not None and id_owner.id_propietario_id:
+                ingreso.id_propietario = id_owner.id_propietario
             ingreso.save()
 
             data_mov = Datos_transaccion()
@@ -1700,6 +1705,18 @@ def admin_ingresos(request):
             elif id_bank.tipo_moneda == 'EUR':
                 eur_cambio = tasa_EUR * monto
                 condominio.saldo_edificio_eur += eur_cambio
+
+            # Si se eligió apartamento: acreditar el monto al saldo del inmueble en la moneda seleccionada
+            if id_owner is not None:
+                if id_bank.tipo_moneda == 'BS':
+                    id_owner.saldo = (id_owner.saldo or Decimal('0')) + monto
+                    id_owner.save(update_fields=['saldo'])
+                elif id_bank.tipo_moneda == 'USD':
+                    id_owner.saldo_usd = (id_owner.saldo_usd or Decimal('0')) + monto
+                    id_owner.save(update_fields=['saldo_usd'])
+                elif id_bank.tipo_moneda == 'EUR':
+                    id_owner.saldo_eur = (id_owner.saldo_eur or Decimal('0')) + monto
+                    id_owner.save(update_fields=['saldo_eur'])
 
             messages.success(request, '¡El ingreso ha sido registrado de manera satisfactoria!',
                              extra_tags='alert-success')
@@ -2091,7 +2108,15 @@ def recibo_total_deuda(request, id):
 
     ruta_logo = os.path.join(os.getcwd(), 'static', 'img-inverdata', 'logo_inverdata_pdf.png')
 
-    html_string = render_to_string('PDF/deudas_propietarios.html', {'deudas': deudas})
+    condominio = get_object_or_404(Condominio, id_condominio=propietarios.id_usuario.id_condominio_id)
+    todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+    nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+    html_string = render_to_string('PDF/deudas_propietarios.html', {
+        'deudas': deudas,
+        'datos_condominio': condominio,
+        'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
+        'fecha_generado': timezone.now(),
+    })
    # Crear un objeto HTML a partir de la cadena HTML
     # html = HTML(string=html_string, base_url=request.build_absolute_uri())  # DESACTIVADO - Windows GTK
     # css = CSS(filename='static/css/bootstrap.min.css')  # DESACTIVADO - Windows GTK
@@ -2099,7 +2124,7 @@ def recibo_total_deuda(request, id):
     
     # Generar el archivo PDF usando xhtml2pdf (pisa)
     result = io.BytesIO()
-    pisa.CreatePDF(html_string, dest=result)
+    pisa.CreatePDF(html_string, dest=result, link_callback=link_callback)
     pdf_file = result.getvalue()
 
     # Devolver el archivo PDF como respuesta
@@ -3295,9 +3320,12 @@ def admin_reportes(request):
 
                 data['inicio'] = inicio
                 data['fin'] = fin
+                data['datos_condominio'] = condominio
                 data['gastos'] = Gastos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                        id_movimiento__id_banco__id_condominio_id=condominio.id_condominio).select_related("id_movimiento__id_banco")
                 data['bancos'] = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+                nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+                data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in data['bancos']]
                 data['tasas'] = Tasas.objects.all().last()
 
                 for i in data['gastos']:
@@ -3358,10 +3386,13 @@ def admin_reportes(request):
 
                 data['inicio'] = inicio
                 data['fin'] = fin
+                data['datos_condominio'] = condominio
                 data['ingresos'] = Ingresos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
                                                             id_movimiento__estado_movimiento=0).select_related("id_movimiento__id_banco")
                 data['bancos'] = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+                nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+                data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in data['bancos']]
                 data['propietarios'] = Propietario.objects.filter(id_usuario__id_condominio_id=condominio.id_condominio).select_related('id_usuario')
                 data['tasas'] = Tasas.objects.all().last()
 
@@ -3428,8 +3459,11 @@ def admin_reportes(request):
 
                 data['inicio'] = inicio
                 data['fin'] = fin
-
+                data['datos_condominio'] = condominio
                 data['bancos'] = Bancos.objects.filter(id_banco=banco_select, id_condominio_id=condominio.id_condominio)
+                todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+                nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+                data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
                 data['movimientos'] = Movimientos_bancarios.objects.filter(id_banco_id=banco_select, fecha_movimiento__range=[inicio, fin], estado_movimiento=0).select_related('id_banco', 'id_propietario')
 
                 for x in data['bancos']:
@@ -3450,7 +3484,8 @@ def admin_reportes(request):
                 # Guardamos el nombre del banco
                 for b in data['bancos']:
                     nombre_banco = b.nombre_banco
-                    numero_cuenta = '-'.join(b.nro_cuenta[i:i + 4] for i in range(0, len(b.nro_cuenta), 4))
+                    n = b.nro_cuenta or ''
+                    numero_cuenta = '-'.join(n[i:i + 4] for i in range(0, len(n), 4)) if n else ''
 
                 data['nombre_banco'] = nombre_banco
                 data['numero_cuenta'] = numero_cuenta
@@ -3494,17 +3529,22 @@ def admin_reportes(request):
 
                 data['inicio'] = inicio
                 data['fin'] = fin
+                data['datos_condominio'] = condominio
                 data['ingresos'] = Ingresos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio, id_movimiento__id_banco_id=banco_select).select_related("id_movimiento__id_banco")
                 data['gastos'] = Gastos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio, id_movimiento__id_banco_id=banco_select).select_related("id_movimiento__id_banco")
                 data['bancos'] = Bancos.objects.filter(id_banco=banco_select)
                 data['fecha_generado'] = timezone.now()
+                todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+                nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+                data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
                 # Guardamos el nombre del banco
                 for b in data['bancos']:
                     nombre_banco = b.nombre_banco
-                    numero_cuenta = '-'.join(b.nro_cuenta[i:i + 4] for i in range(0, len(b.nro_cuenta), 4))
+                    n = b.nro_cuenta or ''
+                    numero_cuenta = '-'.join(n[i:i + 4] for i in range(0, len(n), 4)) if n else ''
 
                 data['nombre_banco'] = nombre_banco
                 data['numero_cuenta'] = numero_cuenta
@@ -3528,12 +3568,23 @@ def admin_reportes(request):
             prop = Propietario.objects.filter(id_usuario__id_condominio_id=user.id_condominio_id)
 
             data['propietarios'] = prop
+            data['datos_condominio'] = condominio
+            data['fecha_generado'] = timezone.now()
+            todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+            nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+            data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
             domicilios = []
 
             for p in prop:
                 domicilios.extend(p.prop_dom.all())
 
+            total_bs = sum(Decimal(str(d.saldo or 0)) for d in domicilios)
+            total_usd = sum(Decimal(str(d.saldo_usd or 0)) for d in domicilios)
+            total_eur = sum(Decimal(str(d.saldo_eur or 0)) for d in domicilios)
+            data['total_domicilios_bs'] = total_bs
+            data['total_domicilios_usd'] = total_usd
+            data['total_domicilios_eur'] = total_eur
 
             data['domicilios'] = domicilios
             data['usuarios'] = Usuario.objects.filter(id_condominio_id=user.id_condominio_id)
@@ -3583,6 +3634,8 @@ def admin_reportes(request):
                     elif deuda.tipo_moneda == 'EUR':
                         total_eur += deuda.monto_deuda
 
+                todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+                nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data = {
                     'inicio': inicio,
                     'fin': fin,
@@ -3592,6 +3645,8 @@ def admin_reportes(request):
                     'total_eur': total_eur,
                     'fecha_generado': timezone.now(),
                     'condominio': condominio,
+                    'datos_condominio': condominio,
+                    'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
                 }
 
                 template_path = 'PDF/deudas_general_pdf.html'
@@ -3716,6 +3771,8 @@ def admin_reportes(request):
                         if deuda.is_active:
                             total_pendiente_eur += deuda.monto_deuda
 
+                todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+                nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data = {
                     'inicio': inicio,
                     'fin': fin,
@@ -3729,6 +3786,8 @@ def admin_reportes(request):
                     'total_pendiente_eur': total_pendiente_eur,
                     'fecha_generado': timezone.now(),
                     'condominio': condominio,
+                    'datos_condominio': condominio,
+                    'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
                 }
 
                 template_path = 'PDF/estado_cuenta_pdf.html'
@@ -3922,15 +3981,16 @@ def admin_cierres(request):
             messages.warning(request, 'Para cerrar el mes se debe tener al menos un ingreso y un gasto.',
                                  extra_tags='alert-danger')
     else:
-        ingresos = Ingresos.objects.first()
-        gastos = Gastos.objects.first()
-        fondos = Fondos.objects.first()
+        filtro_condo = {'id_movimiento__id_banco__id_condominio_id': user.id_condominio_id}
+        ingresos = Ingresos.objects.filter(**filtro_condo).first()
+        gastos = Gastos.objects.filter(**filtro_condo).first()
+        fondos = Fondos.objects.filter(**filtro_condo).first()
 
         if ingresos is None or gastos is None:
             messages.warning(request,
                              'Para cerrar el mes se debe tener al menos un ingreso y un gasto.',
                              extra_tags='alert-danger')
-    
+
         resultado_ingreso = Ingresos.objects.filter(
             id_movimiento__created_at__gte=ingresos.id_movimiento.created_at,
             id_movimiento__estado_movimiento=0,
@@ -4128,30 +4188,30 @@ def admin_cierres(request):
         fondo_operacional = 0
         fondo_otros = 0
 
-        # Fondos
-        monto_reserva = Fondos.objects.filter(tipo_fondo="RESERVA").distinct()
+        # Fondos (solo del condominio del usuario)
+        filtro_fondos_condo = {'id_movimiento__id_banco__id_condominio_id': user.id_condominio_id}
+        monto_reserva = Fondos.objects.filter(tipo_fondo="RESERVA", **filtro_fondos_condo).distinct()
         if monto_reserva.exists():
-            fondo_reserva = monto_reserva.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+            fondo_reserva = monto_reserva.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
             data['fondo_reserva'] = fondo_reserva
-
         else:
             data['fondo_reserva'] = 0
 
-        monto_operacional = Fondos.objects.filter(tipo_fondo="OPERACIONAL").distinct()
+        monto_operacional = Fondos.objects.filter(tipo_fondo="OPERACIONAL", **filtro_fondos_condo).distinct()
         if monto_operacional.exists():
-            fondo_operacional = monto_operacional.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+            fondo_operacional = monto_operacional.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
             data['fondo_operacional'] = fondo_operacional
         else:
             data['fondo_operacional'] = 0
 
-        monto_otros = Fondos.objects.filter(tipo_fondo="OTROS FONDOS").distinct()
+        monto_otros = Fondos.objects.filter(tipo_fondo="OTROS FONDOS", **filtro_fondos_condo).distinct()
         if monto_otros.exists():
-            fondo_otros = monto_otros.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+            fondo_otros = monto_otros.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
             data['fondo_otros'] = fondo_otros
         else:
             data['fondo_otros'] = 0
 
-        total_fondos = fondo_reserva + fondo_operacional + fondo_otros
+        total_fondos = (fondo_reserva or 0) + (fondo_operacional or 0) + (fondo_otros or 0)
 
         # Diferencia
         if data['t_gastos']['id_movimiento__monto_movimiento__sum'] is None:
@@ -4205,58 +4265,80 @@ def admin_cierres(request):
         dbb_pdf.save()
 
         resultado = resultado_gasto.aggregate(Sum('id_movimiento__monto_movimiento'))
-        gasto_total = resultado.get('id_movimiento__monto_movimiento__sum')
+        gasto_total = resultado.get('id_movimiento__monto_movimiento__sum') or Decimal('0')
 
         resultado = resultado_ingreso.aggregate(Sum('id_movimiento__monto_movimiento'))
-        ingreso_total = resultado.get('id_movimiento__monto_movimiento__sum')
+        ingreso_total = resultado.get('id_movimiento__monto_movimiento__sum') or Decimal('0')
 
-        monto_cuota_base = gasto_total + total_fondos - ingreso_total
+        # Gastos del condominio a repartir = gastos período + fondos − ingresos período
+        gastos_a_repartir = gasto_total + Decimal(str(total_fondos)) - ingreso_total
 
         cuota_mensual = Cuota_mensual()
-
         cuota_mensual.fecha_publicacion = today.strftime("%Y-%m-%d")
-        cuota_mensual.monto_cuota = monto_cuota_base
+        cuota_mensual.monto_cuota = gastos_a_repartir
         cuota_mensual.id_condominio = datos_condominio
         cuota_mensual.mes = mes[int(today.strftime("%m"))]
         cuota_mensual.save()
 
-        domicilio = Domicilio.objects.all()
-        for dom in domicilio:
-            deudas_prop = Deudas()
+        # Solo domicilios de este condominio
+        domicilios_qs = Domicilio.objects.filter(id_condominio=datos_condominio)
+        # Total m² en Python (size_domicilio puede ser CharField)
+        total_m2 = Decimal('0')
+        for d in domicilios_qs:
+            try:
+                val = d.size_domicilio
+                if val is not None and str(val).strip():
+                    total_m2 += Decimal(str(val).replace(',', '.'))
+            except (TypeError, ValueError):
+                pass
 
+        # Desactivar deudas CONDOMINIO anteriores de este condominio (no se borran; solo dejan de mostrarse en pagos)
+        ids_domicilios = [dom.id_domicilio for dom in domicilios_qs]
+        Deudas.objects.filter(
+            categoria_deuda="CONDOMINIO",
+            tipo_deuda="2",
+            id_domicilio_id__in=ids_domicilios,
+            is_active=True,
+        ).update(is_active=False)
+
+        for dom in domicilios_qs:
+            deudas_prop = Deudas()
             deudor = Domicilio.objects.get(id_domicilio=dom.id_domicilio)
 
-            ultima_deuda_pagada = (
-                Deudas.objects.filter(
-                    tipo_deuda="2",
-                    id_domicilio=deudor,
-                    recibos__categoria_recibo="SOLVENTE",
-                )
-                .order_by("-updated_at", "-id_deuda")
-                .first()
-            )
+            # Prioridad: usar la alícuota que ya tiene la administración; si no hay, derivar de m²
+            try:
+                m2_dom = Decimal(str(dom.size_domicilio).replace(',', '.')) if dom.size_domicilio else Decimal('0')
+            except (TypeError, ValueError):
+                m2_dom = Decimal('0')
 
-            if not ultima_deuda_pagada or not ultima_deuda_pagada.monto_deuda:
-                continue
+            if dom.alicuota_domicilio is not None:
+                a = float(dom.alicuota_domicilio)
+                alicuota_decimal = (a / 100) if a > 1 else a
+            elif total_m2 and total_m2 > 0 and m2_dom > 0:
+                alicuota_decimal = float(m2_dom / total_m2)
+                # Asignar al inmueble para que el propietario la vea y quede para futuros cierres
+                Domicilio.objects.filter(id_domicilio=dom.id_domicilio).update(alicuota_domicilio=alicuota_decimal)
+            else:
+                alicuota_decimal = 0
 
-            concepto_base = ultima_deuda_pagada.concepto_deuda or "CONDOMINIO"
-            categoria_base = ultima_deuda_pagada.categoria_deuda or "CONDOMINIO"
+            # Deuda del inmueble = Gastos a repartir × Alícuota
+            monto_deuda = gastos_a_repartir * Decimal(str(alicuota_decimal))
 
             deudas_prop.fecha_deuda = today.strftime("%Y-%m-%d")
             deudas_prop.tipo_deuda = "2"
-            deudas_prop.categoria_deuda = categoria_base
-            deudas_prop.monto_deuda = ultima_deuda_pagada.monto_deuda
-            deudas_prop.tipo_moneda = ultima_deuda_pagada.tipo_moneda
+            deudas_prop.categoria_deuda = "CONDOMINIO"
+            deudas_prop.monto_deuda = monto_deuda
+            deudas_prop.tipo_moneda = "BS"
             deudas_prop.is_active = True
             deudas_prop.created_at = today
             deudas_prop.updated_at = today
             deudas_prop.id_domicilio = deudor
             deudas_prop.id_condominio = datos_condominio
-            deudas_prop.concepto_deuda = concepto_base
-            deudas_prop.descripcion_deuda = concepto_base + " " + mes[int(today.strftime("%m"))] + " DE " + str(today.strftime("%Y"))
+            deudas_prop.concepto_deuda = "CONDOMINIO"
+            deudas_prop.descripcion_deuda = "CONDOMINIO " + mes[int(today.strftime("%m"))] + " DE " + str(today.strftime("%Y"))
             deudas_prop.save()
 
-            if deudas_prop.monto_deuda > 0:
+            if monto_deuda > 0:
                 Domicilio.objects.filter(id_domicilio=deudor.id_domicilio).update(estado_deuda=True)
 
         return response
@@ -4280,8 +4362,11 @@ def admin_cierres(request):
         id_movimiento__tipo_moneda__iexact="EUR"
     ).aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
 
+    # Monto total de las deudas activas (para la barra amarilla del cuadro 2)
+    total_monto_deudas = deudas.aggregate(Sum('monto_deuda'))['monto_deuda__sum'] or 0
+
     return render(request, 'administrador/cierre.html', {'conf': condominio,
-                                                          'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro, 'gasto_monto': g_monto,
+                                                         'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro, 'gasto_monto': g_monto,
                                                          'ingreso_monto': i_monto, 'resultado_ingreso': resultado_ingreso,
                                                          'resultado_gasto': resultado_gasto, 'resultado_fondo': resultado_fondo,
                                                          'meses_graficos': mes_final, 'deudas': deudas,
@@ -4291,7 +4376,8 @@ def admin_cierres(request):
                                                          'total_ingresos_eur': total_ingresos_eur,
                                                          'total_gastos_bs': total_gastos_bs,
                                                          'total_gastos_usd': total_gastos_usd,
-                                                         'total_gastos_eur': total_gastos_eur})
+                                                         'total_gastos_eur': total_gastos_eur,
+                                                         'total_monto_deudas': total_monto_deudas})
 
 @login_required
 def cierre_propietario(request, prop, cierre, user):
@@ -4318,6 +4404,9 @@ def cierre_propietario(request, prop, cierre, user):
         data['datos_propietario'] = prop
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
         data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
+        todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
+        nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+        data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
         nombre_pdf = "cierre_mes_{}_{}.pdf".format(prop.nombre_propietario, cierre.fecha_cierre.strftime("%d-%m-%Y %H.%M.%S"))
 
@@ -4350,7 +4439,11 @@ def cierre_propietario(request, prop, cierre, user):
         data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__lte=cierre.fecha_cierre)
         data['deudas'] = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
         data['datos_propietario'] = prop.select_related('id_usuario')
+        data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
         data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
+        todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
+        nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+        data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
         nombre_pdf = "cierre_mes_{}_{}.pdf".format(prop.nombre_propietario, cierre.fecha_cierre.strftime("%d-%m-%Y %H.%M.%S"))
 

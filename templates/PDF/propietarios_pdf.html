@@ -1,215 +1,56 @@
-<!DOCTYPE html>
-{% load static %}
-{% load i18n %}
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<title>Reporte de propietarios</title>
-	<meta name="description" content="">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-
-	<style>
-		@page {
-			size: a4 landscape;
-			@frame header_frame {           /* Static frame */
-					-pdf-frame-content: header_content;
-					left: 50pt; width: 750pt; top: 70pt; height: 90pt;
-			};
-			@frame content_frame {          /* Content Frame */
-					left: 50pt; width: 750pt; top: 140pt; height: 425pt;
-			};
-    }
-		
-		.sticky-bot-footer
-		{
-			position: absolute !important; 
-			bottom:0 !important;
-			width: 100% !important;
-			margin-left: auto !important;
-			margin-right: auto !important;
-			text-align: center !important;
-		}
-
-		.text-center {
-    	text-align: center!important
-		}	
-
-		.text-danger {
-    color: #dc3545!important
-		}
-
-		.text-success {
-    color: #28a745!important
-		}
-
-		.table .thead-light th {
-    color: #495057;
-    background-color: #e9ecef;
-    border-color: #dee2e6
-		}
-
-		.table {
-    width: 100%;
-    max-width: 98%;
-    margin-bottom: 1rem;
-    background-color: transparent;
-    margin-left: auto;
-    margin-right: auto;
-		}
-
-		.table td,
-		.table th {
-				padding: .5rem;
-				vertical-align: top;
-				border-top: 1px solid #dee2e6
-		}
-
-		.table thead th {
-				vertical-align: bottom;
-				border-bottom: 2px solid #dee2e6
-		}
-
-		.table tbody+tbody {
-				border-top: 2px solid #dee2e6
-		}
-
-		.table .table {
-				background-color: #fff
-		}
-
-		.table-sm td,
-		.table-sm th {
-				padding: .3rem
-		}
-
-		.table-bordered {
-				border: 1px solid #dee2e6
-		}
-
-		.table-bordered td,
-		.table-bordered th {
-				border: 1px solid #dee2e6
-		}
-
-		.table-bordered thead td,
-		.table-bordered thead th {
-				border-bottom-width: 2px
-		}
-
-		.mt-5,
-		.my-5 {
-				margin-top: 3rem!important
-		}
-
-		body {
-				margin: 0;
-				font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
-				font-size: 1rem;
-				font-weight: 400;
-				line-height: 1.2;
-				color: #212529;
-				text-align: left;
-				background-color: #fff
-		}
-
-		.thead-blue th
-		{
-				color: #fff;
-				background-color: #1f2e88 !important;
-				border-color: #32383e
-		}
-	</style>
-</head>
-<body>
-
-	<table id="header_content">
-		<thead>
-			<tr>
-				<td style="text-align: left;" ><img src="static/img-inverdata/logo_inverdata_pdf.jpg"> <br>
-				CONDOMINIO APARTHOTEL ESPARTA SUITES <br>
-				APART HOTEL ESPARTA SUITES RIF J-30456994-7</td>
-				<td style="text-align: right;"> <span>Página <pdf:pagenumber> de <pdf:pagecount></span> <br>
-					<span class="text-muted text-center">Reporte generado el {{fecha_generado|date:'d/m/Y'}}</span></td>
-			</tr>
-		</thead>
-	</table>
-	
-  <h1 class="text-center" style="font-size: 14px; padding-top: 15px;">REPORTE DE PROPIETARIOS</h1>
-
-    <table class="table table-bordered text-center mt-5" style="font-size: 12px;">
-      <thead class="thead-blue">
+{% extends "PDF/base_informe_pdf.html" %}
+{% load static %}{% load i18n %}{% load humanize %}
+{% block titulo_pagina %}Reporte de propietarios{% endblock %}
+{% block titulo_informe %}REPORTE DE PROPIETARIOS{% endblock %}
+{% block contenido_pdf %}
+<table class="table-informe table-lista-simple" style="margin-top: 15px;">
+    <thead><tr><th>Propietario</th><th>Género</th><th>DNI</th><th>Tel. habitación</th><th>Tel. móvil</th><th>Email</th></tr></thead>
+    <tbody>
+        {% if propietarios %}
+        {% for propietario in propietarios %}
         <tr>
-          <th>Propietario</th>
-          <th>Género</th>
-          <th>C.I</th>
-          <th>Teléfono habitación</th>
-          <th>Teléfono móvil</th>
-					<th>Email</th>
+            <td>{{ propietario.nombre_propietario }}</td><td>{{ propietario.genero }}</td><td>{{ propietario.tipo_dni }}-{{ propietario.dni }}</td>
+            <td>{% if propietario.telefono_hab %}{{ propietario.codigo_tlf_hab }}-{{ propietario.telefono_hab }}{% else %}-{% endif %}</td>
+            <td>{{ propietario.codigo_tlf_movil }}-{{ propietario.telefono_movil }}</td><td>{{ propietario.id_usuario.email }}</td>
         </tr>
-      </thead>
-      <tbody>
-				{% if propietarios %}
-          {% for propietario in propietarios %}
-            <tr>
-
-              <td> {{propietario.nombre_propietario}} </td>
-              <td> {{propietario.genero}} </td>
-              <td> {{propietario.tipo_dni}}-{{propietario.dni}} </td>
-              {% if propietario.telefono_hab %}
-              <td> {{propietario.codigo_tlf_hab}}-{{propietario.telefono_hab}} </td>
-              {% else %}
-							<td> - </td>
-              {% endif %}
-              <td> {{propietario.codigo_tlf_movil}}-{{propietario.telefono_movil}} </td>
-              <td> {{propietario.id_usuario.email}} </td>
-            </tr>
-          {% endfor %}
+        {% endfor %}
         {% else %}
-          <tr>
-            <td colspan="6" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td>
-          </tr>
+        <tr><td colspan="6" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td></tr>
         {% endif %}
-      </tbody>
-    </table>
-
-    <h3 class="mt-5">Inmuebles</h3>
-    <table class="table table-bordered text-center" style="font-size: 12px;">
-      <thead class="thead-blue">
+    </tbody>
+</table>
+<p class="mt-5" style="font-size: 11px; font-weight: bold;">Inmuebles</p>
+<table class="table-informe table-lista-simple">
+    <thead><tr><th>Inmueble</th><th>Tipo</th><th>Estac.</th><th class="num">Alicuota</th><th class="num">m²</th><th class="num">BS</th><th class="num">USD</th><th class="num">EUR</th><th>Propietario</th></tr></thead>
+    <tbody>
+        {% if domicilios %}
+        {% for domicilio in domicilios %}
         <tr>
-          <th>Inmueble</th>
-          <th>Tipo</th>
-          <th>Estacionamientos</th>
-          <th>Alicuota</th>
-          <th>Tamaño (m2)</th>
-          <th>BS</th>
-					<th>USD</th>
-					<th>EUR</th>
-					<th>Propietario</th>
+            <td>{{ domicilio.nombre_domicilio }}</td><td>{{ domicilio.tipo_domicilio }}</td><td>{{ domicilio.estacionamientos }}</td>
+            <td class="num">{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}</td><td class="num">{{ domicilio.size_domicilio }}</td>
+            <td class="num">{{ domicilio.saldo|intcomma }} BS</td><td class="num monto-usd">{{ domicilio.saldo_usd|intcomma }} $</td><td class="num">{{ domicilio.saldo_eur|intcomma }} €</td>
+            <td>{{ domicilio.id_propietario.nombre_propietario }}</td>
         </tr>
-      </thead>
-      <tbody>
-				{% if domicilios %}
-          {% for domicilio in domicilios %}
-            <tr>
-              <td> {{domicilio.nombre_domicilio}} </td>
-              <td> {{domicilio.tipo_domicilio}} </td>
-              <td> {{domicilio.estacionamientos}} </td>
-              <td> {{domicilio.alicuota_domicilio}} </td>
-              <td> {{domicilio.size_domicilio}} </td>
-              <td> {{domicilio.saldo}}BS</td>
-              <td> {{domicilio.saldo_usd}}$</td>
-              <td> {{domicilio.saldo_eur}}€</td>
-              <td> {{domicilio.id_propietario.nombre_propietario}}</td>
-            </tr>
-          {% endfor %}
+        {% endfor %}
         {% else %}
-          <tr>
-            <td colspan="8" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td>
-          </tr>
+        <tr><td colspan="9" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td></tr>
         {% endif %}
-      </tbody>
-    </table>
-	
-</body>
-</html>
+        {% if domicilios %}
+        <tr class="fila-total-informe">
+            <td colspan="5" class="text-right"><strong>TOTAL INMUEBLES</strong></td>
+            <td class="num">{{ total_domicilios_bs|intcomma }} BS</td>
+            <td class="num monto-usd">{{ total_domicilios_usd|intcomma }} $</td>
+            <td class="num">{{ total_domicilios_eur|intcomma }} €</td>
+            <td></td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}
+{% block pie_informe %}
+<div class="pie-avisos-informe mt-5">
+    SEA RESPONSABLE. PAGUE PUNTUAL, DESPUES DE 3 MESES DE DEUDA PASARA A DEPARTAMENTO LEGAL<br>
+    CUANDO REALICE EL PAGO INFORMELO AL WHATSAPP DEL CONDOMINIO<br>
+    SI REALIZO SU PAGO DESPUES DEL 31/12, Y LE APARECE SU DEUDA VIEJA EN EL PRESENTE RECIBO POR FAVOR HACER CASO OMISO Y PAGAR LO PENDIENTE.
+</div>
+{% endblock %}

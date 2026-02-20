@@ -1,114 +1,48 @@
-<!DOCTYPE html>
-{% load static %}
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de Deudas</title>
-    <style>
-        html { margin: 0px; }
-        body {
-            font-size: 16px;
-            display: grid;
-            font-family: Arial, sans-serif;
-            line-height: 1.2;
-        }
-        table {
-            border-color: #002a73;
-            width: 100%;
-            table-layout: fixed;
-            border-collapse: collapse;
-        }
-        thead {
-            width: 100%;
-            table-layout: fixed;
-            display: table-row-group;
-            background-color: #002a73;
-            border-style: solid;
-            border-color: #002a73;
-        }
-        th, td {
-            width: auto;
-            white-space: nowrap;
-            overflow: auto;
-            font-family: Arial, Helvetica, sans-serif;
-            border-width: 0.5px;
-            padding: 5px 4px;
-            table-layout: fixed;
-            border-style: solid;
-            text-align: center;
-            border-color: #002a7361;
-        }
-        th {
-            font-size: 11px;
-            font-weight: bold;
-            color: white;
-        }
-        td {
-            font-size: 11px;
-            color: black;
-        }
-        h2 { text-align: center; color: #002a73; }
-        .container {
-            overflow-x: auto;
-            overflow-y: auto;
-            background-color: #ffffff;
-            border-radius: 3px;
-            padding-bottom: 2rem;
-        }
-        .resumen {
-            margin-top: 10px;
-            font-size: 12px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img style="height: 120px;" alt="Logo" src="static/img-inverdata/logo_inverdata_pdf.jpg">
-        </div>
-        <h2>Reporte de Deudas (General)</h2>
-        <div class="resumen">
-            <div>Fecha inicio: {{ inicio|date:'d/m/Y' }}</div>
-            <div>Fecha fin: {{ fin|date:'d/m/Y' }}</div>
-        </div>
-        <table class="tabla-reportes">
-            <thead>
-                <tr>
-                    <th>Propietario</th>
-                    <th>Domicilio</th>
-                    <th>Concepto</th>
-                    <th>Descripcion</th>
-                    <th>Monto</th>
-                    <th>Moneda</th>
-                    <th>Fecha</th>
-                    <th>Moroso</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for deuda in deudas %}
-                <tr>
-                    <td>
-                        {% if deuda.id_domicilio and deuda.id_domicilio.id_propietario %}
-                            {{ deuda.id_domicilio.id_propietario.nombre_propietario }}
-                        {% endif %}
-                    </td>
-                    <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% endif %}</td>
-                    <td>{{ deuda.concepto_deuda }}</td>
-                    <td>{{ deuda.descripcion_deuda }}</td>
-                    <td>{{ deuda.monto_deuda }}</td>
-                    <td>{{ deuda.tipo_moneda }}</td>
-                    <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
-                    <td>{% if deuda.is_active %}Si{% else %}No{% endif %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <div class="resumen">
-            <div>Total BS: {{ total_bs }}</div>
-            <div>Total USD: {{ total_usd }}</div>
-            <div>Total EUR: {{ total_eur }}</div>
-        </div>
-    </div>
-</body>
-</html>
+{% extends "PDF/base_informe_pdf.html" %}
+{% load static %}{% load i18n %}{% load humanize %}
+{% block titulo_pagina %}Reporte de Deudas (General){% endblock %}
+{% block titulo_informe %}REPORTE DE DEUDAS (GENERAL){% endblock %}
+{% block contenido_pdf %}
+<p style="margin-top: 10px; margin-bottom: 5px;">Fecha inicio: {{ inicio|date:'d/m/Y' }}</p>
+<p style="margin-bottom: 10px;">Fecha fin: {{ fin|date:'d/m/Y' }}</p>
+<table class="table-informe table-lista-simple">
+    <thead>
+        <tr>
+            <th>Propietario</th>
+            <th>Domicilio</th>
+            <th>Concepto</th>
+            <th>Descripción</th>
+            <th class="num">Monto</th>
+            <th>Moneda</th>
+            <th>Fecha</th>
+            <th>Moroso</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for deuda in deudas %}
+        <tr>
+            <td>{% if deuda.id_domicilio and deuda.id_domicilio.id_propietario %}{{ deuda.id_domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</td>
+            <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
+            <td>{{ deuda.concepto_deuda }}</td>
+            <td>{{ deuda.descripcion_deuda }}</td>
+            <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
+            <td>{{ deuda.tipo_moneda }}</td>
+            <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
+            <td>{% if deuda.is_active %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center">Sin registros</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="fila-total-informe mt-3">
+    Total BS: {{ total_bs|intcomma }} &nbsp; Total USD: {{ total_usd|intcomma }} &nbsp; Total EUR: {{ total_eur|intcomma }}
+</div>
+{% endblock %}
+{% block pie_informe %}
+<div class="pie-avisos-informe mt-5">
+    SEA RESPONSABLE. PAGUE PUNTUAL, DESPUES DE 3 MESES DE DEUDA PASARA A DEPARTAMENTO LEGAL<br>
+    CUANDO REALICE EL PAGO INFORMELO AL WHATSAPP DEL CONDOMINIO<br>
+    SI REALIZO SU PAGO DESPUES DEL 31/12, Y LE APARECE SU DEUDA VIEJA EN EL PRESENTE RECIBO POR FAVOR HACER CASO OMISO Y PAGAR LO PENDIENTE.
+</div>
+{% endblock %}
