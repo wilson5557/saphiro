@@ -3,49 +3,39 @@
 {% block titulo_pagina %}Reporte de propietarios{% endblock %}
 {% block titulo_informe %}REPORTE DE PROPIETARIOS{% endblock %}
 {% block contenido_pdf %}
-<table class="table-informe table-lista-simple" style="margin-top: 15px;">
-    <thead><tr><th>Propietario</th><th>Género</th><th>DNI</th><th>Tel. habitación</th><th>Tel. móvil</th><th>Email</th></tr></thead>
-    <tbody>
-        {% if propietarios %}
-        {% for propietario in propietarios %}
-        <tr>
-            <td>{{ propietario.nombre_propietario }}</td><td>{{ propietario.genero }}</td><td>{{ propietario.tipo_dni }}-{{ propietario.dni }}</td>
-            <td>{% if propietario.telefono_hab %}{{ propietario.codigo_tlf_hab }}-{{ propietario.telefono_hab }}{% else %}-{% endif %}</td>
-            <td>{{ propietario.codigo_tlf_movil }}-{{ propietario.telefono_movil }}</td><td>{{ propietario.id_usuario.email }}</td>
-        </tr>
-        {% endfor %}
-        {% else %}
-        <tr><td colspan="6" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td></tr>
-        {% endif %}
-    </tbody>
-</table>
-<p class="mt-5" style="font-size: 11px; font-weight: bold;">Inmuebles</p>
+{% if propietarios %}
+{% for propietario in propietarios %}
+<div class="mb-4" style="margin-bottom: 20px;">
+    <p class="mt-3 mb-1" style="font-size: 12px; font-weight: bold;">Propietario: {{ propietario.nombre_propietario }}</p>
+    <p style="font-size: 10px; margin-bottom: 8px;">Género: {{ propietario.genero|default:"—" }} &nbsp; DNI: {{ propietario.tipo_dni|default:"" }}-{{ propietario.dni }} &nbsp; Tel. habitación: {% if propietario.telefono_hab %}{{ propietario.codigo_tlf_hab }}-{{ propietario.telefono_hab }}{% else %}—{% endif %} &nbsp; Tel. móvil: {{ propietario.codigo_tlf_movil }}-{{ propietario.telefono_movil }} &nbsp; Email: {{ propietario.id_usuario.email|default:"—" }}</p>
+    <table class="table-informe table-lista-simple">
+        <thead><tr><th>Inmueble</th><th>Tipo</th><th>Estac.</th><th class="num">Alicuota</th><th class="num">m²</th><th class="num">BS</th><th class="num">USD</th><th class="num">EUR</th></tr></thead>
+        <tbody>
+            {% for domicilio in propietario.prop_dom.all %}
+            <tr>
+                <td>{{ domicilio.nombre_domicilio }}</td><td>{{ domicilio.tipo_domicilio }}</td><td>{{ domicilio.estacionamientos }}</td>
+                <td class="num">{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}</td><td class="num">{{ domicilio.size_domicilio }}</td>
+                <td class="num">{{ domicilio.saldo|intcomma }} BS</td><td class="num monto-usd">{{ domicilio.saldo_usd|intcomma }} $</td><td class="num">{{ domicilio.saldo_eur|intcomma }} €</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center">Sin inmuebles asignados</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
 <table class="table-informe table-lista-simple">
-    <thead><tr><th>Inmueble</th><th>Tipo</th><th>Estac.</th><th class="num">Alicuota</th><th class="num">m²</th><th class="num">BS</th><th class="num">USD</th><th class="num">EUR</th><th>Propietario</th></tr></thead>
-    <tbody>
-        {% if domicilios %}
-        {% for domicilio in domicilios %}
-        <tr>
-            <td>{{ domicilio.nombre_domicilio }}</td><td>{{ domicilio.tipo_domicilio }}</td><td>{{ domicilio.estacionamientos }}</td>
-            <td class="num">{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}</td><td class="num">{{ domicilio.size_domicilio }}</td>
-            <td class="num">{{ domicilio.saldo|intcomma }} BS</td><td class="num monto-usd">{{ domicilio.saldo_usd|intcomma }} $</td><td class="num">{{ domicilio.saldo_eur|intcomma }} €</td>
-            <td>{{ domicilio.id_propietario.nombre_propietario }}</td>
-        </tr>
-        {% endfor %}
-        {% else %}
-        <tr><td colspan="9" class="text-center"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN DATO</strong></td></tr>
-        {% endif %}
-        {% if domicilios %}
-        <tr class="fila-total-informe">
-            <td colspan="5" class="text-right"><strong>TOTAL INMUEBLES</strong></td>
-            <td class="num">{{ total_domicilios_bs|intcomma }} BS</td>
-            <td class="num monto-usd">{{ total_domicilios_usd|intcomma }} $</td>
-            <td class="num">{{ total_domicilios_eur|intcomma }} €</td>
-            <td></td>
-        </tr>
-        {% endif %}
-    </tbody>
+    <tr class="fila-total-informe">
+        <td colspan="5" class="text-right"><strong>TOTAL INMUEBLES CONDOMINIO</strong></td>
+        <td class="num">{{ total_domicilios_bs|intcomma }} BS</td>
+        <td class="num monto-usd">{{ total_domicilios_usd|intcomma }} $</td>
+        <td class="num">{{ total_domicilios_eur|intcomma }} €</td>
+        <td></td>
+    </tr>
 </table>
+{% else %}
+<p class="text-center mt-4"><strong class="text-danger">NO SE HA ENCONTRADO NINGÚN PROPIETARIO</strong></p>
+{% endif %}
 {% endblock %}
 {% block pie_informe %}
 <div class="pie-avisos-informe mt-5">

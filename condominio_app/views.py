@@ -3370,16 +3370,61 @@ def admin_reportes(request):
 
                 data['fecha_generado'] = timezone.now()
 
-                response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = 'attachment; filename="reporte_gastos_{}_{}.pdf"'.format(inicio, fin)
-
-                template = get_template(template_path)
-                html = template.render(data)
-
-                pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
-                if pisa_status.err:
-                    return HttpResponse('We had some errors <pre>' + html + '</pre>')
-                return response
+                formato = (request.POST.get('formato') or 'PDF').upper()
+                if formato == 'PDF':
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_gastos_{}_{}.pdf"'.format(inicio, fin)
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                    if pisa_status.err:
+                        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                    return response
+                elif formato == 'WORD':
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    response = HttpResponse(html, content_type='application/msword')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_gastos_{}_{}.doc"'.format(inicio, fin)
+                    return response
+                elif formato == 'EXCEL':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(['Fecha', 'Referencia', 'Concepto', 'Monto', 'Moneda', 'Banco'])
+                    for gasto in data['gastos']:
+                        moneda = 'BS'
+                        for b in data['bancos']:
+                            if gasto.id_movimiento.id_banco_id == b.id_banco:
+                                moneda = b.tipo_moneda
+                                break
+                        writer.writerow([
+                            gasto.id_movimiento.fecha_movimiento,
+                            gasto.id_movimiento.referencia_movimiento or '',
+                            gasto.id_movimiento.concepto_movimiento,
+                            gasto.id_movimiento.monto_movimiento,
+                            moneda,
+                            gasto.id_movimiento.id_banco.nombre_banco if gasto.id_movimiento.id_banco else '',
+                        ])
+                    response = HttpResponse(output.getvalue(), content_type='text/csv')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_gastos_{}_{}.csv"'.format(inicio, fin)
+                    return response
+                elif formato == 'TXT':
+                    lines = ['Reporte de gastos', 'Fecha inicio: {}'.format(inicio), 'Fecha fin: {}'.format(fin),
+                             'Total BS: {} | Total USD: {} | Total EUR: {}'.format(total_bs, total_usd, total_eur), '']
+                    for gasto in data['gastos']:
+                        moneda = 'BS'
+                        for b in data['bancos']:
+                            if gasto.id_movimiento.id_banco_id == b.id_banco:
+                                moneda = b.tipo_moneda
+                                break
+                        lines.append('{} | {} | {} | {} | {}'.format(
+                            gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '-',
+                            gasto.id_movimiento.concepto_movimiento, gasto.id_movimiento.monto_movimiento, moneda))
+                    response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_gastos_{}_{}.txt"'.format(inicio, fin)
+                    return response
+                else:
+                    messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
         elif request.POST['reporte'] == 'INGRESOS':
 
@@ -3440,16 +3485,62 @@ def admin_reportes(request):
 
                 data['fecha_generado'] = timezone.now()
 
-                response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.pdf"'.format(inicio, fin)
-
-                template = get_template(template_path)
-                html = template.render(data)
-
-                pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
-                if pisa_status.err:
-                    return HttpResponse('We had some errors <pre>' + html + '</pre>')
-                return response
+                formato = (request.POST.get('formato') or 'PDF').upper()
+                if formato == 'PDF':
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.pdf"'.format(inicio, fin)
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                    if pisa_status.err:
+                        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                    return response
+                elif formato == 'WORD':
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    response = HttpResponse(html, content_type='application/msword')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.doc"'.format(inicio, fin)
+                    return response
+                elif formato == 'EXCEL':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(['Fecha', 'Referencia', 'Concepto', 'Monto', 'Moneda', 'Banco', 'Propietario'])
+                    for ingreso in data['ingresos']:
+                        moneda = 'BS'
+                        for b in data['bancos']:
+                            if ingreso.id_movimiento.id_banco_id == b.id_banco:
+                                moneda = b.tipo_moneda
+                                break
+                        writer.writerow([
+                            ingreso.id_movimiento.fecha_movimiento,
+                            ingreso.id_movimiento.referencia_movimiento or '',
+                            ingreso.id_movimiento.concepto_movimiento,
+                            ingreso.id_movimiento.monto_movimiento,
+                            moneda,
+                            ingreso.id_movimiento.id_banco.nombre_banco if ingreso.id_movimiento.id_banco else '',
+                            (ingreso.id_propietario.nombre_propietario if getattr(ingreso, 'id_propietario', None) else '') or '',
+                        ])
+                    response = HttpResponse(output.getvalue(), content_type='text/csv')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.csv"'.format(inicio, fin)
+                    return response
+                elif formato == 'TXT':
+                    lines = ['Reporte de ingresos', 'Fecha inicio: {}'.format(inicio), 'Fecha fin: {}'.format(fin),
+                             'Total BS: {} | Total USD: {} | Total EUR: {}'.format(total_bs, total_usd, total_eur), '']
+                    for ingreso in data['ingresos']:
+                        moneda = 'BS'
+                        for b in data['bancos']:
+                            if ingreso.id_movimiento.id_banco_id == b.id_banco:
+                                moneda = b.tipo_moneda
+                                break
+                        lines.append('{} | {} | {} | {} | {}'.format(
+                            ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-',
+                            ingreso.id_movimiento.concepto_movimiento, ingreso.id_movimiento.monto_movimiento, moneda))
+                    response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                    response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.txt"'.format(inicio, fin)
+                    return response
+                else:
+                    messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
         elif request.POST['reporte'] == 'BANCOS':
                 
@@ -3515,17 +3606,54 @@ def admin_reportes(request):
 
                 data['fecha_generado'] = timezone.now()
 
-                response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = 'attachment; filename="estado_de_cuenta_{}_{}_{}.pdf"'.format(
-                    nombre_banco, inicio, fin)
-
-                template = get_template(template_path)
-                html = template.render(data)
-
-                pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
-                if pisa_status.err:
-                    return HttpResponse('We had some errors <pre>' + html + '</pre>')
-                return response
+                formato = (request.POST.get('formato') or 'PDF').upper()
+                if formato == 'PDF':
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = 'attachment; filename="estado_de_cuenta_{}_{}_{}.pdf"'.format(
+                        nombre_banco.replace(' ', '_'), inicio, fin)
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                    if pisa_status.err:
+                        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                    return response
+                elif formato == 'WORD':
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    response = HttpResponse(html, content_type='application/msword')
+                    response['Content-Disposition'] = 'attachment; filename="estado_de_cuenta_{}_{}_{}.doc"'.format(
+                        nombre_banco.replace(' ', '_'), inicio, fin)
+                    return response
+                elif formato == 'EXCEL':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(['Fecha', 'Referencia', 'Concepto', 'Debito', 'Credito', 'Emisor'])
+                    for mov in data['movimientos']:
+                        writer.writerow([
+                            mov.fecha_movimiento,
+                            mov.referencia_movimiento or '',
+                            mov.concepto_movimiento,
+                            mov.debito_movimiento or '',
+                            mov.credito_movimiento or '',
+                            mov.emisor or mov.banco_emisor or '',
+                        ])
+                    response = HttpResponse(output.getvalue(), content_type='text/csv')
+                    response['Content-Disposition'] = 'attachment; filename="estado_de_cuenta_{}_{}_{}.csv"'.format(
+                        nombre_banco.replace(' ', '_'), inicio, fin)
+                    return response
+                elif formato == 'TXT':
+                    lines = ['Estado de cuenta - {}'.format(nombre_banco), 'Fecha inicio: {}'.format(inicio), 'Fecha fin: {}'.format(fin), '']
+                    for mov in data['movimientos']:
+                        lines.append('{} | {} | {} | {} | {}'.format(
+                            mov.fecha_movimiento, mov.referencia_movimiento or '-',
+                            mov.concepto_movimiento, mov.debito_movimiento or '', mov.credito_movimiento or ''))
+                    response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                    response['Content-Disposition'] = 'attachment; filename="estado_de_cuenta_{}_{}_{}.txt"'.format(
+                        nombre_banco.replace(' ', '_'), inicio, fin)
+                    return response
+                else:
+                    messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
         elif request.POST['reporte'] == 'MOVIMIENTOS':
                 
@@ -3566,23 +3694,54 @@ def admin_reportes(request):
                 data['nombre_banco'] = nombre_banco
                 data['numero_cuenta'] = numero_cuenta
 
-                response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.pdf"'.format(
-                    nombre_banco, inicio, fin)
-
-                template = get_template(template_path)
-                html = template.render(data)
-
-                pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
-                if pisa_status.err:
-                    return HttpResponse('We had some errors <pre>' + html + '</pre>')
-                return response
+                formato = (request.POST.get('formato') or 'PDF').upper()
+                nom_archivo = nombre_banco.replace(' ', '_')
+                if formato == 'PDF':
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.pdf"'.format(nom_archivo, inicio, fin)
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                    if pisa_status.err:
+                        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                    return response
+                elif formato == 'WORD':
+                    template = get_template(template_path)
+                    html = template.render(data)
+                    response = HttpResponse(html, content_type='application/msword')
+                    response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.doc"'.format(nom_archivo, inicio, fin)
+                    return response
+                elif formato == 'EXCEL':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(['Tipo', 'Fecha', 'Referencia', 'Concepto', 'Descripcion', 'Monto'])
+                    for ingreso in data['ingresos']:
+                        writer.writerow(['INGRESO', ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '', ingreso.id_movimiento.concepto_movimiento, ingreso.id_movimiento.descripcion_movimiento or '', ingreso.id_movimiento.monto_movimiento])
+                    for gasto in data['gastos']:
+                        writer.writerow(['GASTO', gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '', gasto.id_movimiento.concepto_movimiento, gasto.id_movimiento.descripcion_movimiento or '', gasto.id_movimiento.monto_movimiento])
+                    response = HttpResponse(output.getvalue(), content_type='text/csv')
+                    response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.csv"'.format(nom_archivo, inicio, fin)
+                    return response
+                elif formato == 'TXT':
+                    lines = ['Consulta de movimientos - {}'.format(nombre_banco), 'Desde {} hasta {}'.format(inicio, fin), '']
+                    for ingreso in data['ingresos']:
+                        lines.append('INGRESO | {} | {} | {} | {}'.format(ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-', ingreso.id_movimiento.concepto_movimiento, ingreso.id_movimiento.monto_movimiento))
+                    for gasto in data['gastos']:
+                        lines.append('GASTO | {} | {} | {} | {}'.format(gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '-', gasto.id_movimiento.concepto_movimiento, gasto.id_movimiento.monto_movimiento))
+                    response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                    response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.txt"'.format(nom_archivo, inicio, fin)
+                    return response
+                else:
+                    messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
         elif request.POST['reporte'] == 'PROPIETARIOS':
             template_path = 'PDF/propietarios_pdf.html'
             data = {}
 
-            prop = Propietario.objects.filter(id_usuario__id_condominio_id=user.id_condominio_id)
+            prop = Propietario.objects.filter(
+                id_usuario__id_condominio_id=user.id_condominio_id
+            ).prefetch_related('prop_dom').order_by('nombre_propietario')
 
             data['propietarios'] = prop
             data['datos_condominio'] = condominio
@@ -3591,19 +3750,16 @@ def admin_reportes(request):
             nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
             data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
-            domicilios = []
-
+            domicilios_flat = []
             for p in prop:
-                domicilios.extend(p.prop_dom.all())
-
-            total_bs = sum(Decimal(str(d.saldo or 0)) for d in domicilios)
-            total_usd = sum(Decimal(str(d.saldo_usd or 0)) for d in domicilios)
-            total_eur = sum(Decimal(str(d.saldo_eur or 0)) for d in domicilios)
+                domicilios_flat.extend(p.prop_dom.all())
+            total_bs = sum(Decimal(str(d.saldo or 0)) for d in domicilios_flat)
+            total_usd = sum(Decimal(str(d.saldo_usd or 0)) for d in domicilios_flat)
+            total_eur = sum(Decimal(str(d.saldo_eur or 0)) for d in domicilios_flat)
             data['total_domicilios_bs'] = total_bs
             data['total_domicilios_usd'] = total_usd
             data['total_domicilios_eur'] = total_eur
 
-            data['domicilios'] = domicilios
             data['usuarios'] = Usuario.objects.filter(id_condominio_id=user.id_condominio_id)
             # data['inicio']       = inicio
             # data['fin']          = fin
@@ -3612,16 +3768,56 @@ def admin_reportes(request):
 
             data['fecha_generado'] = timezone.now()
 
-            response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = 'attachment; filename="reporte_propietarios.pdf"'
-
-            template = get_template(template_path)
-            html = template.render(data)
-
-            pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
-            if pisa_status.err:
-                return HttpResponse('We had some errors <pre>' + html + '</pre>')
-            return response
+            formato = (request.POST.get('formato') or 'PDF').upper()
+            if formato == 'PDF':
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = 'attachment; filename="reporte_propietarios.pdf"'
+                template = get_template(template_path)
+                html = template.render(data)
+                pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                if pisa_status.err:
+                    return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                return response
+            elif formato == 'WORD':
+                template = get_template(template_path)
+                html = template.render(data)
+                response = HttpResponse(html, content_type='application/msword')
+                response['Content-Disposition'] = 'attachment; filename="reporte_propietarios.doc"'
+                return response
+            elif formato == 'EXCEL':
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerow(['Propietario', 'Inmueble', 'Tipo', 'Alicuota', 'm2', 'Saldo BS', 'Saldo USD', 'Saldo EUR'])
+                for p in prop:
+                    for dom in p.prop_dom.all():
+                        writer.writerow([
+                            p.nombre_propietario,
+                            dom.nombre_domicilio,
+                            dom.tipo_domicilio or '',
+                            dom.alicuota_domicilio or '',
+                            dom.size_domicilio or '',
+                            dom.saldo or '',
+                            dom.saldo_usd or '',
+                            dom.saldo_eur or '',
+                        ])
+                response = HttpResponse(output.getvalue(), content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="reporte_propietarios.csv"'
+                return response
+            elif formato == 'TXT':
+                lines = ['Reporte de propietarios', 'Total BS: {} | Total USD: {} | Total EUR: {}'.format(total_bs, total_usd, total_eur), '']
+                for p in prop:
+                    lines.append('Propietario: {}'.format(p.nombre_propietario))
+                    for dom in p.prop_dom.all():
+                        lines.append('  - {} | {} | Alicuota: {} | m2: {} | BS: {} | USD: {} | EUR: {}'.format(
+                            dom.nombre_domicilio, dom.tipo_domicilio or '-', dom.alicuota_domicilio or '-', dom.size_domicilio or '-',
+                            dom.saldo or 0, dom.saldo_usd or 0, dom.saldo_eur or 0))
+                    lines.append('')
+                response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                response['Content-Disposition'] = 'attachment; filename="reporte_propietarios.txt"'
+                return response
+            else:
+                messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
         elif request.POST['reporte'] == 'DEUDAS':
             if request.POST['fecha_inicio'] > request.POST['fecha_fin']:
@@ -3873,6 +4069,97 @@ def admin_reportes(request):
                     messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
                     return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
+        elif request.POST['reporte'] == 'INMUEBLE':
+            if request.POST['fecha_inicio_inm'] > request.POST['fecha_fin_inm']:
+                messages.warning(request, 'La fecha inicial no puede ser mayor a la fecha final.',
+                             extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+            inicio_inm = request.POST['fecha_inicio_inm']
+            fin_inm = request.POST['fecha_fin_inm']
+            domicilio_id = request.POST.get('inmueble_select')
+            formato_inm = (request.POST.get('formato') or 'PDF').upper()
+            if not domicilio_id:
+                messages.warning(request, 'Debe seleccionar un inmueble.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+            domicilio = Domicilio.objects.filter(
+                id_domicilio=domicilio_id,
+                id_condominio_id=condominio.id_condominio
+            ).select_related('id_propietario', 'id_torre').first()
+            if not domicilio:
+                messages.warning(request, 'No se encontró el inmueble.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+            deudas_inm = Deudas.objects.filter(
+                id_domicilio_id=domicilio_id,
+                tipo_deuda="2",
+                fecha_deuda__range=[inicio_inm, fin_inm]
+            ).select_related('id_domicilio').order_by('fecha_deuda')
+            total_bs_inm = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'BS')
+            total_usd_inm = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'USD')
+            total_eur_inm = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'EUR')
+            total_pend_bs = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'BS' and d.is_active)
+            total_pend_usd = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'USD' and d.is_active)
+            total_pend_eur = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'EUR' and d.is_active)
+            todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+            nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+            data_inm = {
+                'inicio': inicio_inm, 'fin': fin_inm,
+                'domicilio': domicilio,
+                'deudas': deudas_inm,
+                'total_bs': total_bs_inm, 'total_usd': total_usd_inm, 'total_eur': total_eur_inm,
+                'total_pendiente_bs': total_pend_bs, 'total_pendiente_usd': total_pend_usd, 'total_pendiente_eur': total_pend_eur,
+                'fecha_generado': timezone.now(),
+                'condominio': condominio, 'datos_condominio': condominio,
+                'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
+            }
+            template_path_inm = 'PDF/inmueble_pdf.html'
+            if formato_inm == 'PDF':
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = 'attachment; filename="reporte_inmueble_{}_{}_{}.pdf"'.format(domicilio_id, inicio_inm, fin_inm)
+                template = get_template(template_path_inm)
+                html = template.render(data_inm)
+                pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+                if pisa_status.err:
+                    return HttpResponse('We had some errors <pre>' + html + '</pre>')
+                return response
+            elif formato_inm == 'WORD':
+                template = get_template(template_path_inm)
+                html = template.render(data_inm)
+                response = HttpResponse(html, content_type='application/msword')
+                response['Content-Disposition'] = 'attachment; filename="reporte_inmueble_{}_{}_{}.doc"'.format(domicilio_id, inicio_inm, fin_inm)
+                return response
+            elif formato_inm == 'EXCEL':
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerow(['Concepto', 'Descripcion', 'Monto', 'Moneda', 'Fecha', 'Estado'])
+                for deuda in deudas_inm:
+                    writer.writerow([
+                        deuda.concepto_deuda, deuda.descripcion_deuda, deuda.monto_deuda,
+                        deuda.tipo_moneda, deuda.fecha_deuda, 'Pendiente' if deuda.is_active else 'Pagada',
+                    ])
+                response = HttpResponse(output.getvalue(), content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="reporte_inmueble_{}_{}_{}.csv"'.format(domicilio_id, inicio_inm, fin_inm)
+                return response
+            elif formato_inm == 'TXT':
+                lines = [
+                    'Reporte del inmueble: {}'.format(domicilio.nombre_domicilio),
+                    'Propietario: {}'.format(domicilio.id_propietario.nombre_propietario if domicilio.id_propietario else '—'),
+                    'Fecha inicio: {} - Fecha fin: {}'.format(inicio_inm, fin_inm),
+                    'Total BS: {} | Total USD: {} | Total EUR: {}'.format(total_bs_inm, total_usd_inm, total_eur_inm),
+                    'Pendiente BS: {} | Pendiente USD: {} | Pendiente EUR: {}'.format(total_pend_bs, total_pend_usd, total_pend_eur),
+                    '',
+                ]
+                for deuda in deudas_inm:
+                    lines.append('{} | {} | {} | {} | {} | {}'.format(
+                        deuda.concepto_deuda, deuda.descripcion_deuda, deuda.monto_deuda,
+                        deuda.tipo_moneda, deuda.fecha_deuda, 'Pendiente' if deuda.is_active else 'Pagada'
+                    ))
+                response = HttpResponse('\n'.join(lines), content_type='text/plain')
+                response['Content-Disposition'] = 'attachment; filename="reporte_inmueble_{}_{}_{}.txt"'.format(domicilio_id, inicio_inm, fin_inm)
+                return response
+            else:
+                messages.warning(request, 'Formato de reporte no valido.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+
         elif request.POST['reporte'] == 'CIERRE_MES':
 
             if request.POST['cierre'] == "CONDOMINIO":
@@ -3898,10 +4185,16 @@ def admin_reportes(request):
     else:
         pass
 
-    return render(request, 'administrador/reportes.html', {'conf': condominio, 'propietarios': propietarios,
-                                                           'propietarios_select': propietarios_select,
-                                                           'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
-                                                           'bancos': bancos, 'cierre': cierre_mensual})
+    inmuebles_select = Domicilio.objects.filter(
+        id_condominio_id=condominio.id_condominio
+    ).select_related('id_propietario', 'id_torre').order_by('id_torre', 'nombre_domicilio')
+    return render(request, 'administrador/reportes.html', {
+        'conf': condominio, 'propietarios': propietarios,
+        'propietarios_select': propietarios_select,
+        'inmuebles_select': inmuebles_select,
+        'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
+        'bancos': bancos, 'cierre': cierre_mensual,
+    })
 
 # ------------------------------ADMINISTRACION Y GESTIÓN DE CIERRES MENSUALES------------------------------
 @login_required

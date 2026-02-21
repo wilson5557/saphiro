@@ -65,6 +65,13 @@
         </button>
       </div>
 
+      <!-- REPORTE POR INMUEBLE -->
+      <div class="row col-sm-12 mx-auto mt-4 mb-3 center-all div_btn" style="width: 100%;">
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteInmueble" aria-expanded="false" aria-controls="reporteInmueble">
+          Reporte por inmueble
+        </button>
+      </div>
+
       <div class="divider mt-2 mb-2"></div>
 
       <!-- REPORTE DE GASTOS -->
@@ -87,7 +94,17 @@
                 <input type="date" class="form-control text-dark" id="fecha_fin" name="fecha_fin" required>
               </div>
             </div>
-
+            <div class="form-group row mt-4">
+              <label for="formato_gastos" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_gastos" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
             <input type="hidden" name="reporte" id="reporte" value="GASTOS">
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de gastos según las fechas ingresadas"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
@@ -114,7 +131,17 @@
                 <input type="date" class="form-control text-dark" id="fecha_fin" name="fecha_fin" required>
               </div>
             </div>
-
+            <div class="form-group row mt-4">
+              <label for="formato_ingresos" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_ingresos" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
             <input type="hidden" name="reporte" id="reporte" value="INGRESOS">
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de ingresos según las fechas ingresadas"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
@@ -157,7 +184,17 @@
                 </select>
               </div>
             </div>
-
+            <div class="form-group row mt-4">
+              <label for="formato_bancos" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_bancos" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
             <input type="hidden" name="reporte" id="reporte" value="BANCOS">
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el estado de cuenta del banco seleccionado"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
@@ -200,7 +237,17 @@
                 </select>
               </div>
             </div>
-
+            <div class="form-group row mt-4">
+              <label for="formato_movimientos" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_movimientos" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
             <input type="hidden" name="reporte" id="reporte" value="MOVIMIENTOS">
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar la consulta de los movimientos"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
@@ -213,7 +260,17 @@
           <h4 class="text-center">Reporte de Propietarios</h4>
           <form method="post" target="_blank">
             {% csrf_token %}
-
+            <div class="form-group row mt-4">
+              <label for="formato_propietarios" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_propietarios" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
             <input type="hidden" name="reporte" id="reporte" value="PROPIETARIOS">
             <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte de los propietarios"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
@@ -310,6 +367,57 @@
 
             <input type="hidden" name="reporte" id="reporte" value="ESTADO_CUENTA">
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el estado de cuenta"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- REPORTE POR INMUEBLE -->
+      <div class="collapse" id="reporteInmueble" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Reporte por inmueble</h4>
+          <h6 class="text-center">Indique el rango de fechas y el inmueble.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            <div class="form-group row mt-4">
+              <label for="fecha_inicio_inm" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_inicio_inm" name="fecha_inicio_inm" required>
+              </div>
+            </div>
+            <div class="form-group row mt-4">
+              <label for="fecha_fin_inm" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
+              <div class="col-sm-5">
+                <input type="date" class="form-control text-dark" id="fecha_fin_inm" name="fecha_fin_inm" required>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="inmueble_select" class="col-sm-3 col-form-label text-dark">Inmueble:</label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="inmueble_select" name="inmueble_select" required>
+                  {% if inmuebles_select %}
+                    <option value="" disabled selected>Elige un inmueble...</option>
+                    {% for dom in inmuebles_select %}
+                      <option value="{{ dom.id_domicilio }}">{{ dom.nombre_domicilio }}{% if dom.id_torre %} ({{ dom.id_torre.nombre_torre }}){% endif %}{% if dom.id_propietario %} - {{ dom.id_propietario.nombre_propietario }}{% endif %}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled selected>NO HAY INMUEBLES REGISTRADOS</option>
+                  {% endif %}
+                </select>
+              </div>
+            </div>
+            <div class="form-group row mt-4">
+              <label for="formato_inm" class="col-sm-3 col-form-label text-dark">Formato: </label>
+              <div class="col-sm-5">
+                <select class="form-control text-dark" id="formato_inm" name="formato">
+                  <option value="PDF" selected>PDF</option>
+                  <option value="WORD">Word</option>
+                  <option value="EXCEL">Excel</option>
+                  <option value="TXT">TXT</option>
+                </select>
+              </div>
+            </div>
+            <input type="hidden" name="reporte" value="INMUEBLE">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Generar reporte del inmueble seleccionado"><i class="fa fa-download pr-1"></i> Generar reporte</button>
           </form>
         </div>
       </div>

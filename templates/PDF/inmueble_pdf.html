@@ -1,0 +1,47 @@
+{% extends "PDF/base_informe_pdf.html" %}
+{% load static %}{% load i18n %}{% load humanize %}
+{% block titulo_pagina %}Reporte por inmueble{% endblock %}
+{% block titulo_informe %}REPORTE POR INMUEBLE{% endblock %}
+{% block contenido_pdf %}
+<p style="margin-top: 10px; margin-bottom: 5px;"><strong>Inmueble:</strong> {{ domicilio.nombre_domicilio }}{% if domicilio.id_torre %} ({{ domicilio.id_torre.nombre_torre }}){% endif %}</p>
+<p style="margin-bottom: 5px;"><strong>Propietario:</strong> {% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</p>
+<p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}</p>
+<p style="margin-bottom: 10px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
+<table class="table-informe table-lista-simple">
+    <thead>
+        <tr>
+            <th>Concepto</th>
+            <th>Descripción</th>
+            <th class="num">Monto</th>
+            <th>Moneda</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for deuda in deudas %}
+        <tr>
+            <td>{{ deuda.concepto_deuda }}</td>
+            <td>{{ deuda.descripcion_deuda }}</td>
+            <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
+            <td>{{ deuda.tipo_moneda }}</td>
+            <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
+            <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center">Sin deudas en el período</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="fila-total-informe mt-3">
+    Total BS: {{ total_bs|intcomma }} &nbsp; Total USD: {{ total_usd|intcomma }} &nbsp; Total EUR: {{ total_eur|intcomma }}<br>
+    Pendiente BS: {{ total_pendiente_bs|intcomma }} &nbsp; Pendiente USD: {{ total_pendiente_usd|intcomma }} &nbsp; Pendiente EUR: {{ total_pendiente_eur|intcomma }}
+</div>
+{% endblock %}
+{% block pie_informe %}
+<div class="pie-avisos-informe mt-5">
+    SEA RESPONSABLE. PAGUE PUNTUAL, DESPUES DE 3 MESES DE DEUDA PASARA A DEPARTAMENTO LEGAL<br>
+    CUANDO REALICE EL PAGO INFORMELO AL WHATSAPP DEL CONDOMINIO<br>
+    SI REALIZO SU PAGO DESPUES DEL 31/12, Y LE APARECE SU DEUDA VIEJA EN EL PRESENTE RECIBO POR FAVOR HACER CASO OMISO Y PAGAR LO PENDIENTE.
+</div>
+{% endblock %}
