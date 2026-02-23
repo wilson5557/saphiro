@@ -1,5 +1,5 @@
 {% extends "PDF/base_informe_pdf.html" %}
-{% load static %}{% load i18n %}{% load humanize %}
+{% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Deudas del propietario{% endblock %}
 {% block titulo_informe %}DEUDAS DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
@@ -23,7 +23,7 @@
             <td>{{ deuda.descripcion_deuda }}</td>
             <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
             <td>{% if deuda.is_moroso %}Sí{% else %}No{% endif %}</td>
-            <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
+            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{{ deuda.id_domicilio.nombre_domicilio }}</td>
             <td>{{ deuda.categoria_deuda|default:"—" }}</td>
             <td>{{ deuda.tipo_moneda }}</td>

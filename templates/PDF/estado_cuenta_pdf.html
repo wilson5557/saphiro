@@ -1,5 +1,5 @@
 {% extends "PDF/base_informe_pdf.html" %}
-{% load static %}{% load i18n %}{% load humanize %}
+{% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Estado de Cuenta del Propietario{% endblock %}
 {% block titulo_informe %}ESTADO DE CUENTA DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
@@ -26,7 +26,7 @@
             <td>{{ deuda.descripcion_deuda }}</td>
             <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
             <td>{{ deuda.tipo_moneda }}</td>
-            <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
+            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
         </tr>
         {% empty %}

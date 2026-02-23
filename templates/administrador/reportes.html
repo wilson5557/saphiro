@@ -321,7 +321,7 @@
         <div class="card card-body">
           <h4 class="text-center">Estado de cuenta por propietario</h4>
           <h6 class="text-center">Indique el rango de fechas y el propietario.</h6>
-          <form method="post" target="_blank">
+          <form method="post" target="_blank" id="formEstadoCuenta">
             {% csrf_token %}
             <div class="form-group row mt-4">
               <label for="fecha_inicio_estado" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
@@ -365,8 +365,9 @@
               </div>
             </div>
 
-            <input type="hidden" name="reporte" id="reporte" value="ESTADO_CUENTA">
-            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el estado de cuenta"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+            <input type="hidden" name="reporte" value="ESTADO_CUENTA">
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up mr-2" data-toggle="popover" data-content="Descargar estado de cuenta"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+            <button type="submit" name="enviar_correo" value="1" formtarget="_self" class="btn btn-primary col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Envía el PDF por correo al propietario seleccionado"><i class="fa fa-envelope pr-1"></i> Enviar por correo al propietario</button>
           </form>
         </div>
       </div>

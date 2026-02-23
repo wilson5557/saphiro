@@ -1,5 +1,5 @@
 {% extends "PDF/base_informe_pdf.html" %}
-{% load static %}{% load i18n %}{% load humanize %}
+{% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Cierre del mes - {{ datos_propietario.nombre_propietario }}{% endblock %}
 {% block titulo_informe %}CIERRE DEL MES - PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
@@ -30,7 +30,7 @@
         {% if deudas %}
         {% for deuda in deudas %}
         <tr>
-            <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td><td>{{ deuda.concepto_deuda }}</td><td>{{ deuda.descripcion_deuda }}</td>
+            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td><td>{{ deuda.concepto_deuda }}</td><td>{{ deuda.descripcion_deuda }}</td>
             <td class="num monto-usd">{{ deuda.monto_deuda|intcomma }}</td><td>{{ deuda.id_domicilio.nombre_domicilio }}</td>
         </tr>
         {% endfor %}

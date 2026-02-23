@@ -3280,6 +3280,16 @@ def admin_cuentas(request):
                                                           'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
 
 # ------------------------------ADMINISTRACION Y GESTIÓN DE REPORTES------------------------------
+def _parse_fecha_reporte(value):
+    """Convierte string YYYY-MM-DD a date para que los templates |date funcionen."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
+
+
 @login_required
 def admin_reportes(request):
     user = request.user
@@ -3335,8 +3345,8 @@ def admin_reportes(request):
                 total_usd_en_bs = 0
                 total_eur_en_bs = 0
 
-                data['inicio'] = inicio
-                data['fin'] = fin
+                data['inicio'] = _parse_fecha_reporte(inicio) or inicio
+                data['fin'] = _parse_fecha_reporte(fin) or fin
                 data['datos_condominio'] = condominio
                 data['gastos'] = Gastos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                        id_movimiento__id_banco__id_condominio_id=condominio.id_condominio).select_related("id_movimiento__id_banco")
@@ -3446,8 +3456,8 @@ def admin_reportes(request):
                 total_usd_en_bs = 0
                 total_eur_en_bs = 0
 
-                data['inicio'] = inicio
-                data['fin'] = fin
+                data['inicio'] = _parse_fecha_reporte(inicio) or inicio
+                data['fin'] = _parse_fecha_reporte(fin) or fin
                 data['datos_condominio'] = condominio
                 data['ingresos'] = Ingresos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
@@ -3565,8 +3575,8 @@ def admin_reportes(request):
                 nombre_banco = ""
                 numero_cuenta = ""
 
-                data['inicio'] = inicio
-                data['fin'] = fin
+                data['inicio'] = _parse_fecha_reporte(inicio) or inicio
+                data['fin'] = _parse_fecha_reporte(fin) or fin
                 data['datos_condominio'] = condominio
                 data['bancos'] = Bancos.objects.filter(id_banco=banco_select, id_condominio_id=condominio.id_condominio)
                 todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
@@ -3672,8 +3682,8 @@ def admin_reportes(request):
                 nombre_banco = ""
                 numero_cuenta = ""
 
-                data['inicio'] = inicio
-                data['fin'] = fin
+                data['inicio'] = _parse_fecha_reporte(inicio) or inicio
+                data['fin'] = _parse_fecha_reporte(fin) or fin
                 data['datos_condominio'] = condominio
                 data['ingresos'] = Ingresos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio, id_movimiento__id_banco_id=banco_select).select_related("id_movimiento__id_banco")
@@ -3759,6 +3769,18 @@ def admin_reportes(request):
             data['total_domicilios_bs'] = total_bs
             data['total_domicilios_usd'] = total_usd
             data['total_domicilios_eur'] = total_eur
+
+            # Estructura con alícuota calculada por domicilio (cuando no está guardada)
+            propietarios_con_datos = []
+            for p in prop:
+                domicilios_con_alicuota = [
+                    (d, _alicuota_para_display(d)) for d in p.prop_dom.all()
+                ]
+                propietarios_con_datos.append({
+                    'propietario': p,
+                    'domicilios_con_alicuota': domicilios_con_alicuota,
+                })
+            data['propietarios_con_datos'] = propietarios_con_datos
 
             data['usuarios'] = Usuario.objects.filter(id_condominio_id=user.id_condominio_id)
             # data['inicio']       = inicio
@@ -3850,8 +3872,8 @@ def admin_reportes(request):
                 todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data = {
-                    'inicio': inicio,
-                    'fin': fin,
+                    'inicio': _parse_fecha_reporte(inicio) or inicio,
+                    'fin': _parse_fecha_reporte(fin) or fin,
                     'deudas': deudas,
                     'total_bs': total_bs,
                     'total_usd': total_usd,
@@ -3987,8 +4009,8 @@ def admin_reportes(request):
                 todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data = {
-                    'inicio': inicio,
-                    'fin': fin,
+                    'inicio': _parse_fecha_reporte(inicio) or inicio,
+                    'fin': _parse_fecha_reporte(fin) or fin,
                     'deudas': deudas,
                     'propietario': propietario,
                     'total_bs': total_bs,
@@ -4004,6 +4026,48 @@ def admin_reportes(request):
                 }
 
                 template_path = 'PDF/estado_cuenta_pdf.html'
+
+                # Enviar por correo al propietario (PDF adjunto)
+                if request.POST.get('enviar_correo'):
+                    email_destino = None
+                    if propietario.id_usuario_id:
+                        usuario = propietario.id_usuario
+                        if getattr(usuario, 'email', None):
+                            email_destino = usuario.email
+                    if not email_destino:
+                        messages.warning(
+                            request,
+                            'El propietario no tiene correo electrónico asociado. No se puede enviar el reporte.',
+                            extra_tags='alert-danger',
+                        )
+                        return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+                    try:
+                        template = get_template(template_path)
+                        html = template.render(data)
+                        pdf_buffer = io.BytesIO()
+                        pisa_status = pisa.CreatePDF(html, dest=pdf_buffer, link_callback=link_callback)
+                        if pisa_status.err:
+                            messages.warning(request, 'Error al generar el PDF para el correo.', extra_tags='alert-danger')
+                            return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+                        pdf_buffer.seek(0)
+                        nombre_condominio = getattr(condominio, 'nombre_condominio', 'Condominio') or 'Condominio'
+                        asunto = 'Estado de cuenta - {}'.format(nombre_condominio)
+                        cuerpo = 'Estimado/a {}, adjuntamos su estado de cuenta del {} al {}. Saludos.'.format(
+                            propietario.nombre_propietario,
+                            data['inicio'].strftime('%d/%m/%Y') if hasattr(data['inicio'], 'strftime') else data['inicio'],
+                            data['fin'].strftime('%d/%m/%Y') if hasattr(data['fin'], 'strftime') else data['fin'],
+                        )
+                        email = EmailMultiAlternatives(asunto, cuerpo, settings.EMAIL_HOST_USER, [email_destino])
+                        email.attach('Estado_cuenta_{}_{}.pdf'.format(propietario.nombre_propietario.replace(' ', '_'), inicio), pdf_buffer.getvalue(), 'application/pdf')
+                        email.send(fail_silently=False)
+                        messages.success(request, 'Estado de cuenta enviado por correo a {}.'.format(email_destino), extra_tags='alert-success')
+                    except Exception as e:
+                        messages.warning(
+                            request,
+                            'No se pudo enviar el correo: {}.'.format(str(e)),
+                            extra_tags='alert-danger',
+                        )
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
                 if formato == 'PDF':
                     response = HttpResponse(content_type='application/pdf')
@@ -4101,9 +4165,12 @@ def admin_reportes(request):
             total_pend_eur = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'EUR' and d.is_active)
             todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
             nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+            alicuota_inm = _alicuota_para_display(domicilio)
             data_inm = {
-                'inicio': inicio_inm, 'fin': fin_inm,
+                'inicio': _parse_fecha_reporte(inicio_inm) or inicio_inm,
+                'fin': _parse_fecha_reporte(fin_inm) or fin_inm,
                 'domicilio': domicilio,
+                'alicuota_display': alicuota_inm,
                 'deudas': deudas_inm,
                 'total_bs': total_bs_inm, 'total_usd': total_usd_inm, 'total_eur': total_eur_inm,
                 'total_pendiente_bs': total_pend_bs, 'total_pendiente_usd': total_pend_usd, 'total_pendiente_eur': total_pend_eur,

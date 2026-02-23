@@ -1,11 +1,11 @@
 {% extends "PDF/base_informe_pdf.html" %}
-{% load static %}{% load i18n %}{% load humanize %}
+{% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Reporte por inmueble{% endblock %}
 {% block titulo_informe %}REPORTE POR INMUEBLE{% endblock %}
 {% block contenido_pdf %}
 <p style="margin-top: 10px; margin-bottom: 5px;"><strong>Inmueble:</strong> {{ domicilio.nombre_domicilio }}{% if domicilio.id_torre %} ({{ domicilio.id_torre.nombre_torre }}){% endif %}</p>
 <p style="margin-bottom: 5px;"><strong>Propietario:</strong> {% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</p>
-<p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}</p>
+<p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {% if alicuota_display is not None %}{{ alicuota_display|floatformat:2 }}%{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</p>
 <p style="margin-bottom: 10px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
 <table class="table-informe table-lista-simple">
     <thead>
@@ -25,7 +25,7 @@
             <td>{{ deuda.descripcion_deuda }}</td>
             <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
             <td>{{ deuda.tipo_moneda }}</td>
-            <td>{{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
+            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
         </tr>
         {% empty %}

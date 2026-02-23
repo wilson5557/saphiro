@@ -3,18 +3,19 @@
 {% block titulo_pagina %}Reporte de propietarios{% endblock %}
 {% block titulo_informe %}REPORTE DE PROPIETARIOS{% endblock %}
 {% block contenido_pdf %}
-{% if propietarios %}
-{% for propietario in propietarios %}
+{% if propietarios_con_datos %}
+{% for item in propietarios_con_datos %}
+{% with propietario=item.propietario %}
 <div class="mb-4" style="margin-bottom: 20px;">
     <p class="mt-3 mb-1" style="font-size: 12px; font-weight: bold;">Propietario: {{ propietario.nombre_propietario }}</p>
-    <p style="font-size: 10px; margin-bottom: 8px;">Género: {{ propietario.genero|default:"—" }} &nbsp; DNI: {{ propietario.tipo_dni|default:"" }}-{{ propietario.dni }} &nbsp; Tel. habitación: {% if propietario.telefono_hab %}{{ propietario.codigo_tlf_hab }}-{{ propietario.telefono_hab }}{% else %}—{% endif %} &nbsp; Tel. móvil: {{ propietario.codigo_tlf_movil }}-{{ propietario.telefono_movil }} &nbsp; Email: {{ propietario.id_usuario.email|default:"—" }}</p>
+    <p style="font-size: 10px; margin-bottom: 8px;">Género: {{ propietario.genero|default:"—" }} &nbsp; C.I.: {{ propietario.tipo_dni|default:"" }}-{{ propietario.dni }} &nbsp; Tel. habitación: {% if propietario.telefono_hab %}{{ propietario.codigo_tlf_hab }}-{{ propietario.telefono_hab }}{% else %}—{% endif %} &nbsp; Tel. móvil: {{ propietario.codigo_tlf_movil }}-{{ propietario.telefono_movil }} &nbsp; Email: {{ propietario.id_usuario.email|default:"—" }}</p>
     <table class="table-informe table-lista-simple">
         <thead><tr><th>Inmueble</th><th>Tipo</th><th>Estac.</th><th class="num">Alicuota</th><th class="num">m²</th><th class="num">BS</th><th class="num">USD</th><th class="num">EUR</th></tr></thead>
         <tbody>
-            {% for domicilio in propietario.prop_dom.all %}
+            {% for domicilio, alicuota_display in item.domicilios_con_alicuota %}
             <tr>
                 <td>{{ domicilio.nombre_domicilio }}</td><td>{{ domicilio.tipo_domicilio }}</td><td>{{ domicilio.estacionamientos }}</td>
-                <td class="num">{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}</td><td class="num">{{ domicilio.size_domicilio }}</td>
+                <td class="num">{% if alicuota_display is not None %}{{ alicuota_display|floatformat:2 }}%{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</td><td class="num">{{ domicilio.size_domicilio }}</td>
                 <td class="num">{{ domicilio.saldo|intcomma }} BS</td><td class="num monto-usd">{{ domicilio.saldo_usd|intcomma }} $</td><td class="num">{{ domicilio.saldo_eur|intcomma }} €</td>
             </tr>
             {% empty %}
@@ -23,6 +24,7 @@
         </tbody>
     </table>
 </div>
+{% endwith %}
 {% endfor %}
 <table class="table-informe table-lista-simple">
     <tr class="fila-total-informe">

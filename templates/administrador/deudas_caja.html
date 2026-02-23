@@ -141,30 +141,7 @@
                     <label for="nombre_banco" class="col-sm-3 col-form-label text-dark">Nombre del Banco:</label>
                     <div class="col-sm-8">
                       <select name="nombre_banco" id="nombre_banco" class="form-control text-dark" required>
-                        <option value="100% BANCO">100% BANCO</option>
-                        <option value="BANCAMIGA">BANCAMIGA</option>
-                        <option value="BANCO ACTIVO">BANCO ACTIVO</option>
-                        <option value="BANCO AGRICOLA DE VENEZUELA">BANCO AGRICOLA DE VENEZUELA</option>
-                        <option value="BANCO BICENTENARIO">BANCO BICENTENARIO</option>
-                        <option value="BANCO CARONÍ">BANCO CARONÍ</option>
-                        <option value="BANCO DE COMERCIO EXTERIOR">BANCO DE COMERCIO EXTERIOR</option>
-                        <option value="BANCO DE LA FUERZA ARMADA NACIONAL BOLIVARIANA">BANCO DE LA FUERZA ARMADA NACIONAL BOLIVARIANA</option>
-                        <option value="BANCO DE VENEZUELA">BANCO DE VENEZUELA</option>
-                        <option value="BANCO DEL CARIBE">BANCO DEL CARIBE</option>
-                        <option value="BANCO DEL TESORO">BANCO DEL TESORO</option>
-                        <option value="BANCO EXTERIOR">BANCO EXTERIOR</option>
-                        <option value="BANCO INTERNACIONAL DE DESARROLLO">BANCO INTERNACIONAL DE DESARROLLO</option>
-                        <option value="BANCO NACIONAL DE CRÉDITO">BANCO NACIONAL DE CRÉDITO</option>
-                        <option value="BANCO PLAZA">BANCO PLAZA</option>
-                        <option value="BANCO PROVINCIAL">BANCO PROVINCIAL</option>
-                        <option value="BANCO SOFITASA">BANCO SOFITASA</option>
-                        <option value="BANCRECER">BANCRECER</option>
-                        <option value="BANESCO">BANESCO</option>
-                        <option value="BANPLUS">BANPLUS</option>
-                        <option value="BFC BANCO FONDO COMUN">BFC BANCO FONDO COMUN</option>
-                        <option value="DEL SUR">DEL SUR</option>
-                        <option value="MERCANTIL">MERCANTIL</option>
-                        <option value="VENEZOLANO DE CRÉDITO">VENEZOLANO DE CRÉDITO</option>
+                        <option value="" disabled selected>Seleccione moneda arriba...</option>
                       </select>
                     </div>
                   </div>
@@ -210,6 +187,7 @@
 
   <script>
     (function () {
+      var urlObtenerBancos = "{% url 'condominio_app:obtener_bancos' %}";
       var tipoDeudaSelect = document.getElementById("tipo_deuda");
       var propSeleccionado = document.getElementById("prop_seleccionado");
       var propietarioSelect = document.getElementById("propietario_deudor");
@@ -231,9 +209,44 @@
       var monedaPagoInput = document.getElementById("moneda_pago");
       var cancelarPagoCajaBtn = document.getElementById("CancelarPagoCaja");
       var solventeTexto = document.getElementById("solvente_texto");
+      var nombreBancoSelect = document.getElementById("nombre_banco");
 
       if (!tipoDeudaSelect || !propSeleccionado || !propietarioSelect || !deudasWrapper || !deudasDom || !deudaCondominio || !deudaCuota || !condoRow || !cuotaRow || !monedaSelect || !totalFila || !totalMonedaLabel || !totalMontoLabel || !opcionesBtn || !pagarBtn || !propietarioPagoInput || !pagoDeudasForm || !montoMovimientoInput || !monedaPagoInput || !solventeTexto) {
         return;
+      }
+
+      function llenarBancosPorMoneda(moneda) {
+        if (!nombreBancoSelect || !moneda) return;
+        fetch(urlObtenerBancos + "?tipo_moneda=" + encodeURIComponent(moneda))
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            nombreBancoSelect.innerHTML = "";
+            var opt0 = document.createElement("option");
+            opt0.value = "";
+            opt0.textContent = "Elige un banco...";
+            opt0.disabled = true;
+            opt0.selected = true;
+            nombreBancoSelect.appendChild(opt0);
+            var bancos = data.bancos || [];
+            for (var i = 0; i < bancos.length; i++) {
+              var pair = bancos[i];
+              var val = (pair && pair[0]) ? pair[0] : "";
+              var label = (pair && pair[1]) ? pair[1] : val;
+              var opt = document.createElement("option");
+              opt.value = val;
+              opt.textContent = label;
+              nombreBancoSelect.appendChild(opt);
+            }
+          })
+          .catch(function () {
+            nombreBancoSelect.innerHTML = "";
+            var optErr = document.createElement("option");
+            optErr.value = "";
+            optErr.textContent = "Error al cargar bancos";
+            optErr.disabled = true;
+            optErr.selected = true;
+            nombreBancoSelect.appendChild(optErr);
+          });
       }
 
       function formatMonto(valor) {
@@ -379,6 +392,7 @@
       });
 
       monedaSelect.addEventListener("change", function () {
+        llenarBancosPorMoneda(monedaSelect.value || "BS");
         resetDeudasDom();
         if (propietarioSelect.value && propietarioSelect.value !== "opcion") {
           propietarioSelect.dispatchEvent(new Event("change"));
@@ -408,6 +422,8 @@
           pagoDeudasForm.classList.add("d-none");
         });
       }
+
+      llenarBancosPorMoneda(monedaSelect.value || "BS");
     })();
   </script>
 {% endblock body_block %}
