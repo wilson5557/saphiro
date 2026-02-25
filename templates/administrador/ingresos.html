@@ -116,23 +116,13 @@ class="col-lg-3 end-padding-left"
                 </div>
 
                 <div class="form-group row mt-4">
-                  <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del gasto: </label>
+                  <label for="fecha_movimiento" class="col-sm-3 col-form-label text-dark">Fecha del ingreso: </label>
                   <div class="col-sm-5">
                     <input type="date" class="form-control text-dark" id="fecha_movimiento" name="fecha_movimiento" required>
                   </div>
                 </div>
 
                 <div class="form-group row mt-4">
-                  <label for="{{ movimiento_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.concepto_movimiento.label }}:</label>
-                  <div class="col-sm-8">
-                    {% render_field movimiento_form.concepto_movimiento class="form-control text-dark" placeholder="Concepto del ingreso" %}
-                    {% for error in movimiento_form.concepto_movimiento.errors %}
-                      <div class="alert alert-danger mt-2">{{ error }}</div>
-                    {% endfor %}
-                  </div>
-                </div>
-
-                <div class="form-group row">
                   <label for="{{ movimiento_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.descripcion_movimiento.label }}:</label>
                   <div class="col-sm-8">
                     {% render_field movimiento_form.descripcion_movimiento class="form-control text-dark" placeholder="Descripción del ingreso" rows="5" %}
@@ -334,7 +324,6 @@ class="col-lg-3 end-padding-left"
                        width="100%" id="TablaIngresos">
                     <thead class="table-header">
                     <tr>
-                        <th scope="col">Concepto</th>
                         <th scope="col">Descripción</th>
                         <th scope="col">Monto</th>
                         <th scope="col">Propietario</th>
@@ -348,7 +337,6 @@ class="col-lg-3 end-padding-left"
                     {% if ingresos %}
                     {% for ingreso in ingresos %}
                     <tr style="font-size: 14px;">
-                        <td class="centered-cell"> {{ ingreso.id_movimiento.concepto_movimiento }}</td>
                         <td class="centered-cell stadistics-text"> {{ ingreso.id_movimiento.descripcion_movimiento }}</td>
                         <td class="centered-cell"><span
                                 class="text-center text-success">{{ ingreso.id_movimiento.monto_movimiento }}{% if ingreso.id_movimiento.tipo_moneda %} {{ ingreso.id_movimiento.tipo_moneda }}{% endif %}</span></td>

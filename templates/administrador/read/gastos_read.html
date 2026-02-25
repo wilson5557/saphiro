@@ -24,10 +24,7 @@ class="col-lg-3 end-padding-left"
 
             {% if gastos %}
             <div class="row pt-1">
-                <p class="normal-font text-dark col-sm-6"><strong>Concepto del gasto:</strong> <span>{{gastos.id_movimiento.concepto_movimiento}}</span>
-                </p>
-                <p class="normal-font text-dark col-sm-6"><strong>Descripción del gasto:</strong> <span>{{gastos.id_movimiento.descripcion_movimiento}}</span>
-                </p>
+                <p class="normal-font text-dark col-sm-12"><strong>Descripción del gasto:</strong> <span>{{gastos.id_movimiento.descripcion_movimiento|default:gastos.id_movimiento.concepto_movimiento}}</span></p>
             </div>
             <div class="row pt-1">
                 <p class="normal-font text-dark col-sm-6"><strong>Fecha en la que se realizó el gasto:</strong> <span>{{gastos.id_movimiento.fecha_movimiento|date:"l, d/m/Y"}}</span>

@@ -182,16 +182,6 @@
         </div>
 
         <div class="form-group row mt-4">
-          <label for="{{ movimiento_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">Concepto del gasto:</label>
-          <div class="col-sm-8">
-            {% render_field movimiento_form.concepto_movimiento class="form-control text-dark" placeholder="..." %}
-            {% for error in movimiento_form.concepto_movimiento.errors %}
-              <div class="alert alert-danger mt-2">{{ error }}</div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="form-group row">
           <label for="{{ movimiento_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.descripcion_movimiento.label }}:</label>
           <div class="col-sm-8">
             {% render_field movimiento_form.descripcion_movimiento class="form-control text-dark" placeholder="Descripción del gasto" rows="5" %}
@@ -323,7 +313,7 @@
           <thead class="table-header">
           <tr>
             <th scope="col" class="d-none">#</th>
-            <th scope="col">Concepto</th>
+            <th scope="col">Descripción</th>
             <th scope="col">Categoría</th>
             <th scope="col">Tipo</th>
             <th scope="col">Fecha</th>
@@ -336,7 +326,7 @@
           {% for gasto in gastos %}
           <tr style="font-size: 14px;">
             <td scope="row" class="d-none"> {{ gasto.id_gasto }}</td>
-            <td class="centered-cell"> {{ gasto.id_movimiento.concepto_movimiento }}</td>
+            <td class="centered-cell stadistics-text"> {{ gasto.id_movimiento.descripcion_movimiento }}</td>
             <td class="centered-cell stadistics-text"> {{ gasto.id_categoria.nombre_categoria }}</td>
             <td class="centered-cell"> {{ gasto.tipo_gasto }}</td>
             {% language 'es' %}

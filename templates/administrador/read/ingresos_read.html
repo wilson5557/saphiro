@@ -29,8 +29,7 @@
         </p> -->
       </div>
           <div class="row pt-3">
-            <p class="normal-font text-dark col-sm-6"><strong>Concepto del ingreso:</strong> <span>{{ingresos.id_movimiento.concepto_movimiento}}</span></p>
-            <p class="normal-font text-dark col-sm-6"><strong>Descripción del ingreso:</strong> <span>{{ingresos.id_movimiento.descripcion_movimiento}}</span></p>
+            <p class="normal-font text-dark col-sm-12"><strong>Descripción del ingreso:</strong> <span>{{ingresos.id_movimiento.descripcion_movimiento|default:ingresos.id_movimiento.concepto_movimiento}}</span></p>
           </div>
           <div class="row pt-3">
             <p class="normal-font text-dark col-sm-6"><strong>Fecha en la que se realizó el ingreso:</strong> <span>{{ingresos.id_movimiento.fecha_movimiento|date:"l, d/m/Y"}}</span></p>

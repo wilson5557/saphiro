@@ -60,7 +60,7 @@
                             <nav>
                                 <ul id="navigation">
                                     <li class="header-spacing"><a class="header-option"
-                                                                  href="/">Inicio</a></li>
+                                                                  href="{% url 'condominio_app:home_admin' %}">Inicio</a></li>
                                     <li class="header-spacing"><a class="header-option">Categoría
                                         <i class="ti-angle-down"></i></a>
                                         <ul class="submenu sub-option-admin">
@@ -90,7 +90,7 @@
                         </a>
                         <div class="dropdown-menu show-options-mobile" style="--bs-dropdown-padding-y: 0;">
                             <a class="dropdown-item text-dark btn sub-option-menu-mobile sub-option-divider"
-                                       href="/">Inicio</a>
+                                       href="{% url 'condominio_app:home_admin' %}">Inicio</a>
                             <a class="dropdown-item text-dark btn sub-option-menu-mobile sub-option-divider"
                                        href="{% url 'condominio_app:admin_gastos' %}">Categoría</a>
                             <a class="dropdown-item text-dark btn sub-option-menu-mobile sub-option-divider"
@@ -350,16 +350,17 @@
 
         showNavbar('header-toggle','nav-bar','body-pd','header', 'logo_menu', 'submenu-administrar', 'collapseAdministrar')
 
-        /*===== LINK ACTIVE =====*/
+        /*===== LINK ACTIVE: solo cambiar clase, no impedir la navegación del enlace =====*/
         const linkColor = document.querySelectorAll('.nav_link')
-
-        function colorLink(){
-            if(linkColor) {
-                linkColor.forEach(l=> l.classList.remove('active'))
+        function colorLink(e){
+            if(linkColor && this.getAttribute('href') && this.getAttribute('href').indexOf('#') !== 0) {
+                linkColor.forEach(function(l){ l.classList.remove('active') })
                 this.classList.add('active')
             }
         }
-        linkColor.forEach(l=> l.addEventListener('click', colorLink))
+        linkColor.forEach(function(l){
+            l.addEventListener('click', colorLink, false)
+        })
 
          // Your code to run since DOM is loaded and ready
     });
@@ -396,19 +397,16 @@
 <script src="https://cdn.datatables.net/v/dt/dt-1.13.10/af-2.6.0/b-2.4.2/b-html5-2.4.2/date-1.5.1/sc-2.3.0/datatables.min.js"></script>
 <script>
     var icon_btn = document.getElementById('icon_color_select');
-
-    // Evento de clic en el botón
-    icon_btn.addEventListener("click", function() {
-        icon_btn.classList.toggle("selected");
-    });
-
-    // Evento de clic en cualquier lugar fuera del botón
-    document.addEventListener("click", function(event) {
-      var target = event.target;
-      if (target !== icon_btn) {
-        icon_btn.classList.remove("selected");
-      }
-    });
+    if (icon_btn) {
+        icon_btn.addEventListener("click", function() {
+            icon_btn.classList.toggle("selected");
+        });
+        document.addEventListener("click", function(event) {
+            if (event.target !== icon_btn) {
+                icon_btn.classList.remove("selected");
+            }
+        });
+    }
 </script>
 <script>
     $('#datepicker').datepicker({

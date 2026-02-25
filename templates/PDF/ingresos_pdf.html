@@ -6,7 +6,7 @@
 <table class="table-informe table-lista-simple" style="margin-top: 15px;">
     <thead>
         <tr>
-            <th>Fecha</th><th>Referencia</th><th>Concepto</th><th class="num">TOTAL Bs.</th><th class="num">US$</th><th class="num">EUR</th><th>Banco</th><th>Apartamento</th>
+            <th>Fecha</th><th>Referencia</th><th>Descripción</th><th class="num">TOTAL Bs.</th><th class="num">US$</th><th class="num">EUR</th><th>Banco</th><th>Apartamento</th>
         </tr>
     </thead>
     <tbody>
@@ -15,7 +15,7 @@
         <tr>
             <td>{{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
             <td>{{ ingreso.id_movimiento.referencia_movimiento|default:"-" }}</td>
-            <td>{{ ingreso.id_movimiento.concepto_movimiento }}</td>
+            <td>{{ ingreso.id_movimiento.descripcion_movimiento|default:ingreso.id_movimiento.concepto_movimiento }}</td>
             {% for banco in bancos %}
             {% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'BS' %}
             <td class="num">{{ ingreso.id_movimiento.monto_movimiento|intcomma }}</td><td class="num">0</td><td class="num">0</td>

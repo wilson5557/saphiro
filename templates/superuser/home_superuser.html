@@ -1,0 +1,131 @@
+{% extends "layouts/superuser-layout.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}
+Superusuario - Gestión de condominios
+{% endblock title_page %}
+
+{% block body_block %}
+<div class="container rounded bg-white shadow-sm p-4">
+    <h4 class="text-dark mb-2">Gestión de condominios</h4>
+    <p class="text-muted small mb-4">Desde aquí puede crear condominios y asignar un usuario administrador a cada uno. El administrador podrá iniciar sesión desde la pantalla de inicio y gestionar su condominio.</p>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulario crear condominio + admin -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Crear condominio y administrador</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'condominio_app:home_superuser' %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="crear">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-dark border-bottom pb-1">Datos del condominio</h6>
+                        <div class="form-group mb-2">
+                            <label for="nombre_condominio" class="form-label text-dark">Nombre del condominio *</label>
+                            <input type="text" name="nombre_condominio" id="nombre_condominio" class="form-control" required maxlength="255" placeholder="Ej. Edificio Central">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="rif_condominio" class="form-label text-dark">RIF *</label>
+                            <input type="text" name="rif_condominio" id="rif_condominio" class="form-control" required maxlength="255" placeholder="J-00000000-0">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="direccion_condominio" class="form-label text-dark">Dirección *</label>
+                            <input type="text" name="direccion_condominio" id="direccion_condominio" class="form-control" required maxlength="255" placeholder="Dirección del edificio">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="email_condominio" class="form-label text-dark">Email del condominio (opcional)</label>
+                            <input type="email" name="email_condominio" id="email_condominio" class="form-control" maxlength="100" placeholder="condominio@ejemplo.com">
+                        </div>
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group mb-2">
+                                    <label for="codigo_tlf_1" class="form-label text-dark">Cód. teléfono</label>
+                                    <input type="text" name="codigo_tlf_1" id="codigo_tlf_1" class="form-control" maxlength="15" placeholder="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-8">
+                                <div class="form-group mb-2">
+                                    <label for="tlf_1" class="form-label text-dark">Teléfono 1</label>
+                                    <input type="text" name="tlf_1" id="tlf_1" class="form-control" maxlength="255" placeholder="-">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-dark border-bottom pb-1">Usuario administrador del condominio</h6>
+                        <div class="form-group mb-2">
+                            <label for="admin_username" class="form-label text-dark">Nombre de usuario *</label>
+                            <input type="text" name="admin_username" id="admin_username" class="form-control" required maxlength="30" placeholder="Se guardará en mayúsculas">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="admin_email" class="form-label text-dark">Email *</label>
+                            <input type="email" name="admin_email" id="admin_email" class="form-control" required maxlength="60" placeholder="admin@condominio.com">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="admin_password" class="form-label text-dark">Contraseña *</label>
+                            <input type="password" name="admin_password" id="admin_password" class="form-control" required placeholder="Contraseña del administrador">
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Crear condominio y administrador</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de condominios -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Condominios registrados ({{ condominios|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if condominios %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>RIF</th>
+                            <th>Dirección</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in condominios %}
+                        <tr>
+                            <td>{{ c.nombre_condominio }}</td>
+                            <td>{{ c.rif_condominio }}</td>
+                            <td>{{ c.direccion_condominio|truncatewords:8 }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{% url 'condominio_app:home_superuser' %}" class="d-inline" onsubmit="return confirm('¿Eliminar este condominio? Se desvincularán los usuarios asociados.');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accion" value="eliminar">
+                                    <input type="hidden" name="id_condominio" value="{{ c.id_condominio }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted p-4 mb-0">No hay condominios. Cree uno con el formulario de arriba.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock body_block %}

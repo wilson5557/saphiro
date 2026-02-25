@@ -6,7 +6,6 @@
 <table class="table-informe table-lista-simple" style="margin-top: 15px;">
     <thead>
         <tr>
-            <th>Concepto</th>
             <th>Descripción</th>
             <th class="num">Monto</th>
             <th>Moroso</th>
@@ -19,8 +18,7 @@
     <tbody>
         {% for deuda in deudas %}
         <tr>
-            <td>{{ deuda.concepto_deuda }}</td>
-            <td>{{ deuda.descripcion_deuda }}</td>
+            <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
             <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
             <td>{% if deuda.is_moroso %}Sí{% else %}No{% endif %}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
@@ -29,7 +27,7 @@
             <td>{{ deuda.tipo_moneda }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="text-center">Sin registros</td></tr>
+        <tr><td colspan="7" class="text-center">Sin registros</td></tr>
         {% endfor %}
     </tbody>
 </table>

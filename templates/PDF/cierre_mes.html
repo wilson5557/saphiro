@@ -62,7 +62,6 @@
 <table class="table-informe table-lista-simple">
     <thead>
         <tr>
-            <th>Concepto</th>
             <th>Descripción</th>
             <th class="num">TOTAL Bs.</th>
         </tr>
@@ -70,14 +69,12 @@
     <tbody>
         {% for ingreso in ingresos %}
         <tr>
-            <td>{{ ingreso.concepto }}</td>
             <td>{{ ingreso.descripcion }}</td>
             <td class="num">{{ ingreso.monto }} Bs</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
-            <td></td>
             <td class="num"><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} Bs</strong></td>
         </tr>
     </tbody>
@@ -92,7 +89,6 @@
 <table class="table-informe table-lista-simple">
     <thead>
         <tr>
-            <th>Concepto</th>
             <th>Descripción</th>
             <th class="num">TOTAL Bs.</th>
         </tr>
@@ -100,14 +96,12 @@
     <tbody>
         {% for gasto in gastos %}
         <tr>
-            <td>{{ gasto.concepto }}</td>
             <td>{{ gasto.descripcion }}</td>
             <td class="num">{{ gasto.monto }} Bs</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
-            <td></td>
             <td class="num"><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} Bs</strong></td>
         </tr>
     </tbody>

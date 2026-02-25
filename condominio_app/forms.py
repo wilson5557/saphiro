@@ -576,20 +576,22 @@ class BancosForm(forms.ModelForm):
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------
 class MovimientoForm(forms.ModelForm):
-  concepto_movimiento = forms.CharField(label="Concepto del ingreso", max_length=255)
-  descripcion_movimiento = forms.CharField(label="Descripción del movimiento bancario", widget=forms.Textarea)
+  descripcion_movimiento = forms.CharField(label="Descripción del movimiento", widget=forms.Textarea)
   referencia_movimiento = forms.CharField(label="Referencia del movimiento bancario", max_length=100, required=False)
   monto_movimiento = forms.DecimalField(label="Monto movimiento", max_digits=30, decimal_places=2, required=True)
   banco_emisor = forms.CharField(label="Banco donde se realiza el pago", max_length=255, required=False)
 
   class Meta:
     model = Movimientos_bancarios
-    fields = ('concepto_movimiento', 'descripcion_movimiento', 'referencia_movimiento', 'monto_movimiento')
+    fields = ('descripcion_movimiento', 'referencia_movimiento', 'monto_movimiento')
 
   def save(self, commit=True):
-    mov = super(MovimientoForm, self).save()
-    if mov:
-        return mov
+    mov = super(MovimientoForm, self).save(commit=False)
+    # Rellenar concepto desde descripción (evita redundancia en formulario y reportes)
+    mov.concepto_movimiento = (mov.descripcion_movimiento or '')[:255]
+    if commit:
+      mov.save()
+    return mov
 
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------

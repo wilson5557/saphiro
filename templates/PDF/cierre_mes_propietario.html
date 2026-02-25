@@ -25,12 +25,12 @@
 </table>
 <p style="font-size: 11px; font-weight: bold; margin-top: 20px;">DEUDAS</p>
 <table class="table-informe table-lista-simple">
-    <thead><tr><th>Fecha</th><th>Concepto</th><th>Descripción</th><th class="num">Monto</th><th>Inmueble</th></tr></thead>
+    <thead><tr><th>Fecha</th><th>Descripción</th><th class="num">Monto</th><th>Inmueble</th></tr></thead>
     <tbody>
         {% if deudas %}
         {% for deuda in deudas %}
         <tr>
-            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td><td>{{ deuda.concepto_deuda }}</td><td>{{ deuda.descripcion_deuda }}</td>
+            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td><td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
             <td class="num monto-usd">{{ deuda.monto_deuda|intcomma }}</td><td>{{ deuda.id_domicilio.nombre_domicilio }}</td>
         </tr>
         {% endfor %}

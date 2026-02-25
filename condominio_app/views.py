@@ -11,7 +11,7 @@ from django.http import HttpResponse, JsonResponse, Http404, HttpResponseRedirec
 import json
 from currency_converter import CurrencyConverter
 from django.utils.translation import template
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import View
 from django.core.files.base import ContentFile
@@ -22,6 +22,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -365,6 +366,32 @@ NOTICIAS_PER_PAGE = 3
 
 # ------------------------------PÁGINA DE INICIO------------------------------
 
+def _tipo_panel_usuario(user):
+    """
+    Una sola fuente de verdad para evitar bucles. Usa SOLO datos recién leídos de la BD.
+    - HEADADMIN: rol 0/1, sin condominio, is_superuser=True → 'superuser'
+    - ADMIN (ej. MUTOMBO): rol 0/1, con id_condominio → 'admin'
+    - Resto → 'propietario'
+    """
+    if not user or not getattr(user, 'is_authenticated', False):
+        return None
+    try:
+        u = Usuario.objects.select_related('id_rol').get(pk=user.pk)
+    except (Usuario.DoesNotExist, AttributeError):
+        return 'propietario'
+    tiene_condominio = u.id_condominio_id is not None
+    es_superuser = getattr(u, 'is_superuser', False)
+    rol_val = getattr(getattr(u, 'id_rol', None), 'rol', None)
+    es_rol_admin = rol_val is not None and str(rol_val) in ('0', '1')
+    if es_rol_admin:
+        if tiene_condominio:
+            return 'admin'
+        if es_superuser:
+            return 'superuser'
+        return 'admin'
+    return 'propietario'
+
+
 def iniciar_sesion(request):
     form = AccountAuthenticationForm(request.POST)
     username = request.POST.get('username', '').upper()
@@ -378,17 +405,18 @@ def iniciar_sesion(request):
 
     if user:
         login(request, user)
-        # Comparar por el campo 'rol' en lugar de id_rol_id para evitar conflictos
-        if user.id_rol and (user.id_rol.rol == '0' or user.id_rol.rol == '1'):
+        tipo = _tipo_panel_usuario(user)
+        if tipo == 'superuser':
+            return 'superuser'
+        if tipo == 'admin':
             return True
-        else:
-            return False
+        return False
     else:
         print("El usuario no se encuentra registrado en el sistema.")
         return None
 
+@ensure_csrf_cookie
 def home(request):
-
     alq = Alquiler.objects.all()
     alq_list = Alquiler.objects.all().order_by('-id_alquiler')  # Obtén todos los alquileres ordenados
     paginator = Paginator(alq_list, 10)  # Mostrar 10 alquileres por página
@@ -400,9 +428,11 @@ def home(request):
     if request.method == 'POST' and 'username' in request.POST:
         usuario = iniciar_sesion(request)
         
+        if usuario == 'superuser':
+            return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
         if usuario is True:
             return HttpResponseRedirect(reverse('condominio_app:home_admin'))
-        elif usuario is False:
+        if usuario is False:
             return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
         else:
             # Usuario no autenticado o credenciales incorrectas
@@ -413,6 +443,84 @@ def home(request):
         form = AccountAuthenticationForm()
 
     return render(request, 'visitante/home.html', {'login_form': form, 'alq':alq})
+
+
+@login_required
+def home_superuser(request):
+    """HEADADMIN: listar, crear y eliminar condominios. Solo si tipo es 'superuser' (sin condominio + is_superuser)."""
+    user = request.user
+    tipo = _tipo_panel_usuario(user)
+    if tipo != 'superuser':
+        if tipo == 'admin':
+            return HttpResponseRedirect(reverse('condominio_app:home_admin'))
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+
+    condominios = Condominio.objects.all().order_by('nombre_condominio')
+    # Rol de administrador: mismo que usan MUTOMBO, BIGBLACK y cualquier condominio
+    rol_admin = RolModel.objects.filter(rol='0').first() or RolModel.objects.filter(rol='1').first() or RolModel.objects.filter(id_rol__in=[0, 1]).first()
+
+    # POST: crear condominio + admin
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+        if accion == 'crear':
+            nombre = (request.POST.get('nombre_condominio') or '').strip()
+            rif = (request.POST.get('rif_condominio') or '').strip()
+            direccion = (request.POST.get('direccion_condominio') or '').strip()
+            email_condo = (request.POST.get('email_condominio') or '').strip()
+            codigo_tlf = (request.POST.get('codigo_tlf_1') or '0').strip()
+            tlf = (request.POST.get('tlf_1') or '-').strip()
+            admin_username = (request.POST.get('admin_username') or '').strip().upper()
+            admin_email = (request.POST.get('admin_email') or '').strip()
+            admin_password = request.POST.get('admin_password') or ''
+
+            if not nombre or not rif or not direccion:
+                messages.error(request, 'Nombre, RIF y dirección del condominio son obligatorios.', extra_tags='alert-danger')
+            elif not admin_username or not admin_email or not admin_password:
+                messages.error(request, 'Usuario, email y contraseña del administrador son obligatorios.', extra_tags='alert-danger')
+            elif Usuario.objects.filter(username=admin_username).exists():
+                messages.error(request, f'Ya existe un usuario con nombre "{admin_username}".', extra_tags='alert-danger')
+            else:
+                try:
+                    with transaction.atomic():
+                        # Si no existe rol admin en BD (ej. instalación nueva), crear uno para que todos los condominios funcionen igual
+                        if not rol_admin:
+                            rol_admin, _ = RolModel.objects.get_or_create(rol='0', defaults={'rol': '0'})
+                        condominio = Condominio.objects.create(
+                            nombre_condominio=nombre,
+                            rif_condominio=rif,
+                            direccion_condominio=direccion,
+                            email=admin_email if not email_condo else email_condo,
+                            codigo_tlf_1=codigo_tlf or '0',
+                            tlf_1=tlf or '-',
+                        )
+                        admin_user = Usuario.objects.create_user(
+                            username=admin_username,
+                            email=admin_email,
+                            password=admin_password,
+                        )
+                        admin_user.id_condominio = condominio
+                        admin_user.id_rol = rol_admin
+                        admin_user.save()
+                    messages.success(request, f'Condominio "{nombre}" y administrador "{admin_username}" creados correctamente.', extra_tags='alert-success')
+                except Exception as e:
+                    messages.error(request, f'Error al crear: {str(e)}', extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
+
+        if accion == 'eliminar':
+            pk = request.POST.get('id_condominio')
+            if pk:
+                try:
+                    with transaction.atomic():
+                        Usuario.objects.filter(id_condominio_id=pk).update(id_condominio=None)
+                        Condominio.objects.filter(pk=pk).delete()
+                    messages.success(request, 'Condominio eliminado.', extra_tags='alert-success')
+                except Exception as e:
+                    messages.error(request, f'No se pudo eliminar: {str(e)}', extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
+
+    return render(request, 'superuser/home_superuser.html', {
+        'condominios': condominios,
+    })
 
 
 @login_required
@@ -656,12 +764,11 @@ def noticia(request, slug):
 @login_required
 def home_propietarios(request):
     user = request.user
-    # Si el usuario es un administrador entonces se redirige al inicio del administrador
-    if user.id_rol and (user.id_rol.rol == '0' or user.id_rol.rol == '1'):
+    tipo = _tipo_panel_usuario(user)
+    if tipo == 'admin':
         return HttpResponseRedirect(reverse('condominio_app:home_admin'))
-    print("-----------------------------------------")
-    print(user.id)
-    print("-----------------------------------------")
+    if tipo == 'superuser':
+        return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
     propietarios = Propietario.objects.filter(id_usuario_id=user.id).first()
     if not propietarios:
         return HttpResponseRedirect(reverse('condominio_app:home_admin'))
@@ -1172,12 +1279,16 @@ def comprobar_tasa(request, today, fecha_actual, dia_semana, tasa_bolivares, tas
 @login_required
 def home_admin(request):
     user = request.user
-    # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
-        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+    try:
+        usuario = Usuario.objects.get(pk=user.pk)
+    except Usuario.DoesNotExist:
+        return HttpResponseRedirect(reverse('condominio_app:home'))
+    if usuario.id_condominio_id is None:
+        tipo = _tipo_panel_usuario(user)
+        if tipo == 'propietario':
+            return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
-    usuario = Usuario.objects.get(username=user)
-    condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
+    condominio = Condominio.objects.filter(id_condominio=usuario.id_condominio_id)
     primer_login = False if condominio.exists() else True
     ultima_tasa = Tasas.objects.last()
     today = timezone.now()
@@ -1221,11 +1332,15 @@ def home_admin(request):
 def admin_bancos(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
     ultima_tasa = Tasas.objects.all().last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio en Configuración antes de usar este módulo.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     banks = Bancos.objects.all().values()
     bancos_form = BancosForm()
     today = timezone.now()
@@ -1290,10 +1405,15 @@ def admin_bancos(request):
 def admin_gastos(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
+    ultima_tasa = Tasas.objects.all().last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio en Configuración antes de usar este módulo.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     gastos = Gastos.objects.filter(
         id_movimiento__id_banco__id_condominio_id=user.id_condominio_id
     ).select_related("id_movimiento__id_banco")
@@ -1325,7 +1445,6 @@ def admin_gastos(request):
     datos_transaccion_form = DatosMovimientoForm()
     gastos_form = GastosForm()
 
-    ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
     tasa_bs = ultima_tasa.tasa_BCV_USD
@@ -1376,7 +1495,7 @@ def admin_gastos(request):
                 return HttpResponseRedirect(reverse('condominio_app:admin_gastos'))
 
             dataBanco = {
-                'concepto_movimiento': request.POST['concepto_movimiento'].upper(),
+                'concepto_movimiento': (request.POST.get('descripcion_movimiento') or '')[:255],
                 'descripcion_movimiento': request.POST['descripcion_movimiento'],
                 'referencia_movimiento': request.POST['referencia_movimiento'],
                 'monto_movimiento': monto
@@ -1423,7 +1542,7 @@ def admin_gastos(request):
             else:
                 gasto.factura = None
 
-            gasto.concepto_movimiento = request.POST['concepto_movimiento'].upper()
+            gasto.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
             gasto.fecha_movimiento = request.POST['fecha_movimiento']
             gasto.tipo_gasto = request.POST['tipo_gasto']
             gasto.metodo_pago = request.POST['metodo_pago']
@@ -1445,7 +1564,7 @@ def admin_gastos(request):
                         dom = Domicilio.objects.get(id_domicilio=prop.id_domicilio)
 
                         deudas.fecha_deuda = request.POST['fecha_movimiento']
-                        deudas.cencepto_deuda = request.POST['concepto_movimiento']
+                        deudas.concepto_deuda = (request.POST.get('descripcion_movimiento') or '')[:255]
                         deudas.descripcion = request.POST['descripcion_movimiento'].upper()
                         deudas.tipo_deuda = 1
                         deudas.categoria_deuda = "CUOTA EXTRA"
@@ -1464,7 +1583,7 @@ def admin_gastos(request):
                     prop_individual = Domicilio.objects.get(id_domicilio=request.POST['prop_selected'])
 
                     deudas.fecha_deuda = request.POST['fecha_movimiento']
-                    deudas.cencepto_deuda = request.POST['concepto_movimiento']
+                    deudas.concepto_deuda = (request.POST.get('descripcion_movimiento') or '')[:255]
                     deudas.descripcion = request.POST['descripcion_gasto'].upper()
                     deudas.tipo_deuda = 1
                     deudas.categoria_deuda = "CUOTA EXTRA"
@@ -1524,10 +1643,15 @@ def admin_gastos(request):
 def admin_ingresos(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
+    ultima_tasa = Tasas.objects.all().last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio en Configuración antes de usar este módulo.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     ingresos = Ingresos.objects.filter(
         id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
         id_movimiento__estado_movimiento=0,
@@ -1576,7 +1700,6 @@ def admin_ingresos(request):
     datos_transaccion_form = DatosMovimientoForm()
     ingresos_form = IngresosForm()
     
-    ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
     tasa_bs = ultima_tasa.tasa_BCV_USD
@@ -1620,7 +1743,7 @@ def admin_ingresos(request):
             monto = Decimal(request.POST['monto_movimiento'])
 
             dataBanco = {
-                'concepto_movimiento': request.POST['concepto_movimiento'].upper(),
+                'concepto_movimiento': (request.POST.get('descripcion_movimiento') or '')[:255],
                 'descripcion_movimiento': request.POST['descripcion_movimiento'],
                 'referencia_movimiento': request.POST['referencia_movimiento'],
                 'monto_movimiento': monto
@@ -1669,7 +1792,7 @@ def admin_ingresos(request):
             else:
                 ingreso.factura = None
 
-            ingreso.concepto_movimiento = request.POST['concepto_movimiento'].upper()
+            ingreso.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
             ingreso.tipo_ingreso = request.POST['tipo_ingreso']
             ingreso.metodo_pago = request.POST['metodo_pago']
             ingreso.id_movimiento_id = mov_realizado.id_movimiento
@@ -1734,7 +1857,8 @@ def admin_ingresos(request):
 def admin_deudas(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -1778,6 +1902,9 @@ def admin_deudas(request):
     deudas_form = DeudasForm()
     deuda = Deudas()
     ultima_tasa = Tasas.objects.last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio en Configuración antes de usar este módulo.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
 
     tasa_bs = ultima_tasa.tasa_BCV_USD
@@ -1874,7 +2001,8 @@ def admin_deudas(request):
 @login_required
 def admin_deudas_caja(request):
     user = request.user
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -1978,7 +2106,7 @@ def admin_deudas_caja(request):
             credito_acumulado = ultimo_movimiento.credito_movimiento if (ultimo_movimiento and ultimo_movimiento.credito_movimiento) else Decimal('0')
 
             movimiento = Movimientos_bancarios.objects.create(
-                concepto_movimiento=(request.POST.get('concepto_movimiento') or 'PAGO DE DEUDAS').upper(),
+                concepto_movimiento=(request.POST.get('descripcion_movimiento') or 'PAGO DE DEUDAS')[:255],
                 descripcion_movimiento='PAGO DE DEUDAS EN CAJA',
                 referencia_movimiento=f"CAJA-{timezone.now().strftime('%Y%m%d%H%M%S')}",
                 monto_movimiento=monto_movimiento,
@@ -2140,7 +2268,8 @@ def recibo_total_deuda(request, id):
 def admin_fondos(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -2155,6 +2284,9 @@ def admin_fondos(request):
     datos_transaccion_form = DatosMovimientoForm()
 
     ultima_tasa = Tasas.objects.all().last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio en Configuración antes de usar este módulo.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
 
     tasa_bs = ultima_tasa.tasa_BCV_USD
@@ -2198,7 +2330,7 @@ def admin_fondos(request):
             monto = Decimal(request.POST['monto_movimiento'])
 
             dataBanco = {
-                'concepto_movimiento': request.POST['concepto_movimiento'].upper(),
+                'concepto_movimiento': (request.POST.get('descripcion_movimiento') or '')[:255],
                 'descripcion_movimiento': request.POST['descripcion_movimiento'],
                 'referencia_movimiento': request.POST['referencia_movimiento'],
                 'monto_movimiento': monto
@@ -2246,7 +2378,7 @@ def admin_fondos(request):
             else:
                 fondo.factura = None
 
-            fondo.concepto_movimiento = request.POST['concepto_movimiento'].upper()
+            fondo.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
             fondo.tipo_fondo = request.POST['tipo_fondo']
             fondo.metodo_pago = request.POST['metodo_pago']
             fondo.id_movimiento_id = mov_realizado.id_movimiento
@@ -2388,7 +2520,8 @@ def procesar_propietario_post(request):
 def admin_propietarios(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
@@ -2454,7 +2587,8 @@ def admin_propietarios(request):
 @login_required
 def admin_validacion_pagos(request):
     user = request.user
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
@@ -2718,7 +2852,8 @@ def admin_domicilios(request):
 def admin_abono_deudas(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     conf = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -2864,7 +2999,8 @@ def admin_abono_deudas(request, id):
 def admin_configuracion(request, type=''):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
@@ -2889,16 +3025,20 @@ def admin_configuracion(request, type=''):
     propietarios_form = PropietariosForm()
     user_form = RegistrationForm()
     ultima_tasa = Tasas.objects.last()
+    if not ultima_tasa and type != 'tasa':
+        messages.warning(request, 'Configure las tasas de cambio antes de usar otros módulos de Configuración.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
-
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    if ultima_tasa:
+        tasa_bs = ultima_tasa.tasa_BCV_USD
+        tasa_euro = ultima_tasa.tasa_BCV_EUR
+        tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
+                               today.strftime("%A"), tasa_bs, tasa_euro)
+        tasa_bs = tasas['tasa_BCV_USD']
+        tasa_euro = tasas['tasa_BCV_EUR']
+    else:
+        tasa_bs = 0
+        tasa_euro = 0
 
     if request.method == 'POST':
         if request.POST.get('form_origen') == 'configuracion_propietarios':
@@ -2955,13 +3095,10 @@ def admin_configuracion(request, type=''):
                 c, created = Condominio.objects.get_or_create(id_condominio=user.id_condominio_id, defaults=defaults_condominio)
 
                 if created:
-                    
-                    condo = Condominio.objects.first()
-                    usuario = Usuario.objects.get(id=user.id)
-                    
-                    usuario.id_condominio_id = condo.id_condominio
+                    # Mantener al usuario en su propio condominio (el recién creado c)
+                    usuario = Usuario.objects.get(pk=user.pk)
+                    usuario.id_condominio_id = c.id_condominio
                     usuario.save()
-                    
                     # Si es true entonces el objeto se creó
                     messages.success(request, '¡La configuración ha sido guardada de manera satisfactoria!',
                                      extra_tags='alert-success')
@@ -3019,7 +3156,8 @@ def admin_configuracion(request, type=''):
 def configuracion_recargos_descuentos(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     recargo_descuento = Recargos_y_Descuentos.objects.all()
@@ -3090,7 +3228,8 @@ def configuracion_recargos_descuentos(request):
 def configuracion_tasas_de_cambio(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
@@ -3135,7 +3274,8 @@ def configuracion_tasas_de_cambio(request):
 def configuracion_establecimiento_precios(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     precio = Precios.objects.all()
@@ -3192,7 +3332,8 @@ def configuracion_establecimiento_precios(request):
 def admin_cuentas(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -3294,7 +3435,8 @@ def _parse_fecha_reporte(value):
 def admin_reportes(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -3399,17 +3541,18 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Fecha', 'Referencia', 'Concepto', 'Monto', 'Moneda', 'Banco'])
+                    writer.writerow(['Fecha', 'Referencia', 'Descripción', 'Monto', 'Moneda', 'Banco'])
                     for gasto in data['gastos']:
                         moneda = 'BS'
                         for b in data['bancos']:
                             if gasto.id_movimiento.id_banco_id == b.id_banco:
                                 moneda = b.tipo_moneda
                                 break
+                        _desc = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
                         writer.writerow([
                             gasto.id_movimiento.fecha_movimiento,
                             gasto.id_movimiento.referencia_movimiento or '',
-                            gasto.id_movimiento.concepto_movimiento,
+                            _desc,
                             gasto.id_movimiento.monto_movimiento,
                             moneda,
                             gasto.id_movimiento.id_banco.nombre_banco if gasto.id_movimiento.id_banco else '',
@@ -3426,9 +3569,10 @@ def admin_reportes(request):
                             if gasto.id_movimiento.id_banco_id == b.id_banco:
                                 moneda = b.tipo_moneda
                                 break
+                        _desc = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
                         lines.append('{} | {} | {} | {} | {}'.format(
                             gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '-',
-                            gasto.id_movimiento.concepto_movimiento, gasto.id_movimiento.monto_movimiento, moneda))
+                            _desc, gasto.id_movimiento.monto_movimiento, moneda))
                     response = HttpResponse('\n'.join(lines), content_type='text/plain')
                     response['Content-Disposition'] = 'attachment; filename="reporte_gastos_{}_{}.txt"'.format(inicio, fin)
                     return response
@@ -3514,17 +3658,18 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Fecha', 'Referencia', 'Concepto', 'Monto', 'Moneda', 'Banco', 'Propietario'])
+                    writer.writerow(['Fecha', 'Referencia', 'Descripción', 'Monto', 'Moneda', 'Banco', 'Propietario'])
                     for ingreso in data['ingresos']:
                         moneda = 'BS'
                         for b in data['bancos']:
                             if ingreso.id_movimiento.id_banco_id == b.id_banco:
                                 moneda = b.tipo_moneda
                                 break
+                        _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
                         writer.writerow([
                             ingreso.id_movimiento.fecha_movimiento,
                             ingreso.id_movimiento.referencia_movimiento or '',
-                            ingreso.id_movimiento.concepto_movimiento,
+                            _desc,
                             ingreso.id_movimiento.monto_movimiento,
                             moneda,
                             ingreso.id_movimiento.id_banco.nombre_banco if ingreso.id_movimiento.id_banco else '',
@@ -3542,9 +3687,10 @@ def admin_reportes(request):
                             if ingreso.id_movimiento.id_banco_id == b.id_banco:
                                 moneda = b.tipo_moneda
                                 break
+                        _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
                         lines.append('{} | {} | {} | {} | {}'.format(
                             ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-',
-                            ingreso.id_movimiento.concepto_movimiento, ingreso.id_movimiento.monto_movimiento, moneda))
+                            _desc, ingreso.id_movimiento.monto_movimiento, moneda))
                     response = HttpResponse('\n'.join(lines), content_type='text/plain')
                     response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.txt"'.format(inicio, fin)
                     return response
@@ -3637,12 +3783,13 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Fecha', 'Referencia', 'Concepto', 'Debito', 'Credito', 'Emisor'])
+                    writer.writerow(['Fecha', 'Referencia', 'Descripción', 'Debito', 'Credito', 'Emisor'])
                     for mov in data['movimientos']:
+                        _d = (mov.descripcion_movimiento or mov.concepto_movimiento or '')
                         writer.writerow([
                             mov.fecha_movimiento,
                             mov.referencia_movimiento or '',
-                            mov.concepto_movimiento,
+                            _d,
                             mov.debito_movimiento or '',
                             mov.credito_movimiento or '',
                             mov.emisor or mov.banco_emisor or '',
@@ -3654,9 +3801,10 @@ def admin_reportes(request):
                 elif formato == 'TXT':
                     lines = ['Estado de cuenta - {}'.format(nombre_banco), 'Fecha inicio: {}'.format(inicio), 'Fecha fin: {}'.format(fin), '']
                     for mov in data['movimientos']:
+                        _d = (mov.descripcion_movimiento or mov.concepto_movimiento or '')
                         lines.append('{} | {} | {} | {} | {}'.format(
                             mov.fecha_movimiento, mov.referencia_movimiento or '-',
-                            mov.concepto_movimiento, mov.debito_movimiento or '', mov.credito_movimiento or ''))
+                            _d, mov.debito_movimiento or '', mov.credito_movimiento or ''))
                     response = HttpResponse('\n'.join(lines), content_type='text/plain')
                     response['Content-Disposition'] = 'attachment; filename="estado_de_cuenta_{}_{}_{}.txt"'.format(
                         nombre_banco.replace(' ', '_'), inicio, fin)
@@ -3724,20 +3872,24 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Tipo', 'Fecha', 'Referencia', 'Concepto', 'Descripcion', 'Monto'])
+                    writer.writerow(['Tipo', 'Fecha', 'Referencia', 'Descripción', 'Monto'])
                     for ingreso in data['ingresos']:
-                        writer.writerow(['INGRESO', ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '', ingreso.id_movimiento.concepto_movimiento, ingreso.id_movimiento.descripcion_movimiento or '', ingreso.id_movimiento.monto_movimiento])
+                        _d = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
+                        writer.writerow(['INGRESO', ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '', _d, ingreso.id_movimiento.monto_movimiento])
                     for gasto in data['gastos']:
-                        writer.writerow(['GASTO', gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '', gasto.id_movimiento.concepto_movimiento, gasto.id_movimiento.descripcion_movimiento or '', gasto.id_movimiento.monto_movimiento])
+                        _d = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
+                        writer.writerow(['GASTO', gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '', _d, gasto.id_movimiento.monto_movimiento])
                     response = HttpResponse(output.getvalue(), content_type='text/csv')
                     response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.csv"'.format(nom_archivo, inicio, fin)
                     return response
                 elif formato == 'TXT':
                     lines = ['Consulta de movimientos - {}'.format(nombre_banco), 'Desde {} hasta {}'.format(inicio, fin), '']
                     for ingreso in data['ingresos']:
-                        lines.append('INGRESO | {} | {} | {} | {}'.format(ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-', ingreso.id_movimiento.concepto_movimiento, ingreso.id_movimiento.monto_movimiento))
+                        _d = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
+                        lines.append('INGRESO | {} | {} | {} | {}'.format(ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-', _d, ingreso.id_movimiento.monto_movimiento))
                     for gasto in data['gastos']:
-                        lines.append('GASTO | {} | {} | {} | {}'.format(gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '-', gasto.id_movimiento.concepto_movimiento, gasto.id_movimiento.monto_movimiento))
+                        _d = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
+                        lines.append('GASTO | {} | {} | {} | {}'.format(gasto.id_movimiento.fecha_movimiento, gasto.id_movimiento.referencia_movimiento or '-', _d, gasto.id_movimiento.monto_movimiento))
                     response = HttpResponse('\n'.join(lines), content_type='text/plain')
                     response['Content-Disposition'] = 'attachment; filename="consulta_movimientos_{}_{}_{}.txt"'.format(nom_archivo, inicio, fin)
                     return response
@@ -3904,16 +4056,16 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Propietario', 'Domicilio', 'Concepto', 'Descripcion', 'Monto', 'Moneda', 'Fecha', 'Moroso'])
+                    writer.writerow(['Propietario', 'Domicilio', 'Descripción', 'Monto', 'Moneda', 'Fecha', 'Moroso'])
                     for deuda in deudas:
                         propietario_nombre = ''
                         if deuda.id_domicilio and deuda.id_domicilio.id_propietario:
                             propietario_nombre = deuda.id_domicilio.id_propietario.nombre_propietario
+                        _desc = (deuda.descripcion_deuda or deuda.concepto_deuda or '')
                         writer.writerow([
                             propietario_nombre,
                             deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
-                            deuda.concepto_deuda,
-                            deuda.descripcion_deuda,
+                            _desc,
                             deuda.monto_deuda,
                             deuda.tipo_moneda,
                             deuda.fecha_deuda,
@@ -3936,12 +4088,12 @@ def admin_reportes(request):
                         propietario_nombre = ''
                         if deuda.id_domicilio and deuda.id_domicilio.id_propietario:
                             propietario_nombre = deuda.id_domicilio.id_propietario.nombre_propietario
+                        _desc = (deuda.descripcion_deuda or deuda.concepto_deuda or '')
                         lines.append(
-                            '{} | {} | {} | {} | {} | {} | {} | {}'.format(
+                            '{} | {} | {} | {} | {} | {} | {}'.format(
                                 propietario_nombre,
                                 deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
-                                deuda.concepto_deuda,
-                                deuda.descripcion_deuda,
+                                _desc,
                                 deuda.monto_deuda,
                                 deuda.tipo_moneda,
                                 deuda.fecha_deuda,
@@ -4087,12 +4239,12 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Domicilio', 'Concepto', 'Descripcion', 'Monto', 'Moneda', 'Fecha', 'Estado'])
+                    writer.writerow(['Domicilio', 'Descripción', 'Monto', 'Moneda', 'Fecha', 'Estado'])
                     for deuda in deudas:
+                        _desc = (deuda.descripcion_deuda or deuda.concepto_deuda or '')
                         writer.writerow([
                             deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
-                            deuda.concepto_deuda,
-                            deuda.descripcion_deuda,
+                            _desc,
                             deuda.monto_deuda,
                             deuda.tipo_moneda,
                             deuda.fecha_deuda,
@@ -4116,13 +4268,14 @@ def admin_reportes(request):
                         '',
                     ]
                     for deuda in deudas:
+                        _desc = (deuda.descripcion_deuda or deuda.concepto_deuda or '')
                         lines.append(
                             '{} | {} | {} | {} | {} | {}'.format(
                                 deuda.id_domicilio.nombre_domicilio if deuda.id_domicilio else '',
-                                deuda.concepto_deuda,
-                                deuda.descripcion_deuda,
+                                _desc,
                                 deuda.monto_deuda,
                                 deuda.tipo_moneda,
+                                deuda.fecha_deuda,
                                 'Pendiente' if deuda.is_active else 'Pagada'
                             )
                         )
@@ -4197,10 +4350,11 @@ def admin_reportes(request):
             elif formato_inm == 'EXCEL':
                 output = io.StringIO()
                 writer = csv.writer(output)
-                writer.writerow(['Concepto', 'Descripcion', 'Monto', 'Moneda', 'Fecha', 'Estado'])
+                writer.writerow(['Descripción', 'Monto', 'Moneda', 'Fecha', 'Estado'])
                 for deuda in deudas_inm:
+                    _desc = (deuda.descripcion_deuda or deuda.concepto_deuda or '')
                     writer.writerow([
-                        deuda.concepto_deuda, deuda.descripcion_deuda, deuda.monto_deuda,
+                        _desc, deuda.monto_deuda,
                         deuda.tipo_moneda, deuda.fecha_deuda, 'Pendiente' if deuda.is_active else 'Pagada',
                     ])
                 response = HttpResponse(output.getvalue(), content_type='text/csv')
@@ -4216,8 +4370,9 @@ def admin_reportes(request):
                     '',
                 ]
                 for deuda in deudas_inm:
-                    lines.append('{} | {} | {} | {} | {} | {}'.format(
-                        deuda.concepto_deuda, deuda.descripcion_deuda, deuda.monto_deuda,
+                    _desc = (deuda.descripcion_deuda or deuda.concepto_deuda or '')
+                    lines.append('{} | {} | {} | {} | {}'.format(
+                        _desc, deuda.monto_deuda,
                         deuda.tipo_moneda, deuda.fecha_deuda, 'Pendiente' if deuda.is_active else 'Pagada'
                     ))
                 response = HttpResponse('\n'.join(lines), content_type='text/plain')
@@ -4268,12 +4423,16 @@ def admin_reportes(request):
 def admin_cierres(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
     datos_condominio = condominio.first()
     ultima_tasa = Tasas.objects.last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio antes de ver el cierre del mes.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     cierre_mes = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id)
     deudas = Deudas.objects.filter(
         is_active=True,
@@ -4399,37 +4558,17 @@ def admin_cierres(request):
         gastos_lista = []
         for gasto in resultado_gasto:
 
+            _desc = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
             if gasto.id_movimiento.tipo_moneda == "BS":
-                data_gasto = {
-                    'concepto': gasto.id_movimiento.concepto_movimiento,
-                    'descripcion': gasto.id_movimiento.descripcion_movimiento,
-                    'monto': gasto.id_movimiento.monto_movimiento
-                }
-
+                data_gasto = {'descripcion': _desc, 'monto': gasto.id_movimiento.monto_movimiento}
                 gastos_lista.append(data_gasto)
-
             elif gasto.id_movimiento.tipo_moneda == "USD":
-
-                monto_usd = Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs) 
-
-                data_gasto = {
-                    'concepto': gasto.id_movimiento.concepto_movimiento,
-                    'descripcion': gasto.id_movimiento.descripcion_movimiento,
-                    'monto': monto_usd
-                }
-
+                monto_usd = Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
+                data_gasto = {'descripcion': _desc, 'monto': monto_usd}
                 gastos_lista.append(data_gasto)
-
             elif gasto.id_movimiento.tipo_moneda == "EUR":
-
                 monto_eur = Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
-
-                data_gasto = {
-                    'concepto': gasto.id_movimiento.concepto_movimiento,
-                    'descripcion': gasto.id_movimiento.descripcion_movimiento,
-                    'monto': monto_eur
-                }
-
+                data_gasto = {'descripcion': _desc, 'monto': monto_eur}
                 gastos_lista.append(data_gasto)
 
         data['gastos'] = gastos_lista
@@ -4441,63 +4580,27 @@ def admin_cierres(request):
         ingresos_lista = []
         for ingreso in resultado_ingreso:
             
+            _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
             if ingreso.id_movimiento.tipo_moneda == "BS":
-                data_ingreso = {
-                    'concepto': ingreso.id_movimiento.concepto_movimiento,
-                    'descripcion': ingreso.id_movimiento.descripcion_movimiento,
-                    'monto': ingreso.id_movimiento.monto_movimiento
-                }
-
+                data_ingreso = {'descripcion': _desc, 'monto': ingreso.id_movimiento.monto_movimiento}
                 ingresos_lista.append(data_ingreso)
-
             elif ingreso.id_movimiento.tipo_moneda == "USD":
-
-                monto_usd = Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs) 
-
-                data_ingreso = {
-                    'concepto': ingreso.id_movimiento.concepto_movimiento,
-                    'descripcion': ingreso.id_movimiento.descripcion_movimiento,
-                    'monto': monto_usd
-                }
-
+                monto_usd = Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
+                data_ingreso = {'descripcion': _desc, 'monto': monto_usd}
                 ingresos_lista.append(data_ingreso)
-
             elif ingreso.id_movimiento.tipo_moneda == "EUR":
-
                 monto_eur = Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
-
-                data_ingreso = {
-                    'concepto': ingreso.id_movimiento.concepto_movimiento,
-                    'descripcion': ingreso.id_movimiento.descripcion_movimiento,
-                    'monto': monto_eur
-                }
-
+                data_ingreso = {'descripcion': _desc, 'monto': monto_eur}
                 ingresos_lista.append(data_ingreso)
 
         for mov_prop in movimientos_propietarios:
+            _desc = (mov_prop.descripcion_movimiento or mov_prop.concepto_movimiento or '')
             if mov_prop.tipo_moneda == "BS":
-                data_ingreso = {
-                    'concepto': mov_prop.concepto_movimiento,
-                    'descripcion': mov_prop.descripcion_movimiento,
-                    'monto': mov_prop.monto_movimiento
-                }
-                ingresos_lista.append(data_ingreso)
+                ingresos_lista.append({'descripcion': _desc, 'monto': mov_prop.monto_movimiento})
             elif mov_prop.tipo_moneda == "USD":
-                monto_usd = Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)
-                data_ingreso = {
-                    'concepto': mov_prop.concepto_movimiento,
-                    'descripcion': mov_prop.descripcion_movimiento,
-                    'monto': monto_usd
-                }
-                ingresos_lista.append(data_ingreso)
+                ingresos_lista.append({'descripcion': _desc, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)})
             elif mov_prop.tipo_moneda == "EUR":
-                monto_eur = Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)
-                data_ingreso = {
-                    'concepto': mov_prop.concepto_movimiento,
-                    'descripcion': mov_prop.descripcion_movimiento,
-                    'monto': monto_eur
-                }
-                ingresos_lista.append(data_ingreso)
+                ingresos_lista.append({'descripcion': _desc, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)})
 
         data['ingresos'] = ingresos_lista
         total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
@@ -4773,64 +4876,31 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
 
     gastos_lista = []
     for gasto in resultado_gasto:
+        _d = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
         if gasto.id_movimiento.tipo_moneda == "BS":
-            gastos_lista.append({
-                'concepto': gasto.id_movimiento.concepto_movimiento,
-                'descripcion': gasto.id_movimiento.descripcion_movimiento,
-                'monto': gasto.id_movimiento.monto_movimiento
-            })
+            gastos_lista.append({'descripcion': _d, 'monto': gasto.id_movimiento.monto_movimiento})
         elif gasto.id_movimiento.tipo_moneda == "USD":
-            gastos_lista.append({
-                'concepto': gasto.id_movimiento.concepto_movimiento,
-                'descripcion': gasto.id_movimiento.descripcion_movimiento,
-                'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
-            })
+            gastos_lista.append({'descripcion': _d, 'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs)})
         elif gasto.id_movimiento.tipo_moneda == "EUR":
-            gastos_lista.append({
-                'concepto': gasto.id_movimiento.concepto_movimiento,
-                'descripcion': gasto.id_movimiento.descripcion_movimiento,
-                'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
-            })
+            gastos_lista.append({'descripcion': _d, 'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_euro)})
 
     ingresos_lista = []
     for ingreso in resultado_ingreso:
+        _d = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
         if ingreso.id_movimiento.tipo_moneda == "BS":
-            ingresos_lista.append({
-                'concepto': ingreso.id_movimiento.concepto_movimiento,
-                'descripcion': ingreso.id_movimiento.descripcion_movimiento,
-                'monto': ingreso.id_movimiento.monto_movimiento
-            })
+            ingresos_lista.append({'descripcion': _d, 'monto': ingreso.id_movimiento.monto_movimiento})
         elif ingreso.id_movimiento.tipo_moneda == "USD":
-            ingresos_lista.append({
-                'concepto': ingreso.id_movimiento.concepto_movimiento,
-                'descripcion': ingreso.id_movimiento.descripcion_movimiento,
-                'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
-            })
+            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs)})
         elif ingreso.id_movimiento.tipo_moneda == "EUR":
-            ingresos_lista.append({
-                'concepto': ingreso.id_movimiento.concepto_movimiento,
-                'descripcion': ingreso.id_movimiento.descripcion_movimiento,
-                'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
-            })
+            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_euro)})
     for mov_prop in movimientos_propietarios:
+        _d = (mov_prop.descripcion_movimiento or mov_prop.concepto_movimiento or '')
         if mov_prop.tipo_moneda == "BS":
-            ingresos_lista.append({
-                'concepto': mov_prop.concepto_movimiento,
-                'descripcion': mov_prop.descripcion_movimiento,
-                'monto': mov_prop.monto_movimiento
-            })
+            ingresos_lista.append({'descripcion': _d, 'monto': mov_prop.monto_movimiento})
         elif mov_prop.tipo_moneda == "USD":
-            ingresos_lista.append({
-                'concepto': mov_prop.concepto_movimiento,
-                'descripcion': mov_prop.descripcion_movimiento,
-                'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)
-            })
+            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)})
         elif mov_prop.tipo_moneda == "EUR":
-            ingresos_lista.append({
-                'concepto': mov_prop.concepto_movimiento,
-                'descripcion': mov_prop.descripcion_movimiento,
-                'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)
-            })
+            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)})
 
     total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
     total_ingresos_usd = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
@@ -4903,7 +4973,8 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
 def precierre(request):
     """Vista previa del cierre del mes: mismos datos que el cierre pero sin ejecutarlo."""
     user = request.user
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
@@ -5065,13 +5136,17 @@ def cierre_propietario(request, prop, cierre, user):
 def admin_noticias(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
     post_form = CreateBlogPostForm(request.POST or None, request.FILES or None)
-    noticias = Noticia.objects.all().order_by('-fecha_actualizado')
+    noticias = Noticia.objects.filter(id_condominio_id=user.id_condominio_id).order_by('-fecha_actualizado')
     ultima_tasa = Tasas.objects.all().last()
+    if not ultima_tasa:
+        messages.warning(request, 'Configure las tasas de cambio en Configuración antes de usar este módulo.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
 
     tasa_bs = ultima_tasa.tasa_BCV_USD
@@ -5087,6 +5162,7 @@ def admin_noticias(request):
         if post_form.is_valid():
 
             obj = post_form.save(commit=False)
+            obj.id_condominio_id = user.id_condominio_id
             autor = Usuario.objects.filter(email=request.user.email).first()
             obj.autor = autor
             obj.save()
@@ -5109,7 +5185,8 @@ def admin_noticias(request):
 def admin_perfil(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     ultima_tasa = Tasas.objects.all().last()
@@ -5132,7 +5209,8 @@ def admin_perfil(request):
 def admin_torres(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5177,7 +5255,8 @@ def admin_torres(request):
 def readBancos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5210,7 +5289,8 @@ def readBancos(request, id):
 def readGastos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5241,7 +5321,8 @@ def readGastos(request, id):
 def readIngresos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5272,7 +5353,8 @@ def readIngresos(request, id):
 @login_required
 def readPagoMovimiento(request, id):
     user = request.user
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     mov = Movimientos_bancarios.objects.select_related('id_banco').filter(
@@ -5312,7 +5394,8 @@ def readPagoMovimiento(request, id):
 def readDeudas(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5347,7 +5430,8 @@ def readDeudas(request, id):
 def readPropDeudas(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5377,7 +5461,8 @@ def readPropDeudas(request, id):
 def readPropietarios(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5410,7 +5495,8 @@ def readPropietarios(request, id):
 def readCuentas(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5443,7 +5529,8 @@ def readCuentas(request, id):
 def updateBancos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5525,7 +5612,8 @@ def updateBancos(request, id):
 def updateGastos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5582,7 +5670,7 @@ def updateGastos(request, id):
                              extra_tags='alert-danger')
 
         else:
-            gastos.id_movimiento.concepto_movimiento = request.POST['concepto_movimiento']
+            gastos.id_movimiento.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
             gastos.id_movimiento.descripcion_movimiento = request.POST['descripcion_movimiento'].upper()
             gastos.id_movimiento.referencia_movimiento = request.POST['referencia']
             gastos.id_movimiento.fecha_movimiento = request.POST['fecha_movimiento']
@@ -5591,7 +5679,7 @@ def updateGastos(request, id):
             gastos.metodo_pago = request.POST['metodo_pago']
 
             if 'imgGasto' in request.FILES:
-                gastos.concepto_movimiento = request.POST['concepto_movimiento']
+                gastos.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
                 gastos.imagen_referencial = request.FILES['imgGasto']
 
             elif gastos.imagen_referencial:
@@ -5626,7 +5714,8 @@ def updateGastos(request, id):
 def updateIngresos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5662,7 +5751,7 @@ def updateIngresos(request, id):
                              extra_tags='alert-danger')
 
         else:
-            ingresos.id_movimiento.concepto_movimiento = request.POST['concepto_movimiento']
+            ingresos.id_movimiento.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
             ingresos.id_movimiento.descripcion_movimiento = request.POST['descripcion_movimiento'].upper()
             ingresos.id_movimiento.referencia_movimiento = request.POST['referencia']
             ingresos.id_movimiento.fecha_movimiento = request.POST['fecha_movimiento']
@@ -5671,7 +5760,7 @@ def updateIngresos(request, id):
             ingresos.metodo_pago = request.POST['metodo_pago']
 
             if 'imgIngreso' in request.FILES:
-                ingresos.concepto_movimiento = request.POST['concepto_movimiento']
+                ingresos.concepto_movimiento = (request.POST.get('descripcion_movimiento') or '')[:255]
                 ingresos.imagen_referencial = request.FILES['imgIngreso']
 
             elif ingresos.imagen_referencial:
@@ -5707,7 +5796,8 @@ def updateIngresos(request, id):
 def updatePropietarios(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     conf = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5860,7 +5950,8 @@ class DeudasUpdateView(UpdateView):
 def updateTorres(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     conf = Condominio.objects.get(id_condominio=user.id_condominio_id)
@@ -5897,7 +5988,8 @@ def updateTorres(request, id):
 def updateCuentas(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     conf = Condominio.objects.all()
@@ -5964,11 +6056,12 @@ def updateCuentas(request, id):
 def updateNoticia(request, slug):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
-    conf = Condominio.objects.all()
-    noticia = get_object_or_404(Noticia, slug=slug)
+    conf = Condominio.objects.filter(id_condominio=user.id_condominio_id)
+    noticia = get_object_or_404(Noticia, slug=slug, id_condominio_id=user.id_condominio_id)
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
@@ -6014,7 +6107,8 @@ def updateNoticia(request, slug):
 def destroyBancos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     bancos = Bancos.objects.get(id_banco=id)
@@ -6038,7 +6132,8 @@ def destroyBancos(request, id):
 def destroyGastos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     mov = Movimientos_bancarios.objects.select_related("id_banco").get(id_movimiento=id)
@@ -6071,7 +6166,8 @@ def destroyGastos(request, id):
 def destroyIngresos(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     mov = Movimientos_bancarios.objects.select_related("id_banco").get(id_movimiento=id)
@@ -6089,7 +6185,8 @@ def destroyIngresos(request, id):
 def destroyPropietarios(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     propietarios = Propietario.objects.get(id_propietario=id)
@@ -6122,7 +6219,8 @@ def destroyDeudas(request, id):
 def destroyCuenta(request, id):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     usuarios = Usuario.objects.get(id=id)
@@ -6238,10 +6336,11 @@ def domicilio_update(request):
 def destroyNoticia(request, slug):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
-    if user.id_rol and user.id_rol.rol in ['2', '3', '4', '5']:
+    # Solo redirigir a propietarios si tiene rol 2-5 y no está asignado como admin de un condominio
+    if user.id_rol and str(user.id_rol.rol) in ('2', '3', '4', '5') and user.id_condominio_id is None:
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
-    noticia = get_object_or_404(Noticia, slug=slug)
+    noticia = get_object_or_404(Noticia, slug=slug, id_condominio_id=user.id_condominio_id)
     noticia.delete()
 
     messages.success(request, '¡La noticia ha sido eliminado de manera satisfactoria!', extra_tags='alert-success')
@@ -6313,12 +6412,16 @@ def enviar_consulta(request):
 
 
 def redireccion_de_usuario(request):
+    """Redirige a su panel: HEADADMIN → home_superuser, ADMIN (condominio) → home_admin, resto → home_propietarios."""
     user = request.user
-    if user.is_authenticated:
-        if user.id_rol and (user.id_rol.rol == '0' or user.id_rol.rol == '1'):
-            return HttpResponseRedirect(reverse('condominio_app:home_admin'))
-        else:
-            return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+    if not user.is_authenticated:
+        return HttpResponseRedirect(reverse('condominio_app:home'))
+    tipo = _tipo_panel_usuario(user)
+    if tipo == 'superuser':
+        return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
+    if tipo == 'admin':
+        return HttpResponseRedirect(reverse('condominio_app:home_admin'))
+    return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
 @require_http_methods(['GET'])
 def obtener_pisos(request):

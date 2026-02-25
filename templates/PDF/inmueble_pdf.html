@@ -10,7 +10,6 @@
 <table class="table-informe table-lista-simple">
     <thead>
         <tr>
-            <th>Concepto</th>
             <th>Descripción</th>
             <th class="num">Monto</th>
             <th>Moneda</th>
@@ -21,8 +20,7 @@
     <tbody>
         {% for deuda in deudas %}
         <tr>
-            <td>{{ deuda.concepto_deuda }}</td>
-            <td>{{ deuda.descripcion_deuda }}</td>
+            <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
             <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
             <td>{{ deuda.tipo_moneda }}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>

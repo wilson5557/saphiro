@@ -23,8 +23,7 @@
 
       {% if movimiento %}
         <div class="row pt-3">
-          <p class="normal-font text-dark col-sm-6"><strong>Concepto:</strong> <span>{{ movimiento.concepto_movimiento }}</span></p>
-          <p class="normal-font text-dark col-sm-6"><strong>Descripción:</strong> <span>{{ movimiento.descripcion_movimiento }}</span></p>
+          <p class="normal-font text-dark col-sm-12"><strong>Descripción:</strong> <span>{{ movimiento.descripcion_movimiento|default:movimiento.concepto_movimiento }}</span></p>
         </div>
         <div class="row pt-3">
           <p class="normal-font text-dark col-sm-6"><strong>Fecha del pago:</strong> <span>{{ movimiento.fecha_movimiento|date:"l, d/m/Y" }}</span></p>

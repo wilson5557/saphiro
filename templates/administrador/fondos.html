@@ -131,16 +131,6 @@ class="col-lg-3 end-padding-left"
                 </div>
 
                 <div class="form-group row mt-4">
-                  <label for="{{ movimiento_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.concepto_movimiento.label }}:</label>
-                  <div class="col-sm-8">
-                    {% render_field movimiento_form.concepto_movimiento class="form-control text-dark" placeholder="Concepto del fondo" %}
-                    {% for error in movimiento_form.concepto_movimiento.errors %}
-                      <div class="alert alert-danger mt-2">{{ error }}</div>
-                    {% endfor %}
-                  </div>
-                </div>
-
-                <div class="form-group row">
                   <label for="{{ movimiento_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimiento_form.descripcion_movimiento.label }}:</label>
                   <div class="col-sm-8">
                     {% render_field movimiento_form.descripcion_movimiento class="form-control text-dark" placeholder="Descripción del fondo" rows="5" %}
@@ -280,7 +270,7 @@ class="col-lg-3 end-padding-left"
                     <tr>
                         <th scope="col">Fecha</th>
                         <th scope="col">Tipo</th>
-                        <th scope="col">Concepto</th>
+                        <th scope="col">Descripción</th>
                         <th scope="col">Monto</th>
                         <th scope="col">Banco</th>
                     </tr>
@@ -293,7 +283,7 @@ class="col-lg-3 end-padding-left"
                         <td class="centered-cell"> {{ fondo.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
                         {% endlanguage %}
                         <td class="centered-cell"> {{ fondo.tipo_fondo }}</td>
-                        <td class="centered-cell"> {{ fondo.id_movimiento.concepto_movimiento }}</td>
+                        <td class="centered-cell"> {{ fondo.id_movimiento.descripcion_movimiento }}</td>
                         <td class="centered-cell"> {{ fondo.id_movimiento.monto_movimiento }}</td>
                         <td class="centered-cell"> {{ fondo.id_movimiento.id_banco.nombre_banco }}</td>
                     </tr>

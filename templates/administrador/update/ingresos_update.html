@@ -41,19 +41,9 @@
           </div>
 
           <div class="form-group row mt-4">
-            <label for="{{ movimientos_form.concepto_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimientos_form.concepto_movimiento.label }}:</label>
+            <label for="{{ movimientos_form.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimientos_form.descripcion_movimiento.label }}:</label>
             <div class="col-sm-8">
-              {% render_field movimientos_form.concepto_movimiento class="form-control text-dark" placeholder="Concepto del gasto" value=ingresos.id_movimiento.concepto_movimiento %}
-              {% for error in movimientos_form.concepto_movimiento.errors %}
-                <div class="alert alert-danger mt-2">{{ error }}</div>
-              {% endfor %}
-            </div>
-          </div>
-
-          <div class="form-group row">
-            <label for="{{ gastos_form.id_movimiento.descripcion_movimiento.name }}" class="col-sm-3 col-form-label text-dark">{{ movimientos_form.descripcion_movimiento.label }}:</label>
-            <div class="col-sm-8">
-              {% render_field movimientos_form.descripcion_movimiento class="form-control text-dark" id=movimientos_form.descripcion_movimiento.name placeholder="Descripción del gasto" rows="5" %}
+              {% render_field movimientos_form.descripcion_movimiento class="form-control text-dark" id=movimientos_form.descripcion_movimiento.name placeholder="Descripción del ingreso" value=ingresos.id_movimiento.descripcion_movimiento rows="5" %}
               {% for error in movimientos_form.descripcion_movimiento.errors %}
                 <div class="alert alert-danger mt-2">{{ error }}</div>
               {% endfor %}
