@@ -321,6 +321,7 @@ class="col-lg-3 end-padding-left"
     $(document).ready(function() {
         var table = $('#TablaFondos').DataTable( {
           "processing": true,
+          "order": [[0, "desc"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",
@@ -344,6 +345,14 @@ class="col-lg-3 end-padding-left"
 
         $('#search_table').on( 'keyup', function () {
             table.search( this.value ).draw();
+        });
+
+        var filtroHtml = '<label class="d-inline-flex align-items-center mb-0 ml-3"><span class="mr-2">Ordenar fecha:</span>' +
+          '<select name="filtro_fecha_fondos" id="filtro_fecha_fondos" class="form-control form-control-sm" style="width: auto; min-width: 180px;" aria-controls="TablaFondos">' +
+            '<option value="desc">Más reciente primero</option><option value="asc">Más antigua primero</option></select></label>';
+        $('#TablaFondos_wrapper .dataTables_length').after(filtroHtml);
+        $(document).off('change', '#filtro_fecha_fondos').on('change', '#filtro_fecha_fondos', function() {
+          table.order([[0, $(this).val()]]).draw();
         });
     });
 </script>

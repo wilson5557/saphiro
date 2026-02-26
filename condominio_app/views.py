@@ -369,7 +369,7 @@ NOTICIAS_PER_PAGE = 3
 def _tipo_panel_usuario(user):
     """
     Una sola fuente de verdad para evitar bucles. Usa SOLO datos recién leídos de la BD.
-    - HEADADMIN: rol 0/1, sin condominio, is_superuser=True → 'superuser'
+    - Cualquier is_superuser=True → 'superuser' (evita bucles con HEADADMIN)
     - ADMIN (ej. MUTOMBO): rol 0/1, con id_condominio → 'admin'
     - Resto → 'propietario'
     """
@@ -379,15 +379,15 @@ def _tipo_panel_usuario(user):
         u = Usuario.objects.select_related('id_rol').get(pk=user.pk)
     except (Usuario.DoesNotExist, AttributeError):
         return 'propietario'
+    # Primero: cualquier superuser va al panel superuser (evita bucles HEADADMIN → propietarios)
+    if getattr(u, 'is_superuser', False):
+        return 'superuser'
     tiene_condominio = u.id_condominio_id is not None
-    es_superuser = getattr(u, 'is_superuser', False)
     rol_val = getattr(getattr(u, 'id_rol', None), 'rol', None)
     es_rol_admin = rol_val is not None and str(rol_val) in ('0', '1')
     if es_rol_admin:
         if tiene_condominio:
             return 'admin'
-        if es_superuser:
-            return 'superuser'
         return 'admin'
     return 'propietario'
 
@@ -447,9 +447,13 @@ def home(request):
 
 @login_required
 def home_superuser(request):
-    """HEADADMIN: listar, crear y eliminar condominios. Solo si tipo es 'superuser' (sin condominio + is_superuser)."""
+    """HEADADMIN: listar, crear y eliminar condominios. Solo si tipo es 'superuser' (is_superuser)."""
     user = request.user
-    tipo = _tipo_panel_usuario(user)
+    # Evitar bucle: si es superuser sin condominio, no redirigir nunca a propietarios
+    if getattr(user, 'is_superuser', False) and getattr(user, 'id_condominio_id', None) is None:
+        tipo = 'superuser'
+    else:
+        tipo = _tipo_panel_usuario(user)
     if tipo != 'superuser':
         if tipo == 'admin':
             return HttpResponseRedirect(reverse('condominio_app:home_admin'))
@@ -1285,6 +1289,8 @@ def home_admin(request):
         return HttpResponseRedirect(reverse('condominio_app:home'))
     if usuario.id_condominio_id is None:
         tipo = _tipo_panel_usuario(user)
+        if tipo == 'superuser':
+            return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
         if tipo == 'propietario':
             return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 

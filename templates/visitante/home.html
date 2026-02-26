@@ -7,6 +7,14 @@
 Esparta Suites - Inicio
 {% endblock title_page %}
 
+{% block extra_head %}
+<style>
+  .slider_bg_1 { background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("{% static 'img/banner/4969776456175127522.jpg' %}"); background-size: cover; background-repeat: no-repeat; }
+  .slider_bg_2 { background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url("{% static 'img/banner/4969776456175127520.jpg' %}"); background-size: cover; background-repeat: no-repeat; }
+  .slider_bg_3 { background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url("{% static 'img/banner/4969776456175127521.jpg' %}"); background-size: cover; background-repeat: no-repeat; }
+</style>
+{% endblock %}
+
 {% block home_active %}
 class="active"
 {% endblock home_active %}
@@ -32,22 +40,30 @@ class="active"
             <div class="container">
                 <div class="row">
                     <div class="col-xl-12">
-                        <div class="slider_text text-center p-5 rounded"style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
-                            <h3>C.C. Ciudad Chinita</h3>
-                            <!-- <p class="text-light">[Eslogan]</p> -->
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>Costa Brava Suites</h3>
                         </div>
                     </div>
                 </div>
             </div>
-         </div>
-         <div class="single_slider  d-flex align-items-center justify-content-center slider_bg_2">
+        </div>
+        <div class="single_slider d-flex align-items-center justify-content-center slider_bg_2">
             <div class="container">
                 <div class="row">
                     <div class="col-xl-12">
-                        <div class="slider_text text-center p-5 rounded"
-                             style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
-                            <h3>Saphiro Condominio Web</h3>
-                            <p>Inverdata Software and Technology C.A.</p>
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>Costa Brava Suites</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="single_slider d-flex align-items-center justify-content-center slider_bg_3">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>Costa Brava Suites</h3>
                         </div>
                     </div>
                 </div>

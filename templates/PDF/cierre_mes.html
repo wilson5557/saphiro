@@ -6,6 +6,14 @@
 {% block titulo_informe %}CIERRE DEL MES DE {{ mes_cierre }} DE {{ año_cierre }}{% endblock %}
 
 {% block contenido_pdf %}
+<style>
+    /* Tablas INGRESOS y GASTOS: una sola columna Descripción + TOTAL Bs. Sin cortar "Descripción" y sin espacio feo */
+    .tabla-cierre-desc-monto { table-layout: fixed; width: 100%; }
+    .tabla-cierre-desc-monto thead th:first-child,
+    .tabla-cierre-desc-monto tbody td:first-child { width: 72%; word-wrap: break-word; }
+    .tabla-cierre-desc-monto thead th.num,
+    .tabla-cierre-desc-monto tbody td.num { width: 28%; }
+</style>
 <table class="table-informe" style="margin-top: 10px;">
     <thead>
         <tr>
@@ -59,7 +67,7 @@
 
 {% if ingresos %}
 <p class="mt-5" style="font-weight: bold; font-size: 12px;">INGRESOS</p>
-<table class="table-informe table-lista-simple">
+<table class="table-informe table-lista-simple tabla-cierre-desc-monto">
     <thead>
         <tr>
             <th>Descripción</th>
@@ -86,7 +94,7 @@
 
 {% if gastos %}
 <p class="mt-5" style="font-weight: bold; font-size: 12px;">GASTOS</p>
-<table class="table-informe table-lista-simple">
+<table class="table-informe table-lista-simple tabla-cierre-desc-monto">
     <thead>
         <tr>
             <th>Descripción</th>

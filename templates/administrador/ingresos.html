@@ -403,7 +403,7 @@ class="col-lg-3 end-padding-left"
     $(document).ready(function() {
         var table = $('#TablaIngresos').DataTable( {
           "processing": true,
-          "order": [[5, "desc"]],
+          "order": [[4, "desc"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",
@@ -432,6 +432,18 @@ class="col-lg-3 end-padding-left"
 
         $('#search_table').on( 'keyup', function () {
             table.search( this.value ).draw();
+        });
+
+        // Insertar filtro "Ordenar fecha" en la misma barra que "Mostrar X filas" de DataTables
+        var filtroHtml = '<label class="d-inline-flex align-items-center mb-0 ml-3">' +
+          '<span class="mr-2">Ordenar fecha:</span>' +
+          '<select name="filtro_fecha_ingresos" id="filtro_fecha_ingresos" class="form-control form-control-sm" style="width: auto; min-width: 180px;" aria-controls="TablaIngresos">' +
+            '<option value="desc">Más reciente primero</option>' +
+            '<option value="asc">Más antigua primero</option>' +
+          '</select></label>';
+        $('#TablaIngresos_wrapper .dataTables_length').after(filtroHtml);
+        $(document).off('change', '#filtro_fecha_ingresos').on('change', '#filtro_fecha_ingresos', function() {
+          table.order([[4, $(this).val()]]).draw();
         });
     });
 </script>

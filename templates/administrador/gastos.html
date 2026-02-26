@@ -441,6 +441,14 @@
         $('#search_table').on( 'keyup', function () {
             table.search( this.value ).draw();
         });
+
+        var filtroHtml = '<label class="d-inline-flex align-items-center mb-0 ml-3"><span class="mr-2">Ordenar fecha:</span>' +
+          '<select name="filtro_fecha_gastos" id="filtro_fecha_gastos" class="form-control form-control-sm" style="width: auto; min-width: 180px;" aria-controls="TablaGastos">' +
+            '<option value="desc">Más reciente primero</option><option value="asc">Más antigua primero</option></select></label>';
+        $('#TablaGastos_wrapper .dataTables_length').after(filtroHtml);
+        $(document).off('change', '#filtro_fecha_gastos').on('change', '#filtro_fecha_gastos', function() {
+          table.order([[4, $(this).val()]]).draw();
+        });
     });
 </script>
 

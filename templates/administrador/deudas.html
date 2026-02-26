@@ -578,6 +578,7 @@
 
         var table2 = $('#TablaDeudas').DataTable( {
           "processing": true,
+          "order": [[3, "desc"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",
@@ -606,6 +607,14 @@
 
         $('#search_table2').on( 'keyup', function () {
             table2.search( this.value ).draw();
+        });
+
+        var filtroHtml2 = '<label class="d-inline-flex align-items-center mb-0 ml-3"><span class="mr-2">Ordenar fecha:</span>' +
+          '<select name="filtro_fecha_deudas" id="filtro_fecha_deudas" class="form-control form-control-sm" style="width: auto; min-width: 180px;" aria-controls="TablaDeudas">' +
+            '<option value="desc">Más reciente primero</option><option value="asc">Más antigua primero</option></select></label>';
+        $('#TablaDeudas_wrapper .dataTables_length').after(filtroHtml2);
+        $(document).off('change', '#filtro_fecha_deudas').on('change', '#filtro_fecha_deudas', function() {
+          table2.order([[3, $(this).val()]]).draw();
         });
     });
 </script>
