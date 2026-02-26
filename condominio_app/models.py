@@ -90,6 +90,13 @@ class Rol(models.Model):
         verbose_name_plural = 'Roles'
 
 
+def _banner_upload_to(instance, filename):
+    """Guarda banners en media/condominios/<id>/banners/; no se usan carpetas en static por condominio."""
+    if instance.pk:
+        return 'condominios/{}/banners/{}'.format(instance.id_condominio, filename)
+    return 'condominios/banners/{}'.format(filename)
+
+
 # CONFIGURACION DEL SISTEMA E IDENTIDAD DEL CONDOMINIO
 class Condominio(models.Model):
     id_condominio = models.AutoField(primary_key=True)
@@ -113,6 +120,12 @@ class Condominio(models.Model):
         blank=True,
         help_text="Opcional. Si se define, las alícuotas se calculan como (m² del inmueble / este total)."
     )
+
+    # Banners de la pantalla de inicio del condominio (opcional; si no hay, se usan estáticos por defecto)
+    # Se guardan en media/condominios/<id_condominio>/banners/ — no hace falta crear carpetas en static por condominio
+    banner_1 = models.ImageField(verbose_name="Banner 1 inicio", upload_to=_banner_upload_to, blank=True, null=True)
+    banner_2 = models.ImageField(verbose_name="Banner 2 inicio", upload_to=_banner_upload_to, blank=True, null=True)
+    banner_3 = models.ImageField(verbose_name="Banner 3 inicio", upload_to=_banner_upload_to, blank=True, null=True)
 
     # TIMESTAMPS
     created_at = models.DateTimeField(auto_now_add=True, null=True)

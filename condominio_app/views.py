@@ -417,32 +417,66 @@ def iniciar_sesion(request):
 
 @ensure_csrf_cookie
 def home(request):
-    alq = Alquiler.objects.all()
-    alq_list = Alquiler.objects.all().order_by('-id_alquiler')  # Obtén todos los alquileres ordenados
-    paginator = Paginator(alq_list, 10)  # Mostrar 10 alquileres por página
+    """Página inicial: solo login. Si ya está autenticado, redirige a su panel o al inicio de su condominio."""
+    if request.user.is_authenticated:
+        tipo = _tipo_panel_usuario(request.user)
+        if tipo == 'superuser':
+            return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
+        if tipo == 'admin' or tipo == 'propietario':
+            return HttpResponseRedirect(reverse('condominio_app:inicio_condominio'))
 
-    page_number = request.GET.get('page')  # Obtén el número de página de la solicitud
-    alq = paginator.get_page(page_number)  # Obtén la página actual
-
-    # INICIO DE SESIÓN
     if request.method == 'POST' and 'username' in request.POST:
         usuario = iniciar_sesion(request)
-        
         if usuario == 'superuser':
             return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
         if usuario is True:
-            return HttpResponseRedirect(reverse('condominio_app:home_admin'))
+            return HttpResponseRedirect(reverse('condominio_app:inicio_condominio'))
         if usuario is False:
-            return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
-        else:
-            # Usuario no autenticado o credenciales incorrectas
-            messages.error(request, 'Usuario y/o contraseña incorrecta. Verifique e intente de nuevo.',
-                          extra_tags='alert-danger')
-            form = AccountAuthenticationForm()
-    else:
-        form = AccountAuthenticationForm()
+            return HttpResponseRedirect(reverse('condominio_app:inicio_condominio'))
+        messages.error(request, 'Usuario y/o contraseña incorrecta. Verifique e intente de nuevo.',
+                      extra_tags='alert-danger')
 
-    return render(request, 'visitante/home.html', {'login_form': form, 'alq':alq})
+    return render(request, 'visitante/login.html')
+
+
+@login_required
+def inicio_condominio(request):
+    """Pantalla de inicio del condominio (banners y nombre). Tras login, admin y propietario ven la de su condominio."""
+    user = request.user
+    tipo = _tipo_panel_usuario(user)
+    if tipo == 'superuser':
+        return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
+
+    condominio = None
+    if tipo == 'admin':
+        condominio = getattr(user, 'id_condominio', None)
+    else:
+        # Propietario no tiene id_condominio; se obtiene del primer Domicilio
+        prop = Propietario.objects.filter(id_usuario_id=user.pk).first()
+        if prop:
+            dom = Domicilio.objects.filter(id_propietario_id=prop.id_propietario).select_related('id_condominio').first()
+            if dom:
+                condominio = dom.id_condominio
+
+    if not condominio:
+        if tipo == 'propietario':
+            return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+        return HttpResponseRedirect(reverse('condominio_app:home'))
+
+    from django.contrib.staticfiles.storage import staticfiles_storage
+    b1 = condominio.banner_1.url if condominio.banner_1 else staticfiles_storage.url('img/banner/banner.png')
+    b2 = condominio.banner_2.url if condominio.banner_2 else staticfiles_storage.url('img/banner/banner2.png')
+    b3 = condominio.banner_3.url if condominio.banner_3 else staticfiles_storage.url('img/banner/banner3.png')
+    b4 = staticfiles_storage.url('img/banner/banner4.png')
+
+    return render(request, 'visitante/inicio_condominio.html', {
+        'condominio': condominio,
+        'tipo_usuario': tipo,
+        'banner_1_url': b1,
+        'banner_2_url': b2,
+        'banner_3_url': b3,
+        'banner_4_url': b4,
+    })
 
 
 @login_required
@@ -6418,15 +6452,15 @@ def enviar_consulta(request):
 
 
 def redireccion_de_usuario(request):
-    """Redirige a su panel: HEADADMIN → home_superuser, ADMIN (condominio) → home_admin, resto → home_propietarios."""
+    """Redirige: HEADADMIN → home_superuser; admin/propietario → inicio_condominio (inicio de su condominio)."""
     user = request.user
     if not user.is_authenticated:
         return HttpResponseRedirect(reverse('condominio_app:home'))
     tipo = _tipo_panel_usuario(user)
     if tipo == 'superuser':
         return HttpResponseRedirect(reverse('condominio_app:home_superuser'))
-    if tipo == 'admin':
-        return HttpResponseRedirect(reverse('condominio_app:home_admin'))
+    if tipo in ('admin', 'propietario'):
+        return HttpResponseRedirect(reverse('condominio_app:inicio_condominio'))
     return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
 @require_http_methods(['GET'])

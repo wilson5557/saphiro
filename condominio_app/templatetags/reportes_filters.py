@@ -8,24 +8,22 @@ register = template.Library()
 
 @register.simple_tag
 def url_panel_usuario(user):
-    """Enlace del menú: con condominio → /home/administrador/; HEADADMIN (sin condominio + superuser) → superuser; resto → propietarios."""
+    """Enlace del menú: HEADADMIN → superuser; admin (condominio) → home_admin; propietario → home_propietarios."""
     if not user or not getattr(user, 'is_authenticated', False):
         return reverse('condominio_app:home')
     try:
         from condominio_app.models import Usuario
-        # Una sola consulta mínima: solo condominio y superuser (evita errores de rol)
-        row = Usuario.objects.filter(pk=user.pk).values('id_condominio_id', 'is_superuser').first()
-        if not row:
-            return reverse('condominio_app:home_propietarios')
-        # Quien tiene condominio es ADMIN de condominio → siempre panel admin (no propietarios)
-        if row.get('id_condominio_id') is not None:
-            return reverse('condominio_app:home_admin')
-        if row.get('is_superuser'):
+        u = Usuario.objects.select_related('id_rol').filter(pk=user.pk).first()
+        if not u:
+            return reverse('condominio_app:home')
+        if getattr(u, 'is_superuser', False) and getattr(u, 'id_condominio_id', None) is None:
             return reverse('condominio_app:home_superuser')
-        # Sin condominio y no superuser: puede ser admin sin asignar o propietario; envía a admin por defecto si hay duda
+        rol_val = getattr(getattr(u, 'id_rol', None), 'rol', None)
+        if rol_val is not None and str(rol_val) in ('0', '1') and u.id_condominio_id is not None:
+            return reverse('condominio_app:home_admin')
         return reverse('condominio_app:home_propietarios')
     except Exception:
-        return reverse('condominio_app:home_propietarios')
+        return reverse('condominio_app:home')
 
 
 @register.filter

@@ -868,15 +868,15 @@ h3 {
   background-size: cover;
 }
 .slider_bg_4 {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url("../img/banner/bradcam.png");
+  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url("../img/banner/banner.png");
   background-size: cover;
 }
 .slider_bg_5 {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url("../img/banner/bradcam2.png");
+  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url("../img/banner/banner2.png");
   background-size: cover;
 }
 .slider_bg_6 {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url("../img/banner/bradcam3.png");
+  background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url("../img/banner/banner3.png");
   background-size: cover;
 }
 /*.slider_bg_3 {
@@ -1003,7 +1003,7 @@ h3 {
   margin-left: 10px;
 }
 .about_bg_1 {
-  background-image: url(../img/banner/about_banner.png);
+  background-image: url(../img/banner/banner.png);
 }
 .about_info_area {
   padding-left: 387px;
@@ -1787,13 +1787,13 @@ h3 {
   color: #bc2a8d;
 }
 .breadcam_bg {
-  background-image: url(../img/banner/bradcam.png);
+  background-image: url(../img/banner/banner.png);
 }
 .breadcam_bg_1 {
   background-image: url(../img-aptos/apto8-1.jpg);
 }
 .breadcam_bg_2 {
-  background-image: url(../img/banner/bradcam3.png);
+  background-image: url(../img/banner/banner3.png);
 }
 .breadcam_bg_3 {
   background-image: url(../img/banner/banner.png);

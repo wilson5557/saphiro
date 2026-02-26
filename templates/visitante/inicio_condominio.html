@@ -1,0 +1,98 @@
+{% extends "layouts/base-layout.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title_page %}{{ condominio.nombre_condominio }} - Inicio{% endblock title_page %}
+
+{% block extra_head %}
+<style>
+  .inicio_slider_bg_1 { background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url("{{ banner_1_url }}"); background-size: cover; background-repeat: no-repeat; }
+  .inicio_slider_bg_2 { background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url("{{ banner_2_url }}"); background-size: cover; background-repeat: no-repeat; }
+  .inicio_slider_bg_3 { background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url("{{ banner_3_url }}"); background-size: cover; background-repeat: no-repeat; }
+  .inicio_slider_bg_4 { background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url("{{ banner_4_url }}"); background-size: cover; background-repeat: no-repeat; }
+</style>
+{% endblock %}
+
+{% block home_active %}class="active"{% endblock home_active %}
+
+{% block body_block %}
+
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="slider_area">
+    <div class="slider_active owl-carousel">
+        <div class="single_slider d-flex align-items-center justify-content-center inicio_slider_bg_1">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>{{ condominio.nombre_condominio }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="single_slider d-flex align-items-center justify-content-center inicio_slider_bg_2">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>{{ condominio.nombre_condominio }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="single_slider d-flex align-items-center justify-content-center inicio_slider_bg_3">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>{{ condominio.nombre_condominio }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="single_slider d-flex align-items-center justify-content-center inicio_slider_bg_4">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="slider_text text-center p-5 rounded" style="width: 100%; background-color: rgba(0, 0, 0, 0.2);">
+                            <h3>{{ condominio.nombre_condominio }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row mensaje-bienvenida">
+        <div class="col-sm-12 col-12 content_mensaje">
+            <h1 class="col-12 sub-mensaje-header">¡Bienvenido!</h1>
+            <p class="sub-mensaje">Bienvenido a {{ condominio.nombre_condominio }}. Acceda a su panel desde los enlaces siguientes.</p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            {% if tipo_usuario == 'admin' %}
+            <a href="{% url 'condominio_app:home_admin' %}" class="btn btn-primary btn-lg">Panel de administración</a>
+            {% elif tipo_usuario == 'propietario' %}
+            <a href="{% url 'condominio_app:home_propietarios' %}" class="btn btn-primary btn-lg">Mis pagos y recibos</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock body_block %}

@@ -94,7 +94,7 @@
 	                    <li>
 	                    	{% if request.user.is_authenticated %}
 													<a class="btn-session" href="{% url_panel_usuario request.user %}">{{ request.user.username }}</a>
-												{% else %}
+												{% elif request.resolver_match.url_name != 'home' %}
 													<a class="btn-session popup-with-form" href="#test-form">Iniciar sesión</a>
 												{% endif %}
 											</li>
@@ -140,7 +140,7 @@
 												<li>
 													{% if request.user.is_authenticated %}
 														<a class="" href="{% url_panel_usuario request.user %}">{{ request.user.username }}</a>
-													{% else %}
+													{% elif request.resolver_match.url_name != 'home' %}
 														<a class="popup-with-form" href="#test-form">Iniciar Sesión</a>
 													{% endif %}
 												</li>

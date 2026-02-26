@@ -32,6 +32,7 @@ urlpatterns = [
     path('deudas_list/', views.deudas_list, name='deudas_list'),
     # Vistas de usuario
     path('', views.home, name='home'),
+    path('inicio/', views.inicio_condominio, name='inicio_condominio'),
     #path('', RedirectView.as_view(url='home/', permanent=False)),
     path('check-static/', views.check_static, name='check_static'),
     path('check-settings/', views.check_settings, name='check_settings'),

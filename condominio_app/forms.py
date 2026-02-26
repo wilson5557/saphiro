@@ -931,7 +931,7 @@ class CondominioForm(forms.ModelForm):
 
   class Meta:
     model = Condominio
-    fields = ('nombre_condominio', 'rif_condominio', 'codigo_tlf_1', 'tlf_1', 'codigo_tlf_2', 'tlf_2', 'direccion_condominio', 'email', 'saldo_edificio', 'saldo_edificio_usd', 'saldo_edificio_eur', 'tipo_condominio')
+    fields = ('nombre_condominio', 'rif_condominio', 'codigo_tlf_1', 'tlf_1', 'codigo_tlf_2', 'tlf_2', 'direccion_condominio', 'email', 'saldo_edificio', 'saldo_edificio_usd', 'saldo_edificio_eur', 'tipo_condominio', 'banner_1', 'banner_2', 'banner_3')
 
   def clean_rif(self):
     rif = self.cleaned_data.get('rif')
