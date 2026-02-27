@@ -6251,10 +6251,31 @@ def destroyIngresos(request, id):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     mov = Movimientos_bancarios.objects.select_related("id_banco").get(id_movimiento=id)
+    banco = mov.id_banco
+    monto = mov.monto_movimiento or Decimal('0')
 
-    mov.id_banco.saldo_actual -= mov.monto_movimiento
-    mov.id_banco.creditos_banco -= mov.monto_movimiento
-    mov.id_banco.save()
+    # Actualizar banco: revertir crédito
+    banco.saldo_actual = (banco.saldo_actual or Decimal('0')) - monto
+    banco.creditos_banco = (banco.creditos_banco or Decimal('0')) - monto
+    banco.save()
+
+    # Actualizar fondos del condominio (saldo_edificio) para mantener coherencia con el banco.
+    # "Saldo de Apertura" no se suma al condominio al crear el banco, por tanto no se resta aquí.
+    if banco.id_condominio_id and (mov.descripcion_movimiento or '') != 'Saldo de Apertura':
+        condominio = Condominio.objects.get(pk=banco.id_condominio_id)
+        ultima_tasa = Tasas.objects.all().last()
+        tasa_bs = Decimal(str(ultima_tasa.tasa_BCV_USD)) if ultima_tasa and ultima_tasa.tasa_BCV_USD else Decimal('0')
+        tasa_euro = Decimal(str(ultima_tasa.tasa_BCV_EUR)) if ultima_tasa and ultima_tasa.tasa_BCV_EUR else Decimal('0')
+        if banco.tipo_moneda == 'BS':
+            condominio.saldo_edificio = (condominio.saldo_edificio or Decimal('0')) - monto
+        elif banco.tipo_moneda == 'USD':
+            usd_cambio = tasa_bs * monto
+            condominio.saldo_edificio_usd = (condominio.saldo_edificio_usd or Decimal('0')) - usd_cambio
+        elif banco.tipo_moneda == 'EUR':
+            eur_cambio = tasa_euro * monto
+            condominio.saldo_edificio_eur = (condominio.saldo_edificio_eur or Decimal('0')) - eur_cambio
+        condominio.save()
+
     mov.delete()
 
     messages.success(request, '¡El ingreso ha sido eliminado de manera satisfactoria!', extra_tags='alert-success')
