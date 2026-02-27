@@ -134,16 +134,6 @@
                 </div>
             </div>
 
-            <div class="form-group row mt-4">
-            <label for="{{ deudas_form.concepto_deuda.name }}" class="col-sm-3 col-form-label text-dark">{{ deudas_form.concepto_deuda.label }}:</label>
-            <div class="col-sm-8">
-              {% render_field deudas_form.concepto_deuda class="form-control text-dark" placeholder="Concepto de la deuda" %}
-              {% for error in deudas_form.concepto_deuda.errors %}
-                <div class="alert alert-danger mt-2">{{ error }}</div>
-              {% endfor %}
-            </div>
-          </div>
-
           <div class="form-group row mt-4">
             <label for="{{ deudas_form.descripcion_deuda.name }}" class="col-sm-3 col-form-label text-dark">{{ deudas_form.descripcion_deuda.label }}:</label>
             <div class="col-sm-8">
@@ -213,9 +203,9 @@
                       <td class="center-all">
                           <div class="horizontal-cell">
                               {% csrf_token %}
-                             <button type="button" class="btn btn-primary btn-option-admin border text-light button-table center-all btnDeudaModal" value="{{deuda.id_domicilio.id_propietario_id}}" data-target="#miModal" data-toggle="modal" data-content="Ver"><i class="fa fa-eye"></i>
+                             <button type="button" class="btn btn-primary btn-option-admin border text-light button-table center-all mr-1 btnDeudaModal" value="{{deuda.id_domicilio.id_propietario_id}}" data-target="#miModal" data-toggle="modal" data-content="Ver"><i class="fa fa-eye"></i>
                              </button>
-                            
+                             <a href="#" class="btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-deuda mr-1" data-url="/home/administrar/deudas/eliminar/{{ deuda.id_deuda }}" data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
                              <div class="modal fade" id="miModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel1" aria-hidden="true" style="width: 100% !important;">
                               <div class="modal-content " style="width: 80% !important;">
                                <div class="modal-header" style="width: 100% !important;">
@@ -229,8 +219,7 @@
                                       <table class="tabla-reportes table-responsive-lg1 table table-hover mt-3 table-responsive-xl1" id="tabla-reportes"> 
                                         <thead>
                                             <tr>
-                                              <th>Concepto</th>   
-                                              <th>Descripcion</th> 
+                                              <th>Descripción</th>
                                               <th>Monto</th> 
                                               <th>Moroso</th>
                                               <th>Fecha</th>
@@ -291,7 +280,6 @@
                      width="100%" id="TablaDeudas">
                   <thead class="table-header">
                   <tr>
-                      <th scope="col">Concepto</th>
                       <th scope="col">Descripción</th>
                       <th scope="col">Monto</th>
                       <th scope="col">Fecha</th>
@@ -303,8 +291,7 @@
                   {% for deuda in deudas_condo %}
                   {% if deuda.tipo_deuda == "1" %}
                   <tr>
-                      <td class="centered-cell"> {{ deuda.concepto_deuda }}</td>
-                      <td class="centered-cell"> {{ deuda.descripcion_deuda }}</td>
+                      <td class="centered-cell"> {{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
                       <td class="centered-cell text-danger"> {{ deuda.monto_deuda }}</td>
                       {% language 'es' %}
                       <td class="centered-cell"> {{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
@@ -519,9 +506,9 @@
             var DeudaModal = document.getElementById("body-modal-deudas");
             var content = ""
             for (i = 0; i < response.deudas.length; i++) {
+                var desc = response.deudas[i].descripcion_deuda || response.deudas[i].concepto_deuda || '';
                 content += '<tr>' +
-                              '<td>' + response.deudas[i].concepto_deuda + '</td>' +
-                              '<td>' + response.deudas[i].descripcion_deuda + '</td>' +
+                              '<td>' + desc + '</td>' +
                               '<td>' + response.deudas[i].monto_deuda + '</td>' +
                               '<td>' + response.deudas[i].is_moroso + '</td>' +
                               '<td>' + response.deudas[i].fecha_deuda + '</td>' +
@@ -578,7 +565,7 @@
 
         var table2 = $('#TablaDeudas').DataTable( {
           "processing": true,
-          "order": [[3, "desc"]],
+          "order": [[2, "desc"]],
           "language": {
             "lengthMenu": "Mostrar _MENU_ filas por página",
             "zeroRecords": "No se ha encontrado ningún dato",
@@ -614,10 +601,44 @@
             '<option value="desc">Más reciente primero</option><option value="asc">Más antigua primero</option></select></label>';
         $('#TablaDeudas_wrapper .dataTables_length').after(filtroHtml2);
         $(document).off('change', '#filtro_fecha_deudas').on('change', '#filtro_fecha_deudas', function() {
-          table2.order([[3, $(this).val()]]).draw();
+          table2.order([[2, $(this).val()]]).draw();
         });
     });
 </script>
 
-  <!-- FIN MAESTRO DE INGRESOS -->
+<!-- Modal confirmar eliminación de deuda -->
+<div class="modal fade modal-confirm" id="modalEliminarDeuda" tabindex="-1" role="dialog" aria-labelledby="modalEliminarDeudaLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEliminarDeudaLabel">Eliminar deuda</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        ¿Está seguro que desea eliminar esta deuda?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <a href="#" id="confirmEliminarDeuda" class="btn btn-danger">Sí, eliminar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(function() {
+    document.querySelectorAll('.btn-eliminar-deuda').forEach(function (btn) {
+      btn.addEventListener('click', function (event) {
+        event.preventDefault();
+        var url = btn.getAttribute('data-url');
+        document.getElementById('confirmEliminarDeuda').setAttribute('href', url);
+        $('#modalEliminarDeuda').modal('show');
+      });
+    });
+  });
+</script>
+
+  <!-- FIN MAESTRO DE DEUDAS -->
 {% endblock body_block %}

@@ -10,7 +10,7 @@
 
 {% block modulo_label %}
 {% for deuda in deudas %}
-  <span class="">Deuda | {{deuda.concepto_deuda}}</span>
+  <span class="">Deuda | {{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</span>
 {% endfor %}
 {% endblock modulo_label %}
 
@@ -31,8 +31,7 @@
       <div class="row pt-3">
       </div>
           <div class="row pt-3">
-            <p class="normal-font text-dark col-sm-6"><strong>Concepto de la deuda:</strong> <span>{{deuda.concepto_deuda}}</span></p>
-            <p class="normal-font text-dark col-sm-6"><strong>Descripción de la deuda:</strong> <span>{{deuda.descripcion_deuda}}</span></p>
+            <p class="normal-font text-dark col-sm-12"><strong>Descripción de la deuda:</strong> <span>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</span></p>
           </div>
           <div class="row pt-3">
             <p class="normal-font text-dark col-sm-6"><strong>Fecha de la deuda:</strong> <span>{{deuda.fecha_deuda}}</span></p>

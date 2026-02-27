@@ -570,6 +570,7 @@ class BancosForm(forms.ModelForm):
                                                   credito_movimiento=0,
                                                   monto_movimiento=self.instance.saldo_actual,
                                                   id_banco=self.instance,
+                                                  estado_movimiento=0,
                                                   created_at=datetime.now(), updated_at=datetime.now())
 
     return banco
@@ -796,7 +797,7 @@ class PublicacionesForm(forms.ModelForm):
 class DeudasForm(forms.ModelForm):
     tipo_deuda          = forms.ChoiceField(choices=Deudas.TipoDeuda.choices, widget=forms.Select(attrs={'class': 'form-control'}))
     tipo_moneda         = forms.ChoiceField(label="Moneda a cobrar", choices=Deudas.TipoMoneda.choices, widget=forms.Select(attrs={'class': 'form-control'}))
-    concepto_deuda      = forms.CharField(label="Concepto", max_length=255, required=True)
+    concepto_deuda      = forms.CharField(label="Concepto", max_length=255, required=False)
     descripcion_deuda   = forms.CharField(label="Descripcion", widget=forms.Textarea, required=True)
     fecha_deuda         = forms.DateField(label="Fecha de la deuda", widget = forms.SelectDateWidget(attrs=({'style': 'width: 30%; display: inline-block;'})), required=True)
     monto_deuda         = forms.DecimalField(label="Monto correspondiente a la deuda", max_digits=30, decimal_places=2, required=True)

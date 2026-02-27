@@ -1919,7 +1919,10 @@ def admin_deudas(request):
         tipo_deuda="1",
         id_domicilio__id_condominio_id=user.id_condominio_id,
     )
-    propietarios = Propietario.objects.filter(prop_dom__id_condominio_id=user.id_condominio_id).distinct()
+    # Propietarios con al menos un inmueble en el condominio O con usuario en el condominio
+    propietarios = Propietario.objects.filter(
+        Q(prop_dom__id_condominio_id=user.id_condominio_id) | Q(id_usuario__id_condominio_id=user.id_condominio_id)
+    ).distinct()
     totales_deudas = Deudas.objects.filter(
         is_active=True,
         tipo_deuda="2",
@@ -1992,11 +1995,13 @@ def admin_deudas(request):
                                          extra_tags='alert-danger')
                         return HttpResponseRedirect(reverse('condominio_app:admin_deudas'))
 
+                    descripcion = request.POST.get('descripcion_deuda') or ''
+                    concepto = (descripcion or request.POST.get('concepto_deuda') or '')[:255]
                     for domicilio in domicilios:
                         deuda = Deudas()
                         deuda.fecha_deuda = request.POST['fecha_deuda']
-                        deuda.concepto_deuda = request.POST['concepto_deuda']
-                        deuda.descripcion_deuda = request.POST['descripcion_deuda']
+                        deuda.concepto_deuda = concepto
+                        deuda.descripcion_deuda = descripcion
                         deuda.tipo_deuda = request.POST['tipo_deuda']
                         deuda.categoria_deuda = "CUOTA EXTRA"
                         deuda.monto_deuda = request.POST['monto_deuda']
@@ -2015,10 +2020,11 @@ def admin_deudas(request):
                     # cuando el usuario elige "Descontar del saldo".
 
                 else:
+                    descripcion = request.POST.get('descripcion_deuda') or ''
                     deuda.tipo_deuda = request.POST['tipo_deuda']
                     deuda.is_moroso = False
-                    deuda.concepto_deuda = request.POST['concepto_deuda']
-                    deuda.descripcion_deuda = request.POST['descripcion_deuda']
+                    deuda.concepto_deuda = (descripcion or request.POST.get('concepto_deuda') or '')[:255]
+                    deuda.descripcion_deuda = descripcion
                     deuda.monto_deuda = request.POST['monto_deuda']
                     deuda.tipo_moneda = request.POST['tipo_moneda']
                     deuda.fecha_deuda = request.POST['fecha_deuda']
@@ -2050,7 +2056,10 @@ def admin_deudas_caja(request):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
-    propietarios = Propietario.objects.filter(prop_dom__id_condominio_id=user.id_condominio_id).distinct()
+    # Propietarios con al menos un inmueble en el condominio O con usuario en el condominio
+    propietarios = Propietario.objects.filter(
+        Q(prop_dom__id_condominio_id=user.id_condominio_id) | Q(id_usuario__id_condominio_id=user.id_condominio_id)
+    ).distinct()
     deudas_form = DeudasForm()
     ultima_tasa = Tasas.objects.last()
     today = timezone.now()
