@@ -504,6 +504,7 @@ def home_superuser(request):
             nombre = (request.POST.get('nombre_condominio') or '').strip()
             rif = (request.POST.get('rif_condominio') or '').strip()
             direccion = (request.POST.get('direccion_condominio') or '').strip()
+            tipo_condominio = (request.POST.get('tipo_condominio') or '').strip() or None
             email_condo = (request.POST.get('email_condominio') or '').strip()
             codigo_tlf = (request.POST.get('codigo_tlf_1') or '0').strip()
             tlf = (request.POST.get('tlf_1') or '-').strip()
@@ -513,6 +514,8 @@ def home_superuser(request):
 
             if not nombre or not rif or not direccion:
                 messages.error(request, 'Nombre, RIF y dirección del condominio son obligatorios.', extra_tags='alert-danger')
+            elif not tipo_condominio:
+                messages.error(request, 'Debe seleccionar el tipo de condominio (Apartamentos, Casas o Comercial).', extra_tags='alert-danger')
             elif not admin_username or not admin_email or not admin_password:
                 messages.error(request, 'Usuario, email y contraseña del administrador son obligatorios.', extra_tags='alert-danger')
             elif Usuario.objects.filter(username=admin_username).exists():
@@ -527,6 +530,7 @@ def home_superuser(request):
                             nombre_condominio=nombre,
                             rif_condominio=rif,
                             direccion_condominio=direccion,
+                            tipo_condominio=tipo_condominio,
                             email=admin_email if not email_condo else email_condo,
                             codigo_tlf_1=codigo_tlf or '0',
                             tlf_1=tlf or '-',
@@ -3135,18 +3139,30 @@ def admin_configuracion(request, type=''):
                 c, created = Condominio.objects.get_or_create(id_condominio=user.id_condominio_id, defaults=defaults_condominio)
 
                 if created:
-                    # Mantener al usuario en su propio condominio (el recién creado c)
                     usuario = Usuario.objects.get(pk=user.pk)
                     usuario.id_condominio_id = c.id_condominio
                     usuario.save()
-                    # Si es true entonces el objeto se creó
+                else:
+                    # Actualizar datos del condominio existente
+                    for k, v in defaults_condominio.items():
+                        setattr(c, k, v)
+
+                # Banners del slider: guardar si se enviaron archivos
+                if request.FILES.get('banner_1'):
+                    c.banner_1 = request.FILES['banner_1']
+                if request.FILES.get('banner_2'):
+                    c.banner_2 = request.FILES['banner_2']
+                if request.FILES.get('banner_3'):
+                    c.banner_3 = request.FILES['banner_3']
+                c.save()
+
+                if created:
                     messages.success(request, '¡La configuración ha sido guardada de manera satisfactoria!',
                                      extra_tags='alert-success')
-                    return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "condominio"}))
                 else:
                     messages.success(request, '¡La configuración ha sido actualizada de manera satisfactoria!',
                                      extra_tags='alert-success')
-                    return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "condominio"}))
+                return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "condominio"}))
                 
             else:
                 primera_key = next(iter(config_form.errors))
@@ -3161,6 +3177,7 @@ def admin_configuracion(request, type=''):
             tlf_1 = request.POST['tlf_1']
             codigo_tlf_2 = request.POST['codigo_tlf_2']
             tlf_2 = request.POST['tlf_2']
+            tipo_condominio = request.POST.get('tipo_condominio') or None
             direccion_condominio = request.POST['direccion_condominio']
             email = request.POST['email']
             raw_superficie = request.POST.get('superficie_total_m2', '').strip()
@@ -3169,10 +3186,24 @@ def admin_configuracion(request, type=''):
             except (ValueError, Exception):
                 superficie_total_m2 = None
 
-            Condominio.objects.filter(id_condominio=user.id_condominio_id).update(
-                nombre_condominio=nombre_condominio, rif_condominio=rif_condominio, codigo_tlf_1=codigo_tlf_1,
-                tlf_1=tlf_1, codigo_tlf_2=codigo_tlf_2, tlf_2=tlf_2, direccion_condominio=direccion_condominio,
-                email=email, superficie_total_m2=superficie_total_m2)
+            c = Condominio.objects.get(id_condominio=user.id_condominio_id)
+            c.nombre_condominio = nombre_condominio
+            c.rif_condominio = rif_condominio
+            c.codigo_tlf_1 = codigo_tlf_1
+            c.tlf_1 = tlf_1
+            c.codigo_tlf_2 = codigo_tlf_2
+            c.tlf_2 = tlf_2
+            c.tipo_condominio = tipo_condominio
+            c.direccion_condominio = direccion_condominio
+            c.email = email
+            c.superficie_total_m2 = superficie_total_m2
+            if request.FILES.get('banner_1'):
+                c.banner_1 = request.FILES['banner_1']
+            if request.FILES.get('banner_2'):
+                c.banner_2 = request.FILES['banner_2']
+            if request.FILES.get('banner_3'):
+                c.banner_3 = request.FILES['banner_3']
+            c.save()
 
             messages.success(request, '¡La configuración ha sido actualizada de manera satisfactoria!',
                              extra_tags='alert-success')

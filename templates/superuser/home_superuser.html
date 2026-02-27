@@ -47,6 +47,15 @@ Superusuario - Gestión de condominios
                             <input type="text" name="direccion_condominio" id="direccion_condominio" class="form-control" required maxlength="255" placeholder="Dirección del edificio">
                         </div>
                         <div class="form-group mb-2">
+                            <label for="tipo_condominio" class="form-label text-dark">Tipo de condominio *</label>
+                            <select name="tipo_condominio" id="tipo_condominio" class="form-control" required>
+                                <option value="">Seleccione el tipo</option>
+                                <option value="APARTAMENTOS">Apartamentos</option>
+                                <option value="CASAS">Casas</option>
+                                <option value="COMERCIAL">Comercial</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-2">
                             <label for="email_condominio" class="form-label text-dark">Email del condominio (opcional)</label>
                             <input type="email" name="email_condominio" id="email_condominio" class="form-control" maxlength="100" placeholder="condominio@ejemplo.com">
                         </div>

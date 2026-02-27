@@ -45,20 +45,12 @@ class="d-none"
                     </div>
                 </button>
 
-                {% for condo in conf %}
-
-                {% if condo.tipo_condominio == "APARTAMENTOS" %}
-
                 <button class="btn btn-option mt-3 move-left w-100" id="btn_torres" onclick="ConfMenu('ShowTorres')">
                     <div class="d-flex" style="justify-content: center;">
                         <span class="material-icons pr-2" style="height: 30px;">apartment</span>
                         <span class="mt-1"style="font-size: 14px;">Torres</span>
                     </div>
                 </button>
-
-                {% endif %}
-
-                {% endfor %}
 
                 <button class="btn btn-option mt-3 move-left w-100" id="btn_domicilios" onclick="ConfMenu('ShowDomicilios')">
                     <div class="d-flex" style="justify-content: center;">
@@ -188,7 +180,7 @@ class="d-none"
             <div class="form-style-10 col-sm-12 mt-3 d-none" id="FormEdificioInfo">
                 {% if conf %}
                 {% for conf in conf %}
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="section mb-3"><span>1</span>Información del condominio</div>
                     <div class="inner-wrap form-row">
@@ -207,6 +199,21 @@ class="d-none"
                                 {% render_field config_form.rif_condominio class="form-control text-dark" placeholder="Nombre del condominio" name=config_form.nombre_condominio.name value=conf.rif_condominio %}
                                 {% for error in config_form.rif_condominio.errors %}
                                 <div class="alert alert-danger mt-2">{{error}}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-6 row">
+                            <label for="{{config_form.tipo_condominio.name}}" class="col-sm-12 col-form-label text-dark">{{config_form.tipo_condominio.label}}:</label>
+                            <div class="col-sm-12">
+                                <select name="{{ config_form.tipo_condominio.name }}" id="{{ config_form.tipo_condominio.name }}" class="form-control text-dark opTipoUnidad">
+                                    {% for value, label in config_form.tipo_condominio.field.choices %}
+                                    <option value="{{ value }}" {% if value == conf.tipo_condominio %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% for error in config_form.tipo_condominio.errors %}
+                                <div class="alert alert-danger mt-2">{{ error }}</div>
                                 {% endfor %}
                             </div>
                         </div>
@@ -298,6 +305,35 @@ class="d-none"
                         </div>
                     </div>
 
+                    <div class="section mb-3"><span>3</span>Banners del slider (pantalla de inicio)</div>
+                    <p class="text-muted small">Opcional. Se muestran en el slider de /inicio/ para este condominio. Si no sube, se usan imágenes por defecto.</p>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-4 row">
+                            <label for="id_banner_1" class="col-sm-12 col-form-label text-dark">Banner 1</label>
+                            <div class="col-sm-12">
+                                <label for="id_banner_1" class="btn btn-outline-secondary d-inline-flex align-items-center px-3 py-2" style="cursor: pointer;"><i class="bx bxs-report mr-2"></i> Elegir imagen</label>
+                                <input type="file" name="banner_1" id="id_banner_1" class="d-none" accept="image/*">
+                                {% if conf.banner_1 %}<small class="text-success d-block mt-1">Hay imagen actual</small>{% endif %}
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-4 row">
+                            <label for="id_banner_2" class="col-sm-12 col-form-label text-dark">Banner 2</label>
+                            <div class="col-sm-12">
+                                <label for="id_banner_2" class="btn btn-outline-secondary d-inline-flex align-items-center px-3 py-2" style="cursor: pointer;"><i class="bx bxs-report mr-2"></i> Elegir imagen</label>
+                                <input type="file" name="banner_2" id="id_banner_2" class="d-none" accept="image/*">
+                                {% if conf.banner_2 %}<small class="text-success d-block mt-1">Hay imagen actual</small>{% endif %}
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-4 row">
+                            <label for="id_banner_3" class="col-sm-12 col-form-label text-dark">Banner 3</label>
+                            <div class="col-sm-12">
+                                <label for="id_banner_3" class="btn btn-outline-secondary d-inline-flex align-items-center px-3 py-2" style="cursor: pointer;"><i class="bx bxs-report mr-2"></i> Elegir imagen</label>
+                                <input type="file" name="banner_3" id="id_banner_3" class="d-none" accept="image/*">
+                                {% if conf.banner_3 %}<small class="text-success d-block mt-1">Hay imagen actual</small>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-success col-sm-5 col-lg-4 mt-3 move-up"><i class="fa fa-save"></i>
                         Guardar cambios
                     </button>
@@ -309,7 +345,7 @@ class="d-none"
                 {% else %}
                 <h2 class="text-center pb-3">Establecer datos del edificio</h2>
 
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="section mb-3"><span>1</span>Información del condominio</div>
                     <div class="inner-wrap form-row">
@@ -436,6 +472,32 @@ class="d-none"
                                 <input type="number" name="superficie_total_m2" id="superficie_total_m2" step="0.01" min="0" class="form-control text-dark" placeholder="Ej: 1200.50">
                             </div>
                             <small class="col-sm-12 text-muted">Opcional. Para calcular alícuotas por m² en el cierre del mes.</small>
+                        </div>
+                    </div>
+
+                    <div class="section mb-3"><span>3</span>Banners del slider (pantalla de inicio)</div>
+                    <p class="text-muted small">Opcional. Se muestran en el slider de /inicio/ para este condominio. Si no sube, se usan imágenes por defecto.</p>
+                    <div class="inner-wrap form-row">
+                        <div class="form-group col-sm-4 row">
+                            <label for="id_banner_1_establecer" class="col-sm-12 col-form-label text-dark">Banner 1</label>
+                            <div class="col-sm-12">
+                                <label for="id_banner_1_establecer" class="btn btn-outline-secondary d-inline-flex align-items-center px-3 py-2" style="cursor: pointer;"><i class="bx bxs-report mr-2"></i> Elegir imagen</label>
+                                <input type="file" name="banner_1" id="id_banner_1_establecer" class="d-none" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-4 row">
+                            <label for="id_banner_2_establecer" class="col-sm-12 col-form-label text-dark">Banner 2</label>
+                            <div class="col-sm-12">
+                                <label for="id_banner_2_establecer" class="btn btn-outline-secondary d-inline-flex align-items-center px-3 py-2" style="cursor: pointer;"><i class="bx bxs-report mr-2"></i> Elegir imagen</label>
+                                <input type="file" name="banner_2" id="id_banner_2_establecer" class="d-none" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="form-group col-sm-4 row">
+                            <label for="id_banner_3_establecer" class="col-sm-12 col-form-label text-dark">Banner 3</label>
+                            <div class="col-sm-12">
+                                <label for="id_banner_3_establecer" class="btn btn-outline-secondary d-inline-flex align-items-center px-3 py-2" style="cursor: pointer;"><i class="bx bxs-report mr-2"></i> Elegir imagen</label>
+                                <input type="file" name="banner_3" id="id_banner_3_establecer" class="d-none" accept="image/*">
+                            </div>
                         </div>
                     </div>
 
