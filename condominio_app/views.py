@@ -6270,14 +6270,15 @@ def destroyPropietarios(request, id):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     propietarios = Propietario.objects.get(id_propietario=id)
-    
-    Domicilio.objects.filter(id_propietario_id=id).update(id_propietario_id=None)
 
-    if propietarios.id_usuario_id:
-        usuarios = Usuario.objects.get(id=propietarios.id_usuario_id)
-        usuarios.delete()
-    
+    # Desasociar del propietario todo lo que lo referencia para borrado completo en BD
+    Domicilio.objects.filter(id_propietario_id=id).update(id_propietario_id=None)
+    Ingresos.objects.filter(id_propietario_id=id).update(id_propietario_id=None)
+
+    # Borrar primero el propietario, luego el usuario (evita bloqueos por FK y permite reutilizar DNI)
     propietarios.delete()
+    if propietarios.id_usuario_id:
+        Usuario.objects.filter(pk=propietarios.id_usuario_id).delete()
 
     messages.success(request, '¡El registro del propietario y su usuario han sido eliminados de manera satisfactoria!',
                      extra_tags='alert-success')
@@ -6319,11 +6320,13 @@ def destroyCuenta(request, id):
                              extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('condominio_app:home_admin'))
         else:
-            # No es el mismo usuario
+            # No es el mismo usuario; si es propietario, desasociar todo antes para borrado completo (permite reutilizar DNI)
             propietarios = Propietario.objects.get(id_usuario_id=usuarios.id)
-
-            usuarios.delete()
+            id_prop = propietarios.id_propietario
+            Domicilio.objects.filter(id_propietario_id=id_prop).update(id_propietario_id=None)
+            Ingresos.objects.filter(id_propietario_id=id_prop).update(id_propietario_id=None)
             propietarios.delete()
+            usuarios.delete()
 
             messages.success(request, '¡El usuario ha sido eliminado de manera satisfactoria!',
                              extra_tags='alert-success')
