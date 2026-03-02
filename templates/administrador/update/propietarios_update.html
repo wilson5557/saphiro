@@ -85,15 +85,16 @@
             <div class="form-group col-sm-2">
               <label for="{{ select_tipo_doc.tipo_dni.name }}" class="col-sm-12 text-dark">{{ select_tipo_doc.tipo_dni.label }}:</label>
               <div class="col-sm-12">
-                <select name="{{ select_tipo_doc.tipo_dni.name }}" id="{{ select_tipo_doc.tipo_dni_titular.name }}"
-                        class="form-control text-dark">
-                  {% for select in select_tipo_doc.tipo_dni %}
-                  {{select}}
-                  {% for error in select_tipo_doc.tipo_dni.errors %}
-                  <div class="alert alert-danger mt-2">{{ error }}</div>
-                  {% endfor %}
+                <select name="{{ select_tipo_doc.tipo_dni.name }}" id="{{ select_tipo_doc.tipo_dni.name }}"
+                        class="form-control text-dark" required>
+                  <option value="">Seleccione tipo</option>
+                  {% for value, text in select_tipo_doc.tipo_dni.field.choices %}
+                  <option value="{{ value }}" {% if select_tipo_doc.tipo_dni.value == value %}selected{% endif %}>{{ text }}</option>
                   {% endfor %}
                 </select>
+                {% for error in select_tipo_doc.tipo_dni.errors %}
+                <div class="alert alert-danger mt-2">{{ error }}</div>
+                {% endfor %}
               </div>
             </div>
             <div class="form-group col-sm-4">

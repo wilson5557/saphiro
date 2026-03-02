@@ -44,11 +44,15 @@
         <div class="form-group row">
           <label for="status" class="col-sm-3 col-form-label text-dark">Identificación:</label>
           <div class="col-sm-3">
-            <select class="form-control text-dark" id="tipo_dni" name="tipo_dni">
+            <select class="form-control text-dark" id="tipo_dni" name="tipo_dni" required>
+              <option value="">Seleccione tipo</option>
               <option value="V">Venezolano</option>
-              <option value="J">Juridico</option>
               <option value="E">Extranjero</option>
               <option value="P">Pasaporte</option>
+              <option value="J">Jurídico</option>
+              <option value="G">Gubernamental</option>
+              <option value="R">RIF</option>
+              <option value="O">Otro</option>
             </select>
           </div>
           <div class="col-sm-3">

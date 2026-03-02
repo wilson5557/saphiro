@@ -699,13 +699,18 @@ class PropietariosForm(forms.ModelForm):
 
   def clean_tipo_dni(self):
     tipo_dni = self.cleaned_data.get('tipo_dni')
-    if tipo_dni == '':
+    if not tipo_dni or (isinstance(tipo_dni, str) and tipo_dni.strip() == ''):
       raise forms.ValidationError("Por favor escoja un tipo de documento")
-    else:
-      return tipo_dni
+    valid_values = [c[0] for c in Propietario.TipoIdentificacion.choices]
+    if tipo_dni not in valid_values:
+      raise forms.ValidationError("Tipo de documento no válido")
+    return str(tipo_dni).strip()
 
   def save(self, commit=True):
-        prop = super(PropietariosForm, self).save()
+        # Asegurar que tipo_dni se guarde con el valor elegido (V, E, P, J, G, R, O), no el default del modelo
+        if 'tipo_dni' in self.cleaned_data and self.cleaned_data['tipo_dni']:
+            self.instance.tipo_dni = self.cleaned_data['tipo_dni']
+        prop = super(PropietariosForm, self).save(commit=commit)
         prueba = PropietariosForm
 
         if prop:

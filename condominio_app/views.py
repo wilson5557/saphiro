@@ -2477,11 +2477,19 @@ def admin_fondos(request):
                                                          'bancos': bancos, 'fondos': fondos})
 
 def procesar_propietario_post(request):
+    # tipo_dni debe venir del POST (valor del select: V, E, P, J, G, R, O); si no, no usar default
+    tipo_dni_raw = (request.POST.get('tipo_dni') or '').strip()
+    if not tipo_dni_raw:
+        messages.warning(request,
+                         'Debe escoger un tipo de documento (Venezolano, RIF, Jurídico, etc.).',
+                         extra_tags='alert-danger')
+        return False
+
     dataPropietario = {
         'nombre_propietario': request.POST.get('nombre_propietario', '').upper(),
         'genero': request.POST.get('genero'),
         'pais_residencia': request.POST.get('pais_residencia'),
-        'tipo_dni': request.POST.get('tipo_dni'),
+        'tipo_dni': tipo_dni_raw,
         'dni': request.POST.get('dni'),
         'codigo_tlf_hab': request.POST.get('codigo_tlf_hab'),
         'telefono_hab': request.POST.get('telefono_hab'),
@@ -2496,12 +2504,6 @@ def procesar_propietario_post(request):
         'email': request.POST.get('email'),
         'password1': dataPropietario['dni']
     }
-
-    if request.POST.get('tipo_dni') == '':
-        messages.warning(request,
-                         'Ha ocurrido un error durante el registro. Debe escoger un tipo de identificación',
-                         extra_tags='alert-danger')
-        return False
 
     if Usuario.objects.filter(email=dataUsuario['email']).exists():
         messages.warning(request,
@@ -3433,16 +3435,17 @@ def admin_cuentas(request):
     tasa_euro = tasas['tasa_BCV_EUR']
 
     if request.method == 'POST':
+        nombre_propietario = request.POST.get('nombre_propietario', '')
+        tipo_dni = (request.POST.get('tipo_dni') or '').strip()
+        dni = request.POST.get('dni', '')
+        username = (request.POST.get('username') or '').upper()
+        email = request.POST.get('email', '')
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
 
-        nombre_propietario = request.POST['nombre_propietario']
-        tipo_dni = request.POST['tipo_dni']
-        dni = request.POST['dni']
-        username = request.POST['username'].upper()
-        email = request.POST['email']
-        password1 = request.POST['password1']
-        password2 = request.POST['password2']
-
-        if password1 == password2:
+        if not tipo_dni:
+            messages.warning(request, 'Debe escoger un tipo de documento (Venezolano, RIF, Jurídico, etc.).', extra_tags='alert-danger')
+        elif password1 == password2:
             checkUser = Usuario.objects.filter(email=email)
 
             if checkUser.exists():
@@ -3992,9 +3995,11 @@ def admin_reportes(request):
             nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
             data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
+            # Solo inmuebles del condominio actual (evita mostrar inmuebles de otros condominios)
             domicilios_flat = []
             for p in prop:
-                domicilios_flat.extend(p.prop_dom.all())
+                doms_condominio = p.prop_dom.filter(id_condominio_id=condominio.id_condominio)
+                domicilios_flat.extend(doms_condominio)
             total_bs = sum(Decimal(str(d.saldo or 0)) for d in domicilios_flat)
             total_usd = sum(Decimal(str(d.saldo_usd or 0)) for d in domicilios_flat)
             total_eur = sum(Decimal(str(d.saldo_eur or 0)) for d in domicilios_flat)
@@ -4002,11 +4007,12 @@ def admin_reportes(request):
             data['total_domicilios_usd'] = total_usd
             data['total_domicilios_eur'] = total_eur
 
-            # Estructura con alícuota calculada por domicilio (cuando no está guardada)
+            # Estructura con alícuota calculada por domicilio (solo inmuebles de este condominio)
             propietarios_con_datos = []
             for p in prop:
+                doms_condominio = p.prop_dom.filter(id_condominio_id=condominio.id_condominio)
                 domicilios_con_alicuota = [
-                    (d, _alicuota_para_display(d)) for d in p.prop_dom.all()
+                    (d, _alicuota_para_display(d)) for d in doms_condominio
                 ]
                 propietarios_con_datos.append({
                     'propietario': p,
@@ -4043,7 +4049,7 @@ def admin_reportes(request):
                 writer = csv.writer(output)
                 writer.writerow(['Propietario', 'Inmueble', 'Tipo', 'Alicuota', 'm2', 'Saldo BS', 'Saldo USD', 'Saldo EUR'])
                 for p in prop:
-                    for dom in p.prop_dom.all():
+                    for dom in p.prop_dom.filter(id_condominio_id=condominio.id_condominio):
                         writer.writerow([
                             p.nombre_propietario,
                             dom.nombre_domicilio,
@@ -4061,7 +4067,7 @@ def admin_reportes(request):
                 lines = ['Reporte de propietarios', 'Total BS: {} | Total USD: {} | Total EUR: {}'.format(total_bs, total_usd, total_eur), '']
                 for p in prop:
                     lines.append('Propietario: {}'.format(p.nombre_propietario))
-                    for dom in p.prop_dom.all():
+                    for dom in p.prop_dom.filter(id_condominio_id=condominio.id_condominio):
                         lines.append('  - {} | {} | Alicuota: {} | m2: {} | BS: {} | USD: {} | EUR: {}'.format(
                             dom.nombre_domicilio, dom.tipo_domicilio or '-', dom.alicuota_domicilio or '-', dom.size_domicilio or '-',
                             dom.saldo or 0, dom.saldo_usd or 0, dom.saldo_eur or 0))
@@ -4211,12 +4217,16 @@ def admin_reportes(request):
                     messages.warning(request, 'No se encontro el propietario.', extra_tags='alert-danger')
                     return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
+                # Solo inmuebles de este propietario en este condominio (no otros propietarios ni otros condominios)
+                domicilios_propietario = Domicilio.objects.filter(
+                    id_propietario_id=propietario_id,
+                    id_condominio_id=condominio.id_condominio
+                ).values_list('id_domicilio', flat=True)
                 deudas = Deudas.objects.filter(
-                    id_domicilio__id_propietario_id=propietario_id,
-                    id_domicilio__id_condominio_id=condominio.id_condominio,
+                    id_domicilio_id__in=domicilios_propietario,
                     tipo_deuda="2",
                     fecha_deuda__range=[inicio, fin]
-                ).select_related('id_domicilio')
+                ).select_related('id_domicilio').order_by('id_domicilio', 'fecha_deuda')
 
                 total_bs = 0
                 total_usd = 0
@@ -4412,6 +4422,52 @@ def admin_reportes(request):
                 'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
             }
             template_path_inm = 'PDF/inmueble_pdf.html'
+
+            # Enviar por correo al propietario del inmueble (solo PDF; nombre distinto a enviar_correo de Estado de cuenta)
+            if request.POST.get('enviar_correo_inmueble'):
+                propietario_inm = domicilio.id_propietario
+                email_destino = None
+                if propietario_inm and propietario_inm.id_usuario_id:
+                    usuario_inm = propietario_inm.id_usuario
+                    if getattr(usuario_inm, 'email', None):
+                        email_destino = usuario_inm.email
+                if not email_destino:
+                    messages.warning(
+                        request,
+                        'El inmueble no tiene propietario con correo electrónico. No se puede enviar el reporte.',
+                        extra_tags='alert-danger',
+                    )
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+                try:
+                    template = get_template(template_path_inm)
+                    html = template.render(data_inm)
+                    pdf_buffer = io.BytesIO()
+                    pisa_status = pisa.CreatePDF(html, dest=pdf_buffer, link_callback=link_callback)
+                    if pisa_status.err:
+                        messages.warning(request, 'Error al generar el PDF para el correo.', extra_tags='alert-danger')
+                        return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+                    pdf_buffer.seek(0)
+                    nombre_condominio = getattr(condominio, 'nombre_condominio', 'Condominio') or 'Condominio'
+                    nombre_inm = (domicilio.nombre_domicilio or 'Inmueble').replace(' ', '_')
+                    asunto = 'Reporte por inmueble - {} - {}'.format(nombre_condominio, nombre_inm)
+                    cuerpo = 'Estimado/a {}, adjuntamos el reporte del inmueble {} del {} al {}. Saludos.'.format(
+                        propietario_inm.nombre_propietario,
+                        domicilio.nombre_domicilio or domicilio_id,
+                        data_inm['inicio'].strftime('%d/%m/%Y') if hasattr(data_inm['inicio'], 'strftime') else data_inm['inicio'],
+                        data_inm['fin'].strftime('%d/%m/%Y') if hasattr(data_inm['fin'], 'strftime') else data_inm['fin'],
+                    )
+                    email_msg = EmailMultiAlternatives(asunto, cuerpo, settings.EMAIL_HOST_USER, [email_destino])
+                    email_msg.attach('Reporte_inmueble_{}_{}_{}.pdf'.format(nombre_inm, inicio_inm, fin_inm), pdf_buffer.getvalue(), 'application/pdf')
+                    email_msg.send(fail_silently=False)
+                    messages.success(request, 'Reporte por inmueble enviado por correo a {}.'.format(email_destino), extra_tags='alert-success')
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        'No se pudo enviar el correo: {}.'.format(str(e)),
+                        extra_tags='alert-danger',
+                    )
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+
             if formato_inm == 'PDF':
                 response = HttpResponse(content_type='application/pdf')
                 response['Content-Disposition'] = 'attachment; filename="reporte_inmueble_{}_{}_{}.pdf"'.format(domicilio_id, inicio_inm, fin_inm)
@@ -5933,24 +5989,23 @@ def updatePropietarios(request, id):
                              extra_tags='alert-success')
             return HttpResponseRedirect(reverse('condominio_app:updatePropietarios', kwargs={'id': id}))
 
-        # Se revisa si se es cogió un tipo de cedúla de identidad, en caso de no ser escogido entonces se arroja un error
-        if request.POST['tipo_dni'] == '':
-
+        # Tipo de documento: debe venir del POST (V, E, P, J, G, R, O)
+        tipo_dni_post = (request.POST.get('tipo_dni') or '').strip()
+        if not tipo_dni_post:
             messages.warning(request,
-                             'Ha ocurrido un error durante la actualización. Debe escoger un tipo de identificación.',
+                             'Debe escoger un tipo de identificación (Venezolano, RIF, Jurídico, etc.).',
                              extra_tags='alert-danger')
         else:
-
             dataPropietario = {
-                'nombre_propietario': request.POST['nombre_propietario'].upper(),
-                'genero': request.POST['genero'],
-                'pais_residencia': request.POST['pais_residencia'],
-                'tipo_dni': request.POST['tipo_dni'],
-                'dni': request.POST['dni'],
-                'codigo_tlf_hab': request.POST['codigo_tlf_hab'],
-                'telefono_hab': request.POST['telefono_hab'],
-                'codigo_tlf_movil': request.POST['codigo_tlf_movil'],
-                'telefono_movil': request.POST['telefono_movil']
+                'nombre_propietario': request.POST.get('nombre_propietario', '').upper(),
+                'genero': request.POST.get('genero'),
+                'pais_residencia': request.POST.get('pais_residencia'),
+                'tipo_dni': tipo_dni_post,
+                'dni': request.POST.get('dni'),
+                'codigo_tlf_hab': request.POST.get('codigo_tlf_hab'),
+                'telefono_hab': request.POST.get('telefono_hab'),
+                'codigo_tlf_movil': request.POST.get('codigo_tlf_movil'),
+                'telefono_movil': request.POST.get('telefono_movil')
             }
 
             # Se revisa si no se han ingresado un número de teléfono, en caso de ser así se arroja un error
@@ -6089,43 +6144,43 @@ def updateCuentas(request, id):
     tasa_euro = tasas['tasa_BCV_EUR']
 
     if request.method == 'POST':
+        nombre_propietario = request.POST.get('nombre_propietario', '')
+        tipo_dni = (request.POST.get('tipo_dni') or '').strip()
+        dni = request.POST.get('dni', '')
+        username = request.POST.get('username', '').upper()
+        email = request.POST.get('email', '')
 
-        nombre_propietario = request.POST['nombre_propietario']
-        tipo_dni = request.POST['tipo_dni']
-        dni = request.POST['dni']
-        username = request.POST['username'].upper()
-        email = request.POST['email']
+        if not tipo_dni:
+            messages.warning(request, 'Debe escoger un tipo de documento (Venezolano, RIF, Jurídico, etc.).', extra_tags='alert-danger')
+        else:
+            checkUser = Usuario.objects.filter(email=email)
 
-        checkUser = Usuario.objects.filter(email=email)
+            # Se revisa si es el mismo usuario
+            if checkUser.exists():
+                checkActualUser = Usuario.objects.get(id=id)
+                checkEmailUser = Usuario.objects.get(email=email)
 
-        # Se revisa si es el mismo usuario
-        if checkUser.exists():
+                if checkActualUser.id == checkEmailUser.id:
+                    # Es el mismo usuario
+                    propietarios.update(nombre_propietario=nombre_propietario, tipo_dni=tipo_dni, dni=dni)
 
-            checkActualUser = Usuario.objects.get(id=id)
-            checkEmailUser = Usuario.objects.get(email=email)
+                    Usuario.objects.filter(pk=id).update(username=username, email=email)
 
-            if checkActualUser.id == checkEmailUser.id:
-                # Es el mismo usuario
-                propietarios.update(nombre_propietario=nombre_propietario, tipo_dni=tipo_dni, dni=dni)
+                    messages.success(request, 'El administrador se ha actualizado exitosamente', extra_tags='alert-success')
+                    return HttpResponseRedirect(reverse('condominio_app:admin_cuentas'))
+                else:
+                    messages.warning(request,
+                                     'Ha ocurrido un error durante la actualización. El correo electrónico ya esta en uso.',
+                                     extra_tags='alert-danger')
+
+            else:
+                propietarios.update(nombre_propietario=nombre_propietario,
+                                    tipo_dni=tipo_dni, dni=dni)
 
                 Usuario.objects.filter(pk=id).update(username=username, email=email)
 
                 messages.success(request, 'El administrador se ha actualizado exitosamente', extra_tags='alert-success')
-                return HttpResponseRedirect(reverse('condominio_app:admin_cuentas'))
-            else:
-                messages.warning(request,
-                                 'Ha ocurrido un error durante la actualización. El correo electrónico ya esta en uso.',
-                                 extra_tags='alert-danger')
-
-        else:
-
-            propietarios.update(nombre_propietario=nombre_propietario,
-                                                                             tipo_dni=tipo_dni, dni=dni)
-
-            Usuario.objects.filter(pk=id).update(username=username, email=email)
-
-            messages.success(request, 'El administrador se ha actualizado exitosamente', extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
+                return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
 
     return render(request, 'administrador/update/cuentas_update.html', {'propietarios': propietarios,
                                                                         'usuarios': usuarios, 'conf': conf,

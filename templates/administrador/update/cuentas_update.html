@@ -49,11 +49,14 @@
         <div class="form-group row">
           <label for="status" class="col-sm-3 col-form-label text-dark">Identificación:</label>
           <div class="col-sm-3">
-            <select class="form-control text-dark" id="tipo_dni" name="tipo_dni">
-              <option value="V">Venezolano</option>
-              <option value="J">Juridico</option>
-              <option value="E">Extranjero</option>
-              <option value="P">Pasaporte</option>
+            <select class="form-control text-dark" id="tipo_dni" name="tipo_dni" required>
+              <option value="V" {% if propietarios.tipo_dni == 'V' %}selected{% endif %}>Venezolano</option>
+              <option value="E" {% if propietarios.tipo_dni == 'E' %}selected{% endif %}>Extranjero</option>
+              <option value="P" {% if propietarios.tipo_dni == 'P' %}selected{% endif %}>Pasaporte</option>
+              <option value="J" {% if propietarios.tipo_dni == 'J' %}selected{% endif %}>Jurídico</option>
+              <option value="G" {% if propietarios.tipo_dni == 'G' %}selected{% endif %}>Gubernamental</option>
+              <option value="R" {% if propietarios.tipo_dni == 'R' %}selected{% endif %}>RIF</option>
+              <option value="O" {% if propietarios.tipo_dni == 'O' %}selected{% endif %}>Otro</option>
             </select>
           </div>
           <div class="col-sm-3">
