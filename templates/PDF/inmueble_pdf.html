@@ -5,7 +5,7 @@
 {% block contenido_pdf %}
 <p style="margin-top: 10px; margin-bottom: 5px;"><strong>Inmueble:</strong> {{ domicilio.nombre_domicilio }}{% if domicilio.id_torre %} ({{ domicilio.id_torre.nombre_torre }}){% endif %}</p>
 <p style="margin-bottom: 5px;"><strong>Propietario:</strong> {% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</p>
-<p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {% if alicuota_display is not None %}{{ alicuota_display|floatformat:2 }}%{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</p>
+<p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {% if alicuota_display is not None %}{{ alicuota_display|floatformat:4 }}{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</p>
 <p style="margin-bottom: 10px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
 <table class="table-informe table-lista-simple">
     <thead>

@@ -107,10 +107,25 @@
         <tr><td>Por impagos de los propietarios</td><td class="text-center">{{ monto_deuda_prop|default:0 }} BS</td></tr>
     </table>
 
-    <h3 class="text-center mt-4" style="font-size: 12px;">FONDOS</h3>
+    <h3 class="text-center mt-4" style="font-size: 12px;">MOVIMIENTO DE FONDOS</h3>
+    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+        <thead class="thead-light">
+        <tr><th>Concepto</th><th class="text-center">Saldo anterior</th><th class="text-center">Apartado del mes</th><th class="text-center">Saldo actual</th></tr>
+        </thead>
+        <tbody>
+        <tr><td>Fondo de reserva</td><td class="text-center">{{ saldo_anterior_reserva|default:0 }}</td><td class="text-center">{{ apartado_fondo_reserva|default:0 }} (10% gastos)</td><td class="text-center">{{ saldo_actual_reserva|default:0 }}</td></tr>
+        <tr><td>Fondo de prestaciones</td><td class="text-center">{{ saldo_anterior_prestaciones|default:0 }}</td><td class="text-center">{{ apartado_prestaciones|default:0 }}</td><td class="text-center">{{ saldo_actual_prestaciones|default:0 }}</td></tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+        <tr><td>Gastos bancarios del mes</td><td class="text-center">{{ total_gastos_bancarios_mes|default:0 }}</td></tr>
+    </table>
+
+    <h3 class="text-center mt-4" style="font-size: 12px;">FONDOS (totales por tipo)</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
         <tr><td>De reserva</td><td class="text-center">{{ fondo_reserva|default:0 }}</td></tr>
         <tr><td>Operacional</td><td class="text-center">{{ fondo_operacional|default:0 }}</td></tr>
+        <tr><td>Prestaciones</td><td class="text-center">{{ fondo_prestaciones|default:0 }}</td></tr>
         <tr><td>Otros fondos</td><td class="text-center">{{ fondo_otros|default:0 }}</td></tr>
     </table>
 

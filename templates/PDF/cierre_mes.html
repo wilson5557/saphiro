@@ -129,11 +129,38 @@
     </tbody>
 </table>
 
-<p class="mt-5" style="font-weight: bold; font-size: 12px;">FONDOS</p>
+<p class="mt-5" style="font-weight: bold; font-size: 12px;">MOVIMIENTO DE FONDOS</p>
+<table class="table-informe table-lista-simple">
+    <thead>
+        <tr><th>Concepto</th><th class="num">Saldo anterior</th><th class="num">Apartado del mes</th><th class="num">Saldo actual</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Fondo de reserva</td>
+            <td class="num">{{ saldo_anterior_reserva|default:0 }}</td>
+            <td class="num">{{ apartado_fondo_reserva|default:0 }} (10% gastos)</td>
+            <td class="num">{{ saldo_actual_reserva|default:0 }}</td>
+        </tr>
+        <tr>
+            <td>Fondo de prestaciones</td>
+            <td class="num">{{ saldo_anterior_prestaciones|default:0 }}</td>
+            <td class="num">{{ apartado_prestaciones|default:0 }}</td>
+            <td class="num">{{ saldo_actual_prestaciones|default:0 }}</td>
+        </tr>
+    </tbody>
+</table>
+<table class="table-informe table-lista-simple mt-2">
+    <tbody>
+        <tr><td>Gastos bancarios del mes</td><td class="num">{{ total_gastos_bancarios_mes|default:0 }}</td></tr>
+    </tbody>
+</table>
+
+<p class="mt-5" style="font-weight: bold; font-size: 12px;">FONDOS (totales por tipo)</p>
 <table class="table-informe table-lista-simple">
     <tbody>
         <tr><td>De reserva</td><td class="num">{{ fondo_reserva|default:0 }}</td></tr>
         <tr><td>Operacional</td><td class="num">{{ fondo_operacional|default:0 }}</td></tr>
+        <tr><td>Prestaciones</td><td class="num">{{ fondo_prestaciones|default:0 }}</td></tr>
         <tr><td>Otros fondos</td><td class="num">{{ fondo_otros|default:0 }}</td></tr>
     </tbody>
 </table>

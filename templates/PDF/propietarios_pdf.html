@@ -15,7 +15,7 @@
             {% for domicilio, alicuota_display in item.domicilios_con_alicuota %}
             <tr>
                 <td>{{ domicilio.nombre_domicilio }}</td><td>{{ domicilio.tipo_domicilio }}</td><td>{{ domicilio.estacionamientos }}</td>
-                <td class="num">{% if alicuota_display is not None %}{{ alicuota_display|floatformat:2 }}%{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</td><td class="num">{{ domicilio.size_domicilio }}</td>
+                <td class="num">{% if alicuota_display is not None %}{{ alicuota_display|floatformat:4 }}{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</td><td class="num">{{ domicilio.size_domicilio }}</td>
                 <td class="num">{{ domicilio.saldo|intcomma }} BS</td><td class="num monto-usd">{{ domicilio.saldo_usd|intcomma }} $</td><td class="num">{{ domicilio.saldo_eur|intcomma }} €</td>
             </tr>
             {% empty %}

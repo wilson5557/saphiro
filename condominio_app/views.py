@@ -4050,11 +4050,12 @@ def admin_reportes(request):
                 writer.writerow(['Propietario', 'Inmueble', 'Tipo', 'Alicuota', 'm2', 'Saldo BS', 'Saldo USD', 'Saldo EUR'])
                 for p in prop:
                     for dom in p.prop_dom.filter(id_condominio_id=condominio.id_condominio):
+                        alic = _alicuota_para_display(dom)
                         writer.writerow([
                             p.nombre_propietario,
                             dom.nombre_domicilio,
                             dom.tipo_domicilio or '',
-                            dom.alicuota_domicilio or '',
+                            round(alic, 4) if alic is not None else '',
                             dom.size_domicilio or '',
                             dom.saldo or '',
                             dom.saldo_usd or '',
@@ -4068,8 +4069,9 @@ def admin_reportes(request):
                 for p in prop:
                     lines.append('Propietario: {}'.format(p.nombre_propietario))
                     for dom in p.prop_dom.filter(id_condominio_id=condominio.id_condominio):
+                        alic = _alicuota_para_display(dom)
                         lines.append('  - {} | {} | Alicuota: {} | m2: {} | BS: {} | USD: {} | EUR: {}'.format(
-                            dom.nombre_domicilio, dom.tipo_domicilio or '-', dom.alicuota_domicilio or '-', dom.size_domicilio or '-',
+                            dom.nombre_domicilio, dom.tipo_domicilio or '-', round(alic, 4) if alic is not None else '-', dom.size_domicilio or '-',
                             dom.saldo or 0, dom.saldo_usd or 0, dom.saldo_eur or 0))
                     lines.append('')
                 response = HttpResponse('\n'.join(lines), content_type='text/plain')
@@ -4826,8 +4828,49 @@ def admin_cierres(request):
             data['fondo_otros'] = fondo_otros
         else:
             data['fondo_otros'] = 0
+        monto_prestaciones = Fondos.objects.filter(tipo_fondo="PRESTACIONES", **filtro_fondos_condo).distinct()
+        if monto_prestaciones.exists():
+            data['fondo_prestaciones'] = monto_prestaciones.aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+        else:
+            data['fondo_prestaciones'] = 0
 
-        total_fondos = (fondo_reserva or 0) + (fondo_operacional or 0) + (fondo_otros or 0)
+        total_fondos = (fondo_reserva or 0) + (fondo_operacional or 0) + (fondo_otros or 0) + (data['fondo_prestaciones'] or 0)
+
+        # Nivel 1: Fondo de reserva (10% gastos del mes), saldos anteriores, gastos bancarios
+        t_g_bs = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
+        t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
+        t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
+        total_gastos_mes_bs = Decimal(str(t_g_bs)) + Decimal(str(t_g_usd)) / Decimal(str(tasa_bs)) + Decimal(str(t_g_eur)) / Decimal(str(tasa_euro))
+        apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+        data['apartado_fondo_reserva'] = apartado_reserva
+        if cierre_mes.exists():
+            ultimo_cierre = cierre_mes.last()
+            saldo_ant_reserva = Fondos.objects.filter(
+                tipo_fondo="RESERVA", **filtro_fondos_condo,
+                id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+            saldo_ant_prestaciones = Fondos.objects.filter(
+                tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
+                id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+        else:
+            saldo_ant_reserva = Decimal('0')
+            saldo_ant_prestaciones = Decimal('0')
+        data['saldo_anterior_reserva'] = saldo_ant_reserva
+        data['saldo_anterior_prestaciones'] = saldo_ant_prestaciones
+        data['saldo_actual_reserva'] = (Decimal(str(saldo_ant_reserva)) + apartado_reserva).quantize(Decimal('0.01'))
+        # Apartado prestaciones es manual; saldo actual = anterior + 0 por ahora
+        data['apartado_prestaciones'] = Decimal('0')
+        data['saldo_actual_prestaciones'] = saldo_ant_prestaciones
+        if cierre_mes.exists():
+            gastos_bancarios_bs = Gastos.objects.filter(
+                tipo_gasto='GASTOS BANCARIOS',
+                id_movimiento__created_at__gt=cierre_mes.last().fecha_cierre,
+                id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+        else:
+            gastos_bancarios_bs = 0
+        data['total_gastos_bancarios_mes'] = gastos_bancarios_bs
 
         # Diferencia
         if data['t_gastos']['id_movimiento__monto_movimiento__sum'] is None:
@@ -5002,7 +5045,7 @@ def admin_cierres(request):
 
 
 def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimientos_propietarios,
-                               tasa_bs, tasa_euro, today, resultado_fondo):
+                               tasa_bs, tasa_euro, today, resultado_fondo, ultimo_cierre=None):
     """Construye el diccionario de datos para el PDF de cierre o la vista precierre (sin guardar nada)."""
     datos_condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id).first()
     if not datos_condominio:
@@ -5082,11 +5125,44 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
     filtro_fondos_condo = {'id_movimiento__id_banco__id_condominio_id': user.id_condominio_id}
     fondo_reserva = Fondos.objects.filter(tipo_fondo="RESERVA", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
     fondo_operacional = Fondos.objects.filter(tipo_fondo="OPERACIONAL", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+    fondo_prestaciones = Fondos.objects.filter(tipo_fondo="PRESTACIONES", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
     fondo_otros = Fondos.objects.filter(tipo_fondo="OTROS FONDOS", **filtro_fondos_condo).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
     data['fondo_reserva'] = fondo_reserva
     data['fondo_operacional'] = fondo_operacional
+    data['fondo_prestaciones'] = fondo_prestaciones
     data['fondo_otros'] = fondo_otros
-    total_fondos = fondo_reserva + fondo_operacional + fondo_otros
+    total_fondos = fondo_reserva + fondo_operacional + fondo_prestaciones + fondo_otros
+
+    # Nivel 1: apartado reserva (10% gastos), saldos anteriores, gastos bancarios
+    t_g = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
+    t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
+    t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
+    total_gastos_mes_bs = Decimal(str(t_g)) + Decimal(str(t_g_usd)) / Decimal(str(tasa_bs)) + Decimal(str(t_g_eur)) / Decimal(str(tasa_euro))
+    data['apartado_fondo_reserva'] = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+    if ultimo_cierre:
+        saldo_ant_reserva = Fondos.objects.filter(
+            tipo_fondo="RESERVA", **filtro_fondos_condo,
+            id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
+        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+        saldo_ant_prestaciones = Fondos.objects.filter(
+            tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
+            id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
+        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+        gastos_bancarios_bs = Gastos.objects.filter(
+            tipo_gasto='GASTOS BANCARIOS',
+            id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
+            id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
+        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
+    else:
+        saldo_ant_reserva = Decimal('0')
+        saldo_ant_prestaciones = Decimal('0')
+        gastos_bancarios_bs = 0
+    data['saldo_anterior_reserva'] = saldo_ant_reserva
+    data['saldo_anterior_prestaciones'] = saldo_ant_prestaciones
+    data['saldo_actual_reserva'] = (Decimal(str(saldo_ant_reserva)) + data['apartado_fondo_reserva']).quantize(Decimal('0.01'))
+    data['apartado_prestaciones'] = Decimal('0')
+    data['saldo_actual_prestaciones'] = saldo_ant_prestaciones
+    data['total_gastos_bancarios_mes'] = gastos_bancarios_bs
 
     t_g = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
     t_i = data['t_ingresos']['id_movimiento__monto_movimiento__sum'] or 0
@@ -5177,7 +5253,8 @@ def precierre(request):
             id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
         ).select_related("id_movimiento") if fondos else Fondos.objects.none()
 
-    data = _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimientos_propietarios, tasa_bs, tasa_euro, today, resultado_fondo)
+    ultimo_cierre = cierre_mes.last() if cierre_mes.exists() else None
+    data = _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimientos_propietarios, tasa_bs, tasa_euro, today, resultado_fondo, ultimo_cierre=ultimo_cierre)
     if not data:
         return HttpResponseRedirect(reverse('condominio_app:admin_cierres'))
 
@@ -6453,13 +6530,12 @@ def destroyDom(request, id):
 @login_required
 def updateDom(request, id_domicilio):
     dom = Domicilio.objects.get(id_domicilio=id_domicilio)
-    if dom.id_propietario_id:
-        domicilio = Domicilio.objects.get(id_domicilio=id_domicilio)
-
-        return render(request,'administrador/update/domicilio_update.html', {'domicilio':domicilio}) 
-    else:  
-        domicilio = Domicilio.objects.get(id_domicilio=id_domicilio)
-        return render(request,'administrador/update/domicilio_update.html', {'domicilio':domicilio})  
+    domicilio = Domicilio.objects.get(id_domicilio=id_domicilio)
+    alicuota_display = _alicuota_para_display(domicilio)
+    return render(request, 'administrador/update/domicilio_update.html', {
+        'domicilio': domicilio,
+        'alicuota_display': alicuota_display,
+    })  
     
                 
 
@@ -6704,10 +6780,11 @@ def obtener_bancos(request):
         return JsonResponse(data)
 
 def _alicuota_para_display(domicilio):
-    """Devuelve la alícuota a mostrar: la guardada o la calculada por m² si aplica."""
+    """Devuelve la alícuota en formato decimal (0.16 para 16%): guardada o calculada por m²."""
     if domicilio.alicuota_domicilio is not None:
         a = float(domicilio.alicuota_domicilio)
-        return round((a * 100) if a <= 1 else a, 2)
+        # Si viene como % (16), convertir a decimal (0.16); si ya es decimal (0.16), mantener
+        return round((a / 100) if a > 1 else a, 4)
     if not domicilio.id_condominio_id:
         return None
     try:
@@ -6729,7 +6806,7 @@ def _alicuota_para_display(domicilio):
     except (TypeError, ValueError):
         m2_dom = Decimal('0')
     if total_m2 and total_m2 > 0 and m2_dom > 0:
-        return round(float(m2_dom / total_m2) * 100, 2)
+        return round(float(m2_dom / total_m2), 4)
     return None
 
 
@@ -6901,11 +6978,12 @@ def obtener_domicilio(request):
             else:
                 piso = "-"
 
+            alic = _alicuota_para_display(domicilio)
             data = {
                 'nombre_domicilio': domicilio.nombre_domicilio,
                 'piso_domicilio': piso,
                 'tipo_domicilio': domicilio.tipo_domicilio,
-                'alicuota_domicilio': domicilio.alicuota_domicilio,
+                'alicuota_domicilio': round(alic, 4) if alic is not None else '',
                 'size_domicilio': domicilio.size_domicilio,
                 'estacionamientos': domicilio.estacionamientos,
                 'nombre_torre': torre.nombre_torre
@@ -6918,11 +6996,12 @@ def obtener_domicilio(request):
             else:
                 piso = "-"
 
+            alic = _alicuota_para_display(domicilio)
             data = {
                 'nombre_domicilio': domicilio.nombre_domicilio,
                 'piso_domicilio': piso,
                 'tipo_domicilio': domicilio.tipo_domicilio,
-                'alicuota_domicilio': domicilio.alicuota_domicilio,
+                'alicuota_domicilio': round(alic, 4) if alic is not None else '',
                 'size_domicilio': domicilio.size_domicilio,
                 'estacionamientos': domicilio.estacionamientos,
                 'nombre_torre': "-"

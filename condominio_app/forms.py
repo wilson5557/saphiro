@@ -23,6 +23,7 @@ TIPO_INGRESO = [('NOTA DE CRÉDITO', 'Nota de Crédito'),
 
 TIPO_FONDO = [('RESERVA', 'Fondo de Reserva'),
             ('OPERACIONAL', 'Fondo Operacional'),
+            ('PRESTACIONES', 'Fondo de Prestaciones'),
             ('OTROS FONDOS', 'Otros Fondos')]
 
 TIPO_FONDO_MOV = [('CRÉDITO', 'Crédito'),
@@ -39,7 +40,8 @@ FORMA_GASTO = [(0, 'Condominio'),
               (1, 'Cuota')]
 
 TIPO_GASTO = [('COMÚN', 'Gasto común'),
-              ('NO COMÚN', 'Gasto no común')]
+              ('NO COMÚN', 'Gasto no común'),
+              ('GASTOS BANCARIOS', 'Gastos bancarios / Comisión bancaria')]
 
 TIPO_UNIDAD = [('APARTAMENTOS', 'Apartamentos'),
               ('CASAS', 'Casas'),
