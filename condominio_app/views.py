@@ -5295,7 +5295,7 @@ def cierre_propietario(request, prop, cierre, user):
         movimientos_ids = Ingresos.objects.filter(id_propietario_id=prop.id_propietario).values_list('id_movimiento_id', flat=True)
         data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__lte=cierre.fecha_cierre)
         data['deudas'] = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
-        data['datos_propietario'] = prop.select_related('id_usuario')
+        data['datos_propietario'] = Propietario.objects.select_related('id_usuario').get(pk=prop.pk)
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
         data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
         todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
