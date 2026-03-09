@@ -249,8 +249,9 @@ def comprobar_tasa():
                 return 'La tasa fue actualizada correctamente.'
             else:
                 messages.warning(request,
-                                 '¡Debe establecer la tasa de cambio del día debido a que no se pudo conectar al BCV {}!'.format(
-                                     today, extra_tags='alert-danger'))
+                                 '¡Debe establecer la tasa de cambio del día debido a que no se pudo conectar al BCV! '
+                                 'Puede ingresar las tasas manualmente en Configuración → Tasas.',
+                                 extra_tags='alert-danger')
                 return 'La tasa no pudo ser cambiada.'
         elif dia_semana == 'Saturday' or 'Sunday':
             return 'Los fines de semana no cambia la tasa.'

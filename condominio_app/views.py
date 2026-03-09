@@ -1318,8 +1318,9 @@ def comprobar_tasa(request, today, fecha_actual, dia_semana, tasa_bolivares, tas
                 return tasas
             else:
                 messages.warning(request,
-                                 '¡Debe establecer la tasa de cambio del día debido a que no se pudo conectar al BCV {}!'.format(
-                                     today, extra_tags='alert-danger'))
+                                 '¡Debe establecer la tasa de cambio del día debido a que no se pudo conectar al BCV! '
+                                 'Puede ingresar las tasas manualmente en Configuración → Tasas.',
+                                 extra_tags='alert-danger')
                 tasas = {'tasa_BCV_USD': tasa_bolivares,
                          'tasa_BCV_EUR': tasa_euros}
                 return tasas
@@ -1379,8 +1380,9 @@ def home_admin(request):
             today = timezone.now()
         else:
             messages.warning(request,
-                             '¡Debe establecer la tasa de cambio del día debido a que no se pudo conectar al BCV {}!'.format(
-                                 today, extra_tags='alert-danger'))
+                             '¡Debe establecer la tasa de cambio del día debido a que no se pudo conectar al BCV! '
+                             'Puede ingresar las tasas manualmente en Configuración → Tasas.',
+                             extra_tags='alert-danger')
             tasa_bs = 0.00
             tasa_euro = 0.00
 
