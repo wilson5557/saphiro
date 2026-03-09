@@ -127,11 +127,14 @@ WSGI_APPLICATION = 'condominio.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'saphiro-condominio',    
+        'NAME': 'saphiro',
         'USER': 'postgres',
-        'PASSWORD': 'C1234567c',        
+        'PASSWORD': '151925',
         'HOST': 'localhost',
         'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c client_encoding=UTF8'
+        },
     }
 }
 
