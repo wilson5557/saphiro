@@ -1063,15 +1063,7 @@ def propietarios_pagos(request):
     domicilios = Domicilio.objects.filter(id_propietario_id=propietarios.id_propietario)
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
-
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         print(request.POST)
@@ -1299,6 +1291,17 @@ def actualizar_tasa():
     return {'tasa_BCV_USD': 0, 'tasa_BCV_EUR': 0}
 
 
+def _obtener_tasas_safe(request, ultima_tasa, today):
+    """Devuelve (tasa_bs, tasa_euro). Si ultima_tasa es None, devuelve (0, 0) para evitar AttributeError."""
+    if ultima_tasa is None:
+        return 0, 0
+    tasa_bs = ultima_tasa.tasa_BCV_USD
+    tasa_euro = ultima_tasa.tasa_BCV_EUR
+    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
+                           today.strftime("%A"), tasa_bs, tasa_euro)
+    return tasas['tasa_BCV_USD'], tasas['tasa_BCV_EUR']
+
+
 def comprobar_tasa(request, today, fecha_actual, dia_semana, tasa_bolivares, tasa_euros):
     if today != fecha_actual:
         print("Es un día diferente")
@@ -1407,59 +1410,69 @@ def admin_bancos(request):
     bancos_form = BancosForm()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
 
-        print("xd")
-
-        if request.POST['tipo_dni_titular'] == '':
-            # Este error ocurre si no se ha escogido un tipo de dni
+        if request.POST.get('tipo_dni_titular') == '':
             messages.warning(request,
                              'Ha ocurrido un error durante el registro. Debe escoger un tipo de identificación',
                              extra_tags='alert-danger')
-            print("xd0")
         else:
+            # Compatibilidad con formulario de configuracion: input type="date" envía fecha_apertura como YYYY-MM-DD;
+            # BancosForm usa SelectDateWidget y espera fecha_apertura_day, _month, _year.
+            post_data = request.POST.copy()
+            fecha_apertura = post_data.get('fecha_apertura', '').strip()
+            if fecha_apertura:
+                try:
+                    if '-' in fecha_apertura:
+                        parts = fecha_apertura.split('-')
+                        y, m, d = parts[0], parts[1], parts[2]
+                    else:
+                        parsed = datetime.strptime(fecha_apertura, '%d/%m/%Y')
+                        d, m, y = str(parsed.day), str(parsed.month), str(parsed.year)
+                    post_data['fecha_apertura_day'] = d
+                    post_data['fecha_apertura_month'] = m
+                    post_data['fecha_apertura_year'] = y
+                except (ValueError, IndexError):
+                    pass
 
-            print("xd2")
-
-            bancos_form = BancosForm(data=request.POST, files=request.FILES)
-
-            print("xd3")
+            bancos_form = BancosForm(data=post_data, files=request.FILES)
 
             if bancos_form.is_valid():
-                print("xd4")
                 bancos = bancos_form.save()
-                print("xd5")
-                bancos.fecha_apertura = request.POST['fecha_apertura']
-                bancos.saldo_apertura = request.POST['saldo_actual']
+                fe = request.POST.get('fecha_apertura', '').strip()
+                if fe:
+                    try:
+                        bancos.fecha_apertura = datetime.strptime(fe, '%Y-%m-%d').date() if '-' in fe else datetime.strptime(fe, '%d/%m/%Y').date()
+                    except (ValueError, TypeError):
+                        pass
+                if request.POST.get('saldo_actual') not in (None, ''):
+                    try:
+                        bancos.saldo_apertura = request.POST.get('saldo_actual')
+                    except (TypeError, ValueError):
+                        pass
                 bancos.id_condominio = condominio
                 if request.FILES.get('imagen_referencial'):
                     bancos.imagen_referencial = request.FILES['imagen_referencial']
                 bancos.save()
-                print("xd6")
 
                 messages.success(request, '¡El banco ha sido registrado de manera satisfactoria!',
                                  extra_tags='alert-success')
                 return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "bancos"}))
 
             else:
-                print("xderror")
-                print(bancos_form.errors)
-                messages.warning(request,
-                                 'Ha ocurrido un error durante el registro. Por favor verifique e intente nuevamente',
-                                 extra_tags='alert-danger')
+                err_msg = 'Ha ocurrido un error durante el registro. Por favor verifique e intente nuevamente.'
+                if bancos_form.errors:
+                    first_errors = list(bancos_form.errors.values())[:2]
+                    err_detail = ' '.join(e.as_text().replace('*', '').strip() for e in first_errors)
+                    if err_detail:
+                        err_msg = err_msg + ' ' + err_detail
+                messages.warning(request, err_msg, extra_tags='alert-danger')
 
-    return render(request, 'administrador/bancos.html', {'bancos': banks, 'bancos_form': bancos_form,
-                                                         'conf': condominio, 'tasa_bs': tasa_bs,
-                                                         'tasa_euro': tasa_euro})
+    # La plantilla administrador/bancos.html no existe; el formulario está en Configuración.
+    # Redirigir a Configuración → Bancos para ver el formulario y la lista.
+    return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'bancos'}))
 
 
 # ------------------------------ADMINISTRACION Y GESTION DE GASTOS------------------------------
@@ -1509,14 +1522,7 @@ def admin_gastos(request):
 
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         if request.POST['fecha_movimiento'] > str(date.today()):
@@ -1764,14 +1770,7 @@ def admin_ingresos(request):
     
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         if request.POST['fecha_movimiento'] > str(date.today()):
@@ -1972,14 +1971,7 @@ def admin_deudas(request):
         return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         if request.POST['fecha_deuda'] > str(date.today()):
@@ -2360,14 +2352,7 @@ def admin_fondos(request):
         return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         if request.POST['fecha_movimiento'] > str(date.today()):
@@ -2607,15 +2592,7 @@ def admin_propietarios(request):
     user_form = RegistrationForm()
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
-
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
     movimientos = Movimientos_bancarios.objects.filter(
@@ -2674,12 +2651,7 @@ def admin_validacion_pagos(request):
 
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
     movimientos = Movimientos_bancarios.objects.filter(
@@ -2935,14 +2907,7 @@ def admin_abono_deudas(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     monto_deuda = 0
     saldo = 0
@@ -3271,15 +3236,7 @@ def configuracion_recargos_descuentos(request):
     
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
-
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     recargo_descuento_form = Recargos_y_DescuentosForm()
 
@@ -3396,9 +3353,8 @@ def configuracion_establecimiento_precios(request):
     
     precios_form = Establecimiento_preciosForm()
     ultima_tasa = Tasas.objects.all().last()
-
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
+    today = timezone.now()
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         precios_form = Tasas_de_cambioForm(data=request.POST)
@@ -3450,14 +3406,7 @@ def admin_cuentas(request):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         nombre_propietario = request.POST.get('nombre_propietario', '')
@@ -3565,14 +3514,7 @@ def admin_reportes(request):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         if request.POST['reporte'] == 'GASTOS':
@@ -4640,14 +4582,7 @@ def admin_cierres(request):
     for g in total_gasto:
         g_monto.append(float(g))
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     resultado_ingreso = {}
     resultado_gasto = {}
@@ -5387,14 +5322,7 @@ def admin_noticias(request):
         return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': 'tasa'}))
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         if post_form.is_valid():
@@ -5430,14 +5358,7 @@ def admin_perfil(request):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     return render(request, 'administrador/perfil.html', {'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
 
@@ -5457,14 +5378,7 @@ def admin_torres(request):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
 
@@ -5505,14 +5419,7 @@ def readBancos(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     return render(request, 'administrador/read/bancos_read.html', {
         'bancos': bancos,
@@ -5537,14 +5444,7 @@ def readGastos(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     return render(request, 'administrador/read/gastos_read.html', {
         'gastos': gastos,
@@ -5570,14 +5470,7 @@ def readIngresos(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     return render(request, 'administrador/read/ingresos_read.html', {
         'ingresos': ingresos,
@@ -5642,14 +5535,7 @@ def readDeudas(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if deuda_condo.exists():
         deudas = deuda_condo
@@ -5677,14 +5563,7 @@ def readPropDeudas(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     return render(request, 'administrador/read/deudas_prop_read.html', {
         'deudas_prop': deudas_prop,
@@ -5711,14 +5590,7 @@ def readPropietarios(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     back_fallback = reverse('condominio_app:admin_configuracion', kwargs={'type': 'condominio'}) + '?tab=propietarios'
     back_url = get_back_url(request, back_fallback)
@@ -5743,14 +5615,7 @@ def readCuentas(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
     print(propietarios)
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     return render(request, 'administrador/read/cuentas_read.html', {
         'propietarios': propietarios,
@@ -5777,14 +5642,7 @@ def updateBancos(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
     
     tlf_titular = bancos.tlf_titular or ""
     partes_tlf = tlf_titular.split('-', 1)
@@ -5879,14 +5737,7 @@ def updateGastos(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     identificacion = str(datos_mov.dni_titular).split("-")
     tipo_dni = DatosMovimientoForm(initial={'tipo_dni_titular': identificacion[0]})
@@ -5967,14 +5818,7 @@ def updateIngresos(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     identificacion = str(datos_mov.dni_titular).split("-")
     tipo_dni = DatosMovimientoForm(initial={'tipo_dni_titular': identificacion[0]})
@@ -6050,14 +5894,7 @@ def updatePropietarios(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     # Se asigna el id del propietario que se esta actualizando y su número de apartamento para futuro chequeo
     id_propietario_actualizandose = propietario.id_propietario
@@ -6197,14 +6034,7 @@ def updateTorres(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
 
@@ -6236,14 +6066,7 @@ def updateCuentas(request, id):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         nombre_propietario = request.POST.get('nombre_propietario', '')
@@ -6302,14 +6125,7 @@ def updateNoticia(request, slug):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
         form = UpdateBlogPostForm(request.POST or None, request.FILES or None, instance=noticia)
@@ -6926,15 +6742,9 @@ def cambiar_monto(request):
 
         ultima_tasa = Tasas.objects.last()
         today = timezone.now()
-
-        tasa_bs = ultima_tasa.tasa_BCV_USD
-        tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-        tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                               today.strftime("%A"), tasa_bs, tasa_euro)
-
-        tasa_bs = Decimal(tasas['tasa_BCV_USD'])
-        tasa_euro = Decimal(tasas['tasa_BCV_EUR'])
+        tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
+        tasa_bs = Decimal(str(tasa_bs))
+        tasa_euro = Decimal(str(tasa_euro))
 
         data_condo = json.loads(request.GET.get('deuda_condo'))
         data_cuota = json.loads(request.GET.get('deuda_cuota'))

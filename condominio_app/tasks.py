@@ -228,6 +228,8 @@ def actualizar_tasa():
 @shared_task
 def comprobar_tasa():
     ultima_tasa = Tasas.objects.all().last()
+    if ultima_tasa is None:
+        return 'No hay tasas configuradas. Configure las tasas en Configuración.'
     hoy = timezone.now()
 
     fecha_actual = ultima_tasa.updated_at.strftime("%d/%m/%Y")
