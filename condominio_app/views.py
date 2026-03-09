@@ -1985,7 +1985,9 @@ def admin_deudas(request):
             else:
                 if request.POST['tipo_deuda'] == "2":
                     propietario_id = request.POST.get('propietario_deudor')
-                    domicilios_ids = request.POST.getlist('domicilios_deudor')
+                    domicilios_ids_raw = request.POST.getlist('domicilios_deudor')
+                    # Evitar duplicados: un mismo inmueble no debe generar más de una deuda en este registro
+                    domicilios_ids = list(dict.fromkeys(domicilios_ids_raw))
 
                     if not propietario_id or not domicilios_ids:
                         messages.warning(request,

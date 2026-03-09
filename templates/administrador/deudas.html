@@ -70,6 +70,18 @@
         <!-- FORMULARIO -->
         <form id="AgregarDeudas" class="pt-4" method="POST">
           {% csrf_token %}
+          <script>
+          (function() {
+            var form = document.getElementById('AgregarDeudas');
+            var btn = document.getElementById('btn-submit-deuda');
+            if (form && btn) {
+              form.addEventListener('submit', function() {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin pr-1"></i> Guardando...';
+              });
+            }
+          })();
+          </script>
             <div class="form-group row">
                 <label for="tipo_deuda" class="col-sm-3 col-form-label text-dark">{{ deudas_form.tipo_moneda.label }}:</label>
                 <div class="col-sm-8">
@@ -165,7 +177,7 @@
           <input type="hidden" value="DEUDA_POST" name="form_post" id="form_post" class="d-none">
 
           {% if propietarios %}
-            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para agregar una nueva deuda a la lista"><i class="fa fa-check pr-1"></i> Aceptar</button>
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up" id="btn-submit-deuda" data-toggle="popover" data-content="Haz click aquí para agregar una nueva deuda a la lista"><i class="fa fa-check pr-1"></i> Aceptar</button>
           {% else %}
             <button type="button" class="btn btn-gray col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Se debe tener registrados al menos un gasto primero, para así poder hacer uso de esta opción"><i class="fa fa-check pr-1" disabled aria-disabled="true"></i> Aceptar</button>
           {% endif %}
