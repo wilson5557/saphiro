@@ -3337,24 +3337,31 @@ def configuracion_tasas_de_cambio(request):
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()
 
-    tasa_bs = ultima_tasa.tasa_BCV_USD
-    tasa_euro = ultima_tasa.tasa_BCV_EUR
-
-    tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
-                           today.strftime("%A"), tasa_bs, tasa_euro)
-
-    tasa_id = ultima_tasa.id
-    tasa_bs = tasas['tasa_BCV_USD']
-    tasa_euro = tasas['tasa_BCV_EUR']
+    if ultima_tasa is not None:
+        tasa_bs = ultima_tasa.tasa_BCV_USD
+        tasa_euro = ultima_tasa.tasa_BCV_EUR
+        tasas = comprobar_tasa(request, today.strftime("%d/%m/%Y"), ultima_tasa.updated_at.strftime("%d/%m/%Y"),
+                               today.strftime("%A"), tasa_bs, tasa_euro)
+        tasa_bs = tasas['tasa_BCV_USD']
+        tasa_euro = tasas['tasa_BCV_EUR']
+        tasa_id = ultima_tasa.id
+    else:
+        tasa_bs = 0
+        tasa_euro = 0
+        tasa_id = None
 
     if request.method == 'POST':
         tasas_form = Tasas_de_cambioForm(data=request.POST)
         if tasas_form.is_valid():
             print("TASAS DE CAMBIO ACTUALIZADAS")
             today = timezone.now()
-            Tasas.objects.filter(pk=tasa_id).update(tasa_BCV_USD=request.POST['tasa_BCV_USD'],
-                                                    tasa_BCV_EUR=request.POST['tasa_BCV_EUR'],
-                                                    updated_at=timezone.now())
+            if tasa_id is not None:
+                Tasas.objects.filter(pk=tasa_id).update(tasa_BCV_USD=request.POST['tasa_BCV_USD'],
+                                                        tasa_BCV_EUR=request.POST['tasa_BCV_EUR'],
+                                                        updated_at=timezone.now())
+            else:
+                Tasas.objects.create(tasa_BCV_USD=request.POST['tasa_BCV_USD'],
+                                     tasa_BCV_EUR=request.POST['tasa_BCV_EUR'])
             messages.success(request, '¡Las tasas de cambio han sido actualizadas de manera satisfactoria!',
                              extra_tags='alert-success')
             return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "tasa"}))
