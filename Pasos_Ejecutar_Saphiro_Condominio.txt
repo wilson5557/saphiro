@@ -1,0 +1,76 @@
+========================================
+PASOS PARA EJECUTAR SAPHIRO CONDOMINIO
+(Copiar y pegar en CMD - UNA LÍNEA A LA VEZ)
+========================================
+
+IMPORTANTE: En Windows CMD usa siempre BARRAS INVERTIDAS \ 
+            No uses / en las rutas. La carpeta del entorno suele llamarse "venv" (sin punto).
+
+----------------------------------------
+PASO 1 - Ir a la carpeta del proyecto:
+----------------------------------------
+
+cd /d C:\Users\WorkPC\Desktop\saphiro-nuevo
+
+
+----------------------------------------
+PASO 2 - Ver qué carpeta de entorno tienes:
+----------------------------------------
+
+dir
+
+(Si ves "venv" usa el comando A. Si ves ".venv" usa el comando B.)
+
+
+----------------------------------------
+PASO 3A - Si tienes la carpeta "venv" (sin punto):
+----------------------------------------
+
+call venv\Scripts\activate.bat
+
+
+----------------------------------------
+PASO 3B - Si tienes la carpeta ".venv" (con punto):
+----------------------------------------
+
+call .venv\Scripts\activate.bat
+
+
+(Después debe aparecer (venv) al inicio de la línea. Si sale "no puede encontrar la ruta", la carpeta no existe: crea el entorno con el PASO 3C.)
+
+
+----------------------------------------
+PASO 3C - Si NO existe venv ni .venv, crear el entorno:
+----------------------------------------
+
+python -m venv venv
+
+call venv\Scripts\activate.bat
+
+pip install -r requirements.txt
+
+
+----------------------------------------
+PASO 4 - Arrancar el servidor:
+----------------------------------------
+
+python manage.py runserver
+
+
+----------------------------------------
+PASO 5 - Abrir en el navegador:
+----------------------------------------
+
+http://127.0.0.1:8000/
+
+
+========================================
+RESUMEN - Comandos en orden (si ya tienes "venv"):
+========================================
+
+cd /d C:\Users\WorkPC\Desktop\saphiro-nuevo
+call venv\Scripts\activate.bat
+python manage.py runserver
+
+(Todo con barra invertida \ , no con /)
+========================================

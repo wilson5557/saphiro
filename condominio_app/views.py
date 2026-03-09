@@ -29,6 +29,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from datetime import date, datetime, timedelta, time
 from decimal import Decimal
+import re
 from random import randint, seed
 from faker import Faker
 from operator import attrgetter
@@ -1238,12 +1239,13 @@ def propietarios_publicaciones(request):
 # ------------------------------VISTAS ADMINISTRADOR------------------------------
 
 def actualizar_tasa():
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     response = ''
     count = 0
     while response == '':
         try:
             print("Conectando con 'https://www.bcv.org.ve/'")
-            response = requests.get('https://www.bcv.org.ve/', verify=False)
+            response = requests.get('https://www.bcv.org.ve/', verify=False, timeout=15)
             break
         except Exception as e:
             count += 1
@@ -1258,29 +1260,43 @@ def actualizar_tasa():
             continue
 
     if response != '':
-
         content = response.text
         soup = BeautifulSoup(content, 'lxml')
+        valor_dolar = None
+        valor_euro = None
 
-        box = soup.find('div', id='dolar')
-        valor_dolar = round(float(box.find('strong').text.replace(',', '.')), 2)
-        box = soup.find('div', id='euro')
-        valor_euro = round(float(box.find('strong').text.replace(',', '.')), 2)
-        texto_fecha = soup.find('span', class_='date-display-single').text
-        fecha = date.today().strftime("%d/%m/%Y")
-        print("D: ", valor_dolar)
-        print("E: ", valor_euro)
-        print(fecha)
+        # Estructura antigua del BCV: div#dolar y div#euro con <strong>
+        try:
+            box = soup.find('div', id='dolar')
+            if box and box.find('strong'):
+                valor_dolar = round(float(box.find('strong').text.replace(',', '.')), 2)
+            box = soup.find('div', id='euro')
+            if box and box.find('strong'):
+                valor_euro = round(float(box.find('strong').text.replace(',', '.')), 2)
+        except (AttributeError, TypeError, ValueError):
+            pass
 
-        tasas = {'tasa_BCV_USD': valor_dolar,
-                 'tasa_BCV_EUR': valor_euro}
+        # Si el BCV cambió el HTML: buscar USD y EUR seguidos de número en la página
+        if valor_dolar is None or valor_euro is None:
+            # Número con coma o punto decimal (ej. 433,16640000 o 501,72)
+            patron = re.compile(r'(\d{1,3}(?:[,.]\d+)+)')
+            idx_usd = content.find('USD')
+            idx_eur = content.find('EUR')
+            if valor_dolar is None and idx_usd >= 0:
+                m = patron.search(content[idx_usd:idx_usd + 80])
+                if m:
+                    valor_dolar = round(float(m.group(1).replace(',', '.')), 2)
+            if valor_euro is None and idx_eur >= 0:
+                m = patron.search(content[idx_eur:idx_eur + 80])
+                if m:
+                    valor_euro = round(float(m.group(1).replace(',', '.')), 2)
 
-        return tasas
+        if valor_dolar is not None and valor_euro is not None:
+            print("D: ", valor_dolar)
+            print("E: ", valor_euro)
+            return {'tasa_BCV_USD': valor_dolar, 'tasa_BCV_EUR': valor_euro}
 
-    else:
-        tasas = {'tasa_BCV_USD': 0,
-                 'tasa_BCV_EUR': 0}
-        return tasas
+    return {'tasa_BCV_USD': 0, 'tasa_BCV_EUR': 0}
 
 
 def comprobar_tasa(request, today, fecha_actual, dia_semana, tasa_bolivares, tasa_euros):

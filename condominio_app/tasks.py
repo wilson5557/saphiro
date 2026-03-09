@@ -1,4 +1,6 @@
+import re
 import time
+import urllib3
 from datetime import datetime, time, date
 import requests
 from bs4 import BeautifulSoup
@@ -166,12 +168,13 @@ def cuota_base():
 
 
 def actualizar_tasa():
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     response = ''
     count = 0
     while response == '':
         try:
             print("Conectando con 'https://www.bcv.org.ve/'")
-            response = requests.get('https://www.bcv.org.ve/', verify=False)
+            response = requests.get('https://www.bcv.org.ve/', verify=False, timeout=15)
             break
         except Exception as e:
             count += 1
@@ -186,30 +189,40 @@ def actualizar_tasa():
             continue
 
     if response != '':
-
         content = response.text
         soup = BeautifulSoup(content, 'lxml')
+        valor_dolar = None
+        valor_euro = None
 
-        box = soup.find('div', id='dolar')
-        valor_dolar = round(float(box.find('strong').text.replace(',', '.')), 2)
-        box = soup.find('div', id='euro')
-        valor_euro = round(float(box.find('strong').text.replace(',', '.')), 2)
-        texto_fecha = soup.find('span', class_='date-display-single').text
-        fecha = date.today().strftime("%d/%m/%Y")
-        print(texto_fecha)
-        print("D: ", valor_dolar)
-        print("E: ", valor_euro)
-        print(fecha)
+        try:
+            box = soup.find('div', id='dolar')
+            if box and box.find('strong'):
+                valor_dolar = round(float(box.find('strong').text.replace(',', '.')), 2)
+            box = soup.find('div', id='euro')
+            if box and box.find('strong'):
+                valor_euro = round(float(box.find('strong').text.replace(',', '.')), 2)
+        except (AttributeError, TypeError, ValueError):
+            pass
 
-        tasas = {'tasa_BCV_USD': valor_dolar,
-                 'tasa_BCV_EUR': valor_euro}
+        if valor_dolar is None or valor_euro is None:
+            patron = re.compile(r'(\d{1,3}(?:[,.]\d+)+)')
+            idx_usd = content.find('USD')
+            idx_eur = content.find('EUR')
+            if valor_dolar is None and idx_usd >= 0:
+                m = patron.search(content[idx_usd:idx_usd + 80])
+                if m:
+                    valor_dolar = round(float(m.group(1).replace(',', '.')), 2)
+            if valor_euro is None and idx_eur >= 0:
+                m = patron.search(content[idx_eur:idx_eur + 80])
+                if m:
+                    valor_euro = round(float(m.group(1).replace(',', '.')), 2)
 
-        return tasas
+        if valor_dolar is not None and valor_euro is not None:
+            print("D: ", valor_dolar)
+            print("E: ", valor_euro)
+            return {'tasa_BCV_USD': valor_dolar, 'tasa_BCV_EUR': valor_euro}
 
-    else:
-        tasas = {'tasa_BCV_USD': 0,
-                 'tasa_BCV_EUR': 0}
-        return tasas
+    return {'tasa_BCV_USD': 0, 'tasa_BCV_EUR': 0}
 
 
 @shared_task
