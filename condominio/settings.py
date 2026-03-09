@@ -54,9 +54,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-#For Email
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # During development only
+# For Email: usar consola solo si se desea (EMAIL_USE_CONSOLE=1); por defecto SMTP para que los reportes se envíen por correo
+if DEBUG and os.environ.get('EMAIL_USE_CONSOLE') == '1':
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Application definition
 
@@ -223,14 +223,16 @@ USE_THOUSAND_SEPARATOR = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Datos para enviar un email a tráves de gmail
+# Datos para enviar un email a través de Gmail (reportes por correo, etc.)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_USE_TLS = True  
-EMAIL_USE_SSL = False  
-EMAIL_HOST = 'smtp.gmail.com'  
-EMAIL_PORT = 587  
-EMAIL_HOST_USER = 'no.reply.arcadestation@gmail.com'
-EMAIL_HOST_PASSWORD = 'rzxsqvjqwkwpjmwk'  
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'no.reply.arcadestation@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'rzxsqvjqwkwpjmwk')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER  
 
 LOGIN_URL = '/'
 

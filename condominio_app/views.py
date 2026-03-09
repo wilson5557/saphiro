@@ -4281,9 +4281,12 @@ def admin_reportes(request):
                         email.send(fail_silently=False)
                         messages.success(request, 'Estado de cuenta enviado por correo a {}.'.format(email_destino), extra_tags='alert-success')
                     except Exception as e:
+                        err_msg = str(e)
+                        if 'Authentication failed' in err_msg or 'Username and Password' in err_msg or '534' in err_msg:
+                            err_msg += ' Revise en Configuración que el correo de envío use contraseña de aplicación (Gmail: cuenta → seguridad → contraseñas de aplicación).'
                         messages.warning(
                             request,
-                            'No se pudo enviar el correo: {}.'.format(str(e)),
+                            'No se pudo enviar el correo: {}.'.format(err_msg),
                             extra_tags='alert-danger',
                         )
                     return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
@@ -4438,9 +4441,12 @@ def admin_reportes(request):
                     email_msg.send(fail_silently=False)
                     messages.success(request, 'Reporte por inmueble enviado por correo a {}.'.format(email_destino), extra_tags='alert-success')
                 except Exception as e:
+                    err_msg = str(e)
+                    if 'Authentication failed' in err_msg or 'Username and Password' in err_msg or '534' in err_msg:
+                        err_msg += ' Revise que el correo de envío use contraseña de aplicación (Gmail: cuenta → seguridad → contraseñas de aplicación).'
                     messages.warning(
                         request,
-                        'No se pudo enviar el correo: {}.'.format(str(e)),
+                        'No se pudo enviar el correo: {}.'.format(err_msg),
                         extra_tags='alert-danger',
                     )
                 return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
