@@ -2,6 +2,7 @@
 
 {% load static %}
 {% load i18n %}
+{% load reportes_filters %}
 
 {% block title_page %}
 Esparta Suites - Administración
@@ -29,7 +30,7 @@ class="col-lg-3 end-padding-left"
             <div class="row pt-1">
                 <p class="normal-font text-dark col-sm-6"><strong>Fecha en la que se realizó el gasto:</strong> <span>{{gastos.id_movimiento.fecha_movimiento|date:"l, d/m/Y"}}</span>
                 </p>
-                <p class="normal-font text-dark col-sm-6"><strong>Monto del gasto:</strong> <span class="text-danger">{{gastos.id_movimiento.monto_movimiento}}</span>
+                <p class="normal-font text-dark col-sm-6"><strong>Monto del gasto:</strong> <span class="text-danger">{{ gastos.id_movimiento.monto_movimiento|floatformat:2 }}{% if gastos.id_movimiento.tipo_moneda %} {{ gastos.id_movimiento.tipo_moneda }}{% else %} BS{% endif %}</span>{% equiv_bcv gastos.id_movimiento.monto_movimiento gastos.id_movimiento.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-muted">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}
                 </p>
             </div>
             <div class="row pt-1">

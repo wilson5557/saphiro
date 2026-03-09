@@ -2,6 +2,7 @@
 
 {% load static %}
 {% load i18n %}
+{% load reportes_filters %}
 
 {% block title_page %}
   Esparta Suites - Administración
@@ -35,7 +36,7 @@
           </div>
           <div class="row pt-3">
             <p class="normal-font text-dark col-sm-6"><strong>Fecha de la deuda:</strong> <span>{{deuda.fecha_deuda}}</span></p>
-            <p class="normal-font text-dark col-sm-6"><strong>Monto de la deuda:</strong> <span class="text-success">{{deuda.monto_deuda}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Monto de la deuda:</strong> <span class="text-success">{{ deuda.monto_deuda|floatformat:2 }}{% if deuda.tipo_moneda %} {{ deuda.tipo_moneda }}{% else %} BS{% endif %}</span>{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-muted">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</p>
           </div>
           <div class="row pt-3">
               {% if deuda.is_active %}

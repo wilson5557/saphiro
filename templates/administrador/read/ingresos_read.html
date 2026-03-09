@@ -2,6 +2,7 @@
 
 {% load static %}
 {% load i18n %}
+{% load reportes_filters %}
 
 {% block title_page %}
   Esparta Suites - Administración
@@ -33,7 +34,7 @@
           </div>
           <div class="row pt-3">
             <p class="normal-font text-dark col-sm-6"><strong>Fecha en la que se realizó el ingreso:</strong> <span>{{ingresos.id_movimiento.fecha_movimiento|date:"l, d/m/Y"}}</span></p>
-            <p class="normal-font text-dark col-sm-6"><strong>Monto del ingreso:</strong> <span class="text-success">{{ingresos.id_movimiento.monto_movimiento}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Monto del ingreso:</strong> <span class="text-success">{{ ingresos.id_movimiento.monto_movimiento|floatformat:2 }}{% if ingresos.id_movimiento.tipo_moneda %} {{ ingresos.id_movimiento.tipo_moneda }}{% else %} BS{% endif %}</span>{% equiv_bcv ingresos.id_movimiento.monto_movimiento ingresos.id_movimiento.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-muted">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</p>
           </div>
           <div class="row pt-3">
             <p class="normal-font text-dark col-sm-6"><strong>Fecha de registro del ingreso:</strong> <span class="">{{ingresos.id_movimiento.created_at|date:"l, d/m/Y"}}</span></p>

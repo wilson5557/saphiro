@@ -3,6 +3,7 @@
 {% load static %}
 {% load i18n %}
 {% load widget_tweaks %}
+{% load reportes_filters %}
 
 {% block title_page %}
 Esparta Suites - Administración
@@ -165,7 +166,7 @@ class="d-none"
                     </td>
                     <td class="centered-cell"> {{ mov.descripcion_movimiento }}</td>
                     <td class="centered-cell text-center"> {{ mov.referencia_movimiento }}</td>
-                    <td class="centered-cell">{{ mov.monto_movimiento }}{% if mov.tipo_moneda %} {{ mov.tipo_moneda }}{% endif %}</td>
+                    <td class="centered-cell">{{ mov.monto_movimiento|floatformat:2 }}{% if mov.tipo_moneda %} {{ mov.tipo_moneda }}{% else %} BS{% endif %}{% equiv_bcv mov.monto_movimiento mov.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-success">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td>
                     <td class="centered-cell"> {{ mov.banco_emisor }}</td>
 
                     {% if mov.estado_movimiento == 0 %}

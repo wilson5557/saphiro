@@ -1,6 +1,7 @@
 {% extends "PDF/base_informe_pdf.html" %}
 {% load static %}
 {% load i18n %}
+{% load reportes_filters %}
 
 {% block titulo_pagina %}Cierre del mes {{ mes_cierre }} {{ año_cierre }}{% endblock %}
 {% block titulo_informe %}CIERRE DEL MES DE {{ mes_cierre }} DE {{ año_cierre }}{% endblock %}
@@ -78,12 +79,12 @@
         {% for ingreso in ingresos %}
         <tr>
             <td>{{ ingreso.descripcion }}</td>
-            <td class="num">{{ ingreso.monto }} Bs</td>
+            <td class="num">{{ ingreso.monto|floatformat:2 }} BS{% equiv_bcv ingreso.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
-            <td class="num"><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} Bs</strong></td>
+            <td class="num"><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} BS</strong></td>
         </tr>
     </tbody>
 </table>
@@ -105,12 +106,12 @@
         {% for gasto in gastos %}
         <tr>
             <td>{{ gasto.descripcion }}</td>
-            <td class="num">{{ gasto.monto }} Bs</td>
+            <td class="num">{{ gasto.monto|floatformat:2 }} BS{% equiv_bcv gasto.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
-            <td class="num"><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} Bs</strong></td>
+            <td class="num"><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} BS</strong></td>
         </tr>
     </tbody>
 </table>
@@ -124,7 +125,7 @@
     <tbody>
         <tr>
             <td>Por impagos de los propietarios</td>
-            <td class="num">{% if monto_deuda_prop != 0 %}{{ monto_deuda_prop }} BS{% else %}<span class="text-success">NO SE HAN ACUMULADO DEUDAS</span>{% endif %}</td>
+            <td class="num">{% if monto_deuda_prop != 0 %}{{ monto_deuda_prop|floatformat:2 }} BS{% equiv_bcv monto_deuda_prop "BS" tasa_bs tasa_euro as equiv_d %}{% if equiv_d %} &nbsp; ≈ {{ equiv_d.value|floatformat:2 }} {{ equiv_d.currency }}{% endif %}{% else %}<span class="text-success">NO SE HAN ACUMULADO DEUDAS</span>{% endif %}</td>
         </tr>
     </tbody>
 </table>
@@ -137,21 +138,21 @@
     <tbody>
         <tr>
             <td>Fondo de reserva</td>
-            <td class="num">{{ saldo_anterior_reserva|default:0 }}</td>
-            <td class="num">{{ apartado_fondo_reserva|default:0 }} (10% gastos)</td>
-            <td class="num">{{ saldo_actual_reserva|default:0 }}</td>
+            <td class="num">{{ saldo_anterior_reserva|default:0 }} BS{% equiv_bcv saldo_anterior_reserva "BS" tasa_bs tasa_euro as e1 %}{% if e1 %} &nbsp; ≈ {{ e1.value|floatformat:2 }} {{ e1.currency }}{% endif %}</td>
+            <td class="num">{{ apartado_fondo_reserva|default:0 }} BS{% equiv_bcv apartado_fondo_reserva "BS" tasa_bs tasa_euro as e2 %}{% if e2 %} &nbsp; ≈ {{ e2.value|floatformat:2 }} {{ e2.currency }}{% endif %} (10% gastos)</td>
+            <td class="num">{{ saldo_actual_reserva|default:0 }} BS{% equiv_bcv saldo_actual_reserva "BS" tasa_bs tasa_euro as e3 %}{% if e3 %} &nbsp; ≈ {{ e3.value|floatformat:2 }} {{ e3.currency }}{% endif %}</td>
         </tr>
         <tr>
             <td>Fondo de prestaciones</td>
-            <td class="num">{{ saldo_anterior_prestaciones|default:0 }}</td>
+            <td class="num">{{ saldo_anterior_prestaciones|default:0 }} BS{% equiv_bcv saldo_anterior_prestaciones "BS" tasa_bs tasa_euro as e4 %}{% if e4 %} &nbsp; ≈ {{ e4.value|floatformat:2 }} {{ e4.currency }}{% endif %}</td>
             <td class="num">{{ apartado_prestaciones|default:0 }}</td>
-            <td class="num">{{ saldo_actual_prestaciones|default:0 }}</td>
+            <td class="num">{{ saldo_actual_prestaciones|default:0 }} BS{% equiv_bcv saldo_actual_prestaciones "BS" tasa_bs tasa_euro as e5 %}{% if e5 %} &nbsp; ≈ {{ e5.value|floatformat:2 }} {{ e5.currency }}{% endif %}</td>
         </tr>
     </tbody>
 </table>
 <table class="table-informe table-lista-simple mt-2">
     <tbody>
-        <tr><td>Gastos bancarios del mes</td><td class="num">{{ total_gastos_bancarios_mes|default:0 }}</td></tr>
+        <tr><td>Gastos bancarios del mes</td><td class="num">{{ total_gastos_bancarios_mes|default:0 }} BS{% equiv_bcv total_gastos_bancarios_mes "BS" tasa_bs tasa_euro as e6 %}{% if e6 %} &nbsp; ≈ {{ e6.value|floatformat:2 }} {{ e6.currency }}{% endif %}</td></tr>
     </tbody>
 </table>
 

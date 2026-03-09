@@ -2,8 +2,45 @@
 from django import template
 from django.urls import reverse
 from datetime import datetime
+from decimal import Decimal
 
 register = template.Library()
+
+
+@register.simple_tag
+def equiv_bcv(monto, tipo_moneda, tasa_bs, tasa_euro):
+    """
+    Devuelve el equivalente del monto en la otra moneda (BCV).
+    - BS -> equivalente en USD (monto/tasa_bs)
+    - USD -> equivalente en BS (monto*tasa_bs)
+    - EUR -> equivalente en BS (monto*tasa_euro)
+    Retorna dict con 'value' y 'currency' o None si no hay tasa.
+    """
+    if monto is None:
+        return None
+    try:
+        m = Decimal(str(monto))
+    except (TypeError, ValueError):
+        return None
+    moneda = (tipo_moneda or '').strip().upper() or 'BS'
+    try:
+        t_bs = Decimal(str(tasa_bs or 0))
+        t_eur = Decimal(str(tasa_euro or 0))
+    except (TypeError, ValueError):
+        return None
+    if moneda == 'BS':
+        if t_bs and t_bs > 0:
+            return {'value': (m / t_bs).quantize(Decimal('0.01')), 'currency': 'USD'}
+        return None
+    if moneda == 'USD':
+        if t_bs and t_bs > 0:
+            return {'value': (m * t_bs).quantize(Decimal('0.01')), 'currency': 'BS'}
+        return None
+    if moneda == 'EUR':
+        if t_eur and t_eur > 0:
+            return {'value': (m * t_eur).quantize(Decimal('0.01')), 'currency': 'BS'}
+        return None
+    return None
 
 
 @register.simple_tag

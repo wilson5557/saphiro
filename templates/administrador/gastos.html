@@ -3,6 +3,7 @@
 {% load static %}
 {% load i18n %}
 {% load widget_tweaks %}
+{% load reportes_filters %}
 
 {% block title_page %}
   Esparta Suites - Administración
@@ -332,7 +333,7 @@
             {% language 'es' %}
             <td class="centered-cell"> {{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
             {% endlanguage %}
-            <td class="centered-cell"><span class="text-center text-success">{{ gasto.id_movimiento.monto_movimiento }}{% if gasto.id_movimiento.tipo_moneda %} {{ gasto.id_movimiento.tipo_moneda }}{% endif %}</span></td>
+            <td class="centered-cell"><span class="text-center text-success">{{ gasto.id_movimiento.monto_movimiento|floatformat:2 }}{% if gasto.id_movimiento.tipo_moneda %} {{ gasto.id_movimiento.tipo_moneda }}{% else %} BS{% endif %}</span>{% equiv_bcv gasto.id_movimiento.monto_movimiento gasto.id_movimiento.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-success">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td>
             {% if gasto.can_modify %}
             <td>
               <div class="horizontal-cell">

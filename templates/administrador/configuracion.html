@@ -3,6 +3,7 @@
 {% load static %}
 {% load i18n %}
 {% load widget_tweaks %}
+{% load reportes_filters %}
 
 {% block title_page %}
 Esparta Suites - Administración
@@ -767,7 +768,7 @@ class="d-none"
                             {% endif %}
                             <td class="centered-cell"> {{ banco.tipo_moneda }}</td>
                             <td class="centered-cell"> {{ banco.nombre_titular }}</td>
-                            <td class="centered-cell"><span class="text-dark-blue">{{ banco.saldo_actual }}</span></td>
+                            <td class="centered-cell"><span class="text-dark-blue">{{ banco.saldo_actual|floatformat:2 }} {{ banco.tipo_moneda }}</span>{% equiv_bcv banco.saldo_actual banco.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-dark-blue">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td>
                             <td>
                                 <div class="horizontal-cell">
                                     <a href="/home/administrar/bancos/ver/{{ banco.id_banco }}"

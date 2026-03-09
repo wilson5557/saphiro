@@ -3546,6 +3546,8 @@ def admin_reportes(request):
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in data['bancos']]
                 data['tasas'] = Tasas.objects.all().last()
+                data['tasa_bs'] = tasa_bs
+                data['tasa_euro'] = tasa_euro
 
                 for i in data['gastos']:
                     for j in data['bancos']:
@@ -3661,6 +3663,8 @@ def admin_reportes(request):
                 data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in data['bancos']]
                 data['propietarios'] = Propietario.objects.filter(id_usuario__id_condominio_id=condominio.id_condominio).select_related('id_usuario')
                 data['tasas'] = Tasas.objects.all().last()
+                data['tasa_bs'] = tasa_bs
+                data['tasa_euro'] = tasa_euro
 
                 for banco in data['bancos']:
                     data['movimientos'] = Movimientos_bancarios.objects.filter(id_banco_id=banco.id_banco)
@@ -4089,6 +4093,8 @@ def admin_reportes(request):
                     'condominio': condominio,
                     'datos_condominio': condominio,
                     'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
+                    'tasa_bs': tasa_bs,
+                    'tasa_euro': tasa_euro,
                 }
 
                 template_path = 'PDF/deudas_general_pdf.html'
@@ -4234,6 +4240,8 @@ def admin_reportes(request):
                     'condominio': condominio,
                     'datos_condominio': condominio,
                     'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
+                    'tasa_bs': tasa_bs,
+                    'tasa_euro': tasa_euro,
                 }
 
                 template_path = 'PDF/estado_cuenta_pdf.html'
@@ -4864,6 +4872,8 @@ def admin_cierres(request):
         data['año_cierre'] = today.strftime("%Y")
         data['datos_condominio'] = datos_condominio
         data['bancos'] = list(Bancos.objects.filter(id_condominio=datos_condominio).order_by('nombre_banco'))
+        data['tasa_bs'] = tasa_bs
+        data['tasa_euro'] = tasa_euro
 
         nombre_pdf = "cierre_mes/{}.pdf".format(today.strftime("%d-%m-%Y_%H.%M.%S"))
 
@@ -5221,6 +5231,8 @@ def precierre(request):
     bancos = Bancos.objects.filter(id_condominio=datos_condominio).order_by('nombre_banco')
     data['bancos_cabecera'] = bancos
     data['es_precierre'] = True
+    data['tasa_bs'] = tasa_bs
+    data['tasa_euro'] = tasa_euro
     return render(request, 'administrador/precierre.html', data)
 
 

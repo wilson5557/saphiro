@@ -4,6 +4,7 @@
 {% load static %}
 {% load i18n %}
 {% load widget_tweaks %}
+{% load reportes_filters %}
 
 {% block title_page %}
   Esparta Suites - Administración
@@ -292,7 +293,7 @@
                   {% if deuda.tipo_deuda == "1" %}
                   <tr>
                       <td class="centered-cell"> {{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-                      <td class="centered-cell text-danger"> {{ deuda.monto_deuda }}</td>
+                      <td class="centered-cell text-danger">{{ deuda.monto_deuda|floatformat:2 }}{% if deuda.tipo_moneda %} {{ deuda.tipo_moneda }}{% else %} BS{% endif %}{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-danger">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td>
                       {% language 'es' %}
                       <td class="centered-cell"> {{ deuda.fecha_deuda|date:'d/m/Y' }}</td>
                       {% endlanguage %}

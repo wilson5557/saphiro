@@ -23,7 +23,7 @@
             <td>{% if deuda.id_domicilio and deuda.id_domicilio.id_propietario %}{{ deuda.id_domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</td>
             <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
             <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-            <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
+            <td class="num">{{ deuda.monto_deuda|intcomma }}{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
             <td>{{ deuda.tipo_moneda }}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{% if deuda.is_active %}Sí{% else %}No{% endif %}</td>
