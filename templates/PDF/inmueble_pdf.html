@@ -111,7 +111,7 @@
     <thead>
         <tr>
             <th>Descripción</th>
-            <th class="num">Monto</th>
+            <th class="num">Monto (y equivalente)</th>
             <th>Moneda</th>
             <th>Fecha</th>
             <th>Estado</th>
@@ -121,7 +121,7 @@
         {% for deuda in deudas %}
         <tr>
             <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-            <td class="num">{{ deuda.monto_deuda|intcomma }}{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as eqd %}{% if eqd %} <span class="text-success">≈ {{ eqd.value|floatformat:2 }} {{ eqd.currency }}</span>{% endif %}</td>
+            <td class="num">{{ deuda.monto_deuda|floatformat:2|intcomma }} {{ deuda.tipo_moneda }}{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as eqd %}{% if eqd %} <span class="text-success">≈ {{ eqd.value|floatformat:2|intcomma }} {{ eqd.currency }}</span>{% endif %}</td>
             <td>{{ deuda.tipo_moneda }}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
