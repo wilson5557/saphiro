@@ -118,13 +118,13 @@
         </tr>
     </thead>
     <tbody>
-        {% for deuda in deudas %}
+        {% for item in deudas_con_equiv %}
         <tr>
-            <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-            <td class="num">{{ deuda.monto_deuda|floatformat:2|intcomma }} {{ deuda.tipo_moneda }}{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as eqd %}{% if eqd %} <span class="text-success">≈ {{ eqd.value|floatformat:2|intcomma }} {{ eqd.currency }}</span>{% endif %}</td>
-            <td>{{ deuda.tipo_moneda }}</td>
-            <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
-            <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
+            <td>{{ item.deuda.descripcion_deuda|default:item.deuda.concepto_deuda }}</td>
+            <td class="num">{{ item.deuda.monto_deuda|floatformat:2|intcomma }} {{ item.deuda.tipo_moneda }}{% if item.equiv_val %} <span class="text-success">≈ {{ item.equiv_val|floatformat:2|intcomma }} {{ item.equiv_cur }}</span>{% endif %}</td>
+            <td>{{ item.deuda.tipo_moneda }}</td>
+            <td>{{ item.deuda.fecha_deuda|format_fecha_deuda }}</td>
+            <td>{% if item.deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
         </tr>
         {% empty %}
         <tr><td colspan="5" class="text-center">Sin deudas en el período</td></tr>

@@ -54,10 +54,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-# For Email: usar consola solo si se desea (EMAIL_USE_CONSOLE=1); por defecto SMTP para que los reportes se envíen por correo
-if DEBUG and os.environ.get('EMAIL_USE_CONSOLE') == '1':
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -223,7 +219,10 @@ USE_THOUSAND_SEPARATOR = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Datos para enviar un email a través de Gmail (reportes por correo, etc.)
+# Envío de reportes por correo (Gmail). Para que lleguen a la tutora/propietarios:
+# - En la PC donde corre la app: definir variables de entorno EMAIL_HOST_USER y EMAIL_HOST_PASSWORD
+# - Gmail: usar contraseña de aplicación (no la contraseña normal). Cuenta Google → Seguridad → Contraseñas de aplicación
+# - Probar con: python manage.py send_test_email correo@destino.com
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False

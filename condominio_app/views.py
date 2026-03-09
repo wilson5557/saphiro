@@ -17,6 +17,8 @@ from django.views.generic import View
 from django.core.files.base import ContentFile
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import get_template, render_to_string
+import logging
+logger = logging.getLogger(__name__)
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
@@ -4283,9 +4285,10 @@ def admin_reportes(request):
                         email.send(fail_silently=False)
                         messages.success(request, 'Estado de cuenta enviado por correo a {}.'.format(email_destino), extra_tags='alert-success')
                     except Exception as e:
+                        logger.exception('Error enviando estado de cuenta por correo a %s', email_destino)
                         err_msg = str(e)
-                        if 'Authentication failed' in err_msg or 'Username and Password' in err_msg or '534' in err_msg:
-                            err_msg += ' Revise en Configuración que el correo de envío use contraseña de aplicación (Gmail: cuenta → seguridad → contraseñas de aplicación).'
+                        if 'Authentication failed' in err_msg or 'Username and Password' in err_msg or '534' in err_msg or '535' in err_msg:
+                            err_msg += ' Use contraseña de aplicación de Gmail (cuenta → Seguridad → Contraseñas de aplicación). En esta PC configure EMAIL_HOST_USER y EMAIL_HOST_PASSWORD.'
                         messages.warning(
                             request,
                             'No se pudo enviar el correo: {}.'.format(err_msg),
@@ -4483,6 +4486,10 @@ def admin_reportes(request):
                 saldo_ant_reserva = saldo_ant_prestaciones = Decimal('0')
             ultima_tasa = Tasas.objects.last()
             tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date() if hasattr(timezone, 'now') else date.today())
+            if (not tasa_bs or Decimal(str(tasa_bs)) <= 0) and ultima_tasa and getattr(ultima_tasa, 'tasa_BCV_USD', None):
+                tasa_bs = float(ultima_tasa.tasa_BCV_USD)
+            if (not tasa_euro or Decimal(str(tasa_euro)) <= 0) and ultima_tasa and getattr(ultima_tasa, 'tasa_BCV_EUR', None):
+                tasa_euro = float(ultima_tasa.tasa_BCV_EUR)
             tasa_bs_d = Decimal(str(tasa_bs or 0))
             tasa_eur_d = Decimal(str(tasa_euro or 0))
             total_gastos_mes_bs = total_gastos_bs + (total_gastos_usd * tasa_bs_d if tasa_bs_d else Decimal('0')) + (total_gastos_eur * tasa_eur_d if tasa_eur_d else Decimal('0'))
@@ -4513,6 +4520,25 @@ def admin_reportes(request):
                 'saldo_anterior_prestaciones': saldo_ant_prestaciones, 'saldo_actual_prestaciones': saldo_actual_prestaciones,
                 'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
             }
+            # Calcular equivalente en vista para cada deuda (así siempre se muestra si hay tasa)
+            deudas_con_equiv = []
+            t_bs = Decimal(str(tasa_bs or 0))
+            t_eur = Decimal(str(tasa_euro or 0))
+            for d in deudas_inm:
+                equiv_val, equiv_cur = None, None
+                try:
+                    m = Decimal(str(d.monto_deuda or 0))
+                    mon = (d.tipo_moneda or 'BS').strip().upper() or 'BS'
+                    if mon == 'BS' and t_bs and t_bs > 0:
+                        equiv_val, equiv_cur = (m / t_bs).quantize(Decimal('0.01')), 'USD'
+                    elif mon == 'USD' and t_bs and t_bs > 0:
+                        equiv_val, equiv_cur = (m * t_bs).quantize(Decimal('0.01')), 'BS'
+                    elif mon == 'EUR' and t_eur and t_eur > 0:
+                        equiv_val, equiv_cur = (m * t_eur).quantize(Decimal('0.01')), 'BS'
+                except (TypeError, ValueError):
+                    pass
+                deudas_con_equiv.append({'deuda': d, 'equiv_val': equiv_val, 'equiv_cur': equiv_cur})
+            data_inm['deudas_con_equiv'] = deudas_con_equiv
             template_path_inm = 'PDF/inmueble_pdf.html'
 
             # Enviar por correo al propietario del inmueble (solo PDF; nombre distinto a enviar_correo de Estado de cuenta)
@@ -4553,9 +4579,10 @@ def admin_reportes(request):
                     email_msg.send(fail_silently=False)
                     messages.success(request, 'Reporte por inmueble enviado por correo a {}.'.format(email_destino), extra_tags='alert-success')
                 except Exception as e:
+                    logger.exception('Error enviando reporte por inmueble por correo a %s', email_destino)
                     err_msg = str(e)
-                    if 'Authentication failed' in err_msg or 'Username and Password' in err_msg or '534' in err_msg:
-                        err_msg += ' Revise que el correo de envío use contraseña de aplicación (Gmail: cuenta → seguridad → contraseñas de aplicación).'
+                    if 'Authentication failed' in err_msg or 'Username and Password' in err_msg or '534' in err_msg or '535' in err_msg:
+                        err_msg += ' Use contraseña de aplicación de Gmail. En esta PC configure EMAIL_HOST_USER y EMAIL_HOST_PASSWORD.'
                     messages.warning(
                         request,
                         'No se pudo enviar el correo: {}.'.format(err_msg),
