@@ -1,6 +1,7 @@
 {% extends "PDF/base_informe_pdf.html" %}
 {% load static %}
 {% load i18n %}
+{% load humanize %}
 {% load reportes_filters %}
 
 {% block titulo_pagina %}Cierre del mes {{ mes_cierre }} {{ año_cierre }}{% endblock %}
@@ -8,12 +9,12 @@
 
 {% block contenido_pdf %}
 <style>
-    /* Tablas INGRESOS y GASTOS: una sola columna Descripción + TOTAL Bs. Sin cortar "Descripción" y sin espacio feo */
+    /* Tablas INGRESOS y GASTOS: Descripción + Monto Bs. + Monto en USD */
     .tabla-cierre-desc-monto { table-layout: fixed; width: 100%; }
     .tabla-cierre-desc-monto thead th:first-child,
-    .tabla-cierre-desc-monto tbody td:first-child { width: 72%; word-wrap: break-word; }
+    .tabla-cierre-desc-monto tbody td:first-child { width: 55%; word-wrap: break-word; }
     .tabla-cierre-desc-monto thead th.num,
-    .tabla-cierre-desc-monto tbody td.num { width: 28%; }
+    .tabla-cierre-desc-monto tbody td.num { width: 22%; }
 </style>
 <table class="table-informe" style="margin-top: 10px;">
     <thead>
@@ -72,19 +73,22 @@
     <thead>
         <tr>
             <th>Descripción</th>
-            <th class="num">TOTAL Bs.</th>
+            <th class="num">Monto Bs.</th>
+            <th class="num">Monto en USD</th>
         </tr>
     </thead>
     <tbody>
         {% for ingreso in ingresos %}
         <tr>
             <td>{{ ingreso.descripcion }}</td>
-            <td class="num">{{ ingreso.monto|floatformat:2 }} BS{% equiv_bcv ingreso.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
+            <td class="num">{{ ingreso.monto|floatformat:2|intcomma }} Bs</td>
+            <td class="num">{% equiv_bcv ingreso.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %}{{ equiv.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
-            <td class="num"><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} BS</strong></td>
+            <td class="num"><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0|floatformat:2|intcomma }} Bs</strong></td>
+            <td class="num"><strong>{% equiv_bcv t_ingresos.id_movimiento__monto_movimiento__sum "BS" tasa_bs tasa_euro as tot_equiv %}{% if tot_equiv %}{{ tot_equiv.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</strong></td>
         </tr>
     </tbody>
 </table>
@@ -99,19 +103,22 @@
     <thead>
         <tr>
             <th>Descripción</th>
-            <th class="num">TOTAL Bs.</th>
+            <th class="num">Monto Bs.</th>
+            <th class="num">Monto en USD</th>
         </tr>
     </thead>
     <tbody>
         {% for gasto in gastos %}
         <tr>
             <td>{{ gasto.descripcion }}</td>
-            <td class="num">{{ gasto.monto|floatformat:2 }} BS{% equiv_bcv gasto.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
+            <td class="num">{{ gasto.monto|floatformat:2|intcomma }} Bs</td>
+            <td class="num">{% equiv_bcv gasto.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %}{{ equiv.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
-            <td class="num"><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} BS</strong></td>
+            <td class="num"><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0|floatformat:2|intcomma }} Bs</strong></td>
+            <td class="num"><strong>{% equiv_bcv t_gastos.id_movimiento__monto_movimiento__sum "BS" tasa_bs tasa_euro as tot_equiv_g %}{% if tot_equiv_g %}{{ tot_equiv_g.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</strong></td>
         </tr>
     </tbody>
 </table>

@@ -2,6 +2,9 @@
 {% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Reporte por inmueble{% endblock %}
 {% block titulo_informe %}REPORTE POR INMUEBLE{% endblock %}
+{% block titulo_informe_extra %}
+<div style="margin-top: 6px; font-size: 10px; font-weight: normal;">Total a pagar: {{ cuota_periodo_bs|floatformat:2|intcomma }} Bs<br>{% equiv_bcv cuota_periodo_bs "BS" tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot.value|floatformat:2|intcomma }} USD{% endif %}</div>
+{% endblock %}
 {% block contenido_pdf %}
 <p style="margin-top: 10px; margin-bottom: 5px;"><strong>Inmueble:</strong> {{ domicilio.nombre_domicilio }}{% if domicilio.id_torre %} ({{ domicilio.id_torre.nombre_torre }}){% endif %}</p>
 <p style="margin-bottom: 5px;"><strong>Propietario:</strong> {% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</p>

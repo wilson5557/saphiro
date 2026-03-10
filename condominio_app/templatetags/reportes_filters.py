@@ -44,6 +44,48 @@ def equiv_bcv(monto, tipo_moneda, tasa_bs, tasa_euro):
 
 
 @register.simple_tag
+def equiv_a_usd(monto, tipo_moneda, tasa_bs, tasa_euro):
+    """Devuelve el monto convertido a USD (para reportes: BS->/tasa, USD->monto, EUR->*tasa_eur/tasa_bs)."""
+    if monto is None:
+        return None
+    try:
+        m = Decimal(str(monto))
+        t_bs = Decimal(str(tasa_bs or 0))
+        t_eur = Decimal(str(tasa_euro or 0))
+    except (TypeError, ValueError):
+        return None
+    mon = (tipo_moneda or 'BS').strip().upper() or 'BS'
+    if mon == 'BS' and t_bs and t_bs > 0:
+        return (m / t_bs).quantize(Decimal('0.01'))
+    if mon == 'USD':
+        return m.quantize(Decimal('0.01'))
+    if mon == 'EUR' and t_bs and t_bs > 0 and t_eur and t_eur > 0:
+        return (m * t_eur / t_bs).quantize(Decimal('0.01'))
+    return None
+
+
+@register.simple_tag
+def equiv_a_eur(monto, tipo_moneda, tasa_bs, tasa_euro):
+    """Devuelve el monto convertido a EUR (para reportes)."""
+    if monto is None:
+        return None
+    try:
+        m = Decimal(str(monto))
+        t_bs = Decimal(str(tasa_bs or 0))
+        t_eur = Decimal(str(tasa_euro or 0))
+    except (TypeError, ValueError):
+        return None
+    mon = (tipo_moneda or 'BS').strip().upper() or 'BS'
+    if mon == 'EUR' and t_eur and t_eur > 0:
+        return m.quantize(Decimal('0.01'))
+    if mon == 'BS' and t_eur and t_eur > 0:
+        return (m / t_eur).quantize(Decimal('0.01'))
+    if mon == 'USD' and t_eur and t_eur > 0 and t_bs and t_bs > 0:
+        return (m * t_bs / t_eur).quantize(Decimal('0.01'))
+    return None
+
+
+@register.simple_tag
 def url_panel_usuario(user):
     """Enlace del menú: HEADADMIN → superuser; admin (condominio) → home_admin; propietario → home_propietarios."""
     if not user or not getattr(user, 'is_authenticated', False):

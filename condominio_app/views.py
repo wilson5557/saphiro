@@ -3567,14 +3567,25 @@ def admin_reportes(request):
                 data['total_eur'] = total_eur
 
                 # Se calcula el total de dolares y euros en bolivares para la sumatoria de todo
-                total_usd_en_bs = data['tasas'].tasa_BCV_USD * total_usd
-                total_eur_en_bs = data['tasas'].tasa_BCV_EUR * total_eur
+                total_usd_en_bs = data['tasas'].tasa_BCV_USD * total_usd if data['tasas'] else 0
+                total_eur_en_bs = data['tasas'].tasa_BCV_EUR * total_eur if data['tasas'] else 0
 
                 data['total_usd_en_bs'] = total_usd_en_bs
                 data['total_eur_en_bs'] = total_eur_en_bs
 
                 # Se suman los valores para dar el resultado final en bolivares
-                data['total_final_en_bs'] = total_usd_en_bs + total_eur_en_bs + total_bs
+                total_final_bs = total_usd_en_bs + total_eur_en_bs + total_bs
+                data['total_final_en_bs'] = total_final_bs
+
+                # Total conversión: total en Bs convertido a USD y EUR (para que no queden en 0)
+                if data['tasas'] and data['tasas'].tasa_BCV_USD and Decimal(str(data['tasas'].tasa_BCV_USD)) > 0:
+                    data['total_equiv_usd'] = (Decimal(str(total_final_bs)) / Decimal(str(data['tasas'].tasa_BCV_USD))).quantize(Decimal('0.01'))
+                else:
+                    data['total_equiv_usd'] = total_usd
+                if data['tasas'] and data['tasas'].tasa_BCV_EUR and Decimal(str(data['tasas'].tasa_BCV_EUR)) > 0:
+                    data['total_equiv_eur'] = (Decimal(str(total_final_bs)) / Decimal(str(data['tasas'].tasa_BCV_EUR))).quantize(Decimal('0.01'))
+                else:
+                    data['total_equiv_eur'] = total_eur
 
                 data['fecha_generado'] = timezone.now()
 
@@ -3686,14 +3697,25 @@ def admin_reportes(request):
                 data['total_usd'] = total_usd
                 data['total_eur'] = total_eur
 
-                total_usd_en_bs = data['tasas'].tasa_BCV_USD * total_usd
-                total_eur_en_bs = data['tasas'].tasa_BCV_EUR * total_eur
+                total_usd_en_bs = data['tasas'].tasa_BCV_USD * total_usd if data['tasas'] else 0
+                total_eur_en_bs = data['tasas'].tasa_BCV_EUR * total_eur if data['tasas'] else 0
 
                 data['total_usd_en_bs'] = total_usd_en_bs
                 data['total_eur_en_bs'] = total_eur_en_bs
 
                 # Se suman los valores para dar el resultado final en bolivares
-                data['total_final_en_bs'] = total_usd_en_bs + total_eur_en_bs + total_bs
+                total_final_bs_ing = total_usd_en_bs + total_eur_en_bs + total_bs
+                data['total_final_en_bs'] = total_final_bs_ing
+
+                # Total conversión: total en Bs convertido a USD y EUR (ingresos)
+                if data['tasas'] and data['tasas'].tasa_BCV_USD and Decimal(str(data['tasas'].tasa_BCV_USD)) > 0:
+                    data['total_equiv_usd'] = (Decimal(str(total_final_bs_ing)) / Decimal(str(data['tasas'].tasa_BCV_USD))).quantize(Decimal('0.01'))
+                else:
+                    data['total_equiv_usd'] = total_usd
+                if data['tasas'] and data['tasas'].tasa_BCV_EUR and Decimal(str(data['tasas'].tasa_BCV_EUR)) > 0:
+                    data['total_equiv_eur'] = (Decimal(str(total_final_bs_ing)) / Decimal(str(data['tasas'].tasa_BCV_EUR))).quantize(Decimal('0.01'))
+                else:
+                    data['total_equiv_eur'] = total_eur
 
                 data['fecha_generado'] = timezone.now()
 

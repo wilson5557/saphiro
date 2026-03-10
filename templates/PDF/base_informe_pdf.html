@@ -67,6 +67,7 @@
             </td>
             <td class="cabecera-der">
                 <div class="titulo-fecha-linea">{% block titulo_informe %}INFORME{% endblock %}<span class="fecha-generado"> {{ fecha_generado|date:"d/m/y" }} {{ fecha_generado|time:"H:i:s" }}</span></div>
+                {% block titulo_informe_extra %}{% endblock %}
             </td>
         </tr>
     </table>

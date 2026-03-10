@@ -16,18 +16,12 @@
             <td>{{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
             <td>{{ ingreso.id_movimiento.referencia_movimiento|default:"-" }}</td>
             <td>{{ ingreso.id_movimiento.descripcion_movimiento|default:ingreso.id_movimiento.concepto_movimiento }}</td>
-            {% for banco in bancos %}
-            {% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'BS' %}
-            <td class="num">{{ ingreso.id_movimiento.monto_movimiento|intcomma }} BS{% equiv_bcv ingreso.id_movimiento.monto_movimiento "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td><td class="num">0</td><td class="num">0</td>
-            {% endif %}
-            {% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'USD' %}
-            <td class="num">0</td><td class="num monto-usd">{{ ingreso.id_movimiento.monto_movimiento|intcomma }} USD{% equiv_bcv ingreso.id_movimiento.monto_movimiento "USD" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td><td class="num">0</td>
-            {% endif %}
-            {% if ingreso.id_movimiento.id_banco_id == banco.id_banco and banco.tipo_moneda == 'EUR' %}
-            <td class="num">0</td><td class="num">0</td><td class="num monto-usd">{{ ingreso.id_movimiento.monto_movimiento|intcomma }} EUR{% equiv_bcv ingreso.id_movimiento.monto_movimiento "EUR" tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
-            {% endif %}
-            {% endfor %}
-            {% for banco in bancos %}{% if banco.id_banco == ingreso.id_movimiento.id_banco_id %}<td>{{ banco.nombre_banco }}</td>{% endif %}{% endfor %}
+            {% with banco=ingreso.id_movimiento.id_banco moneda=banco.tipo_moneda|default:"BS" monto=ingreso.id_movimiento.monto_movimiento %}
+            <td class="num">{% if moneda == 'BS' %}{{ monto|floatformat:2|intcomma }} Bs{% else %}{% equiv_bcv monto moneda tasa_bs tasa_euro as eq_bs %}{% if eq_bs %}{{ eq_bs.value|floatformat:2|intcomma }} {{ eq_bs.currency }}{% else %}—{% endif %}{% endif %}</td>
+            <td class="num monto-usd">{% equiv_a_usd monto moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_eur monto moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
+            {% endwith %}
+            <td>{% for b in bancos %}{% if b.id_banco == ingreso.id_movimiento.id_banco_id %}{{ b.nombre_banco }}{% endif %}{% endfor %}</td>
             <td>{{ ingreso.id_propietario_id|default:"-" }}</td>
         </tr>
         {% endfor %}
@@ -37,8 +31,8 @@
     </tbody>
 </table>
 <table class="table-informe mt-5">
-    <thead><tr><th>Total Bolívares</th><th class="num">Total USD</th><th class="num">Total EUR</th></tr></thead>
-    <tbody><tr><td>{{ total_bs|intcomma }} Bs</td><td class="num monto-usd">{{ total_usd|intcomma }} USD</td><td class="num">{{ total_eur|intcomma }} EUR</td></tr></tbody>
+    <thead><tr><th>Total Bolívares</th><th class="num">Total USD (equiv.)</th><th class="num">Total EUR (equiv.)</th></tr></thead>
+    <tbody><tr><td>{{ total_final_en_bs|intcomma }} Bs</td><td class="num monto-usd">{{ total_equiv_usd|default:total_usd|floatformat:2|intcomma }} USD</td><td class="num">{{ total_equiv_eur|default:total_eur|floatformat:2|intcomma }} EUR</td></tr></tbody>
 </table>
 <table class="table-informe mt-5" style="width:100%;">
     <tr>
@@ -51,9 +45,9 @@
         <td style="width:45%;">
             <table class="table-informe"><thead><tr><th colspan="2">Total conversión</th></tr></thead>
             <tbody>
-                <tr><td>Bolívares</td><td class="num">{{ total_bs|intcomma }} Bs</td></tr>
-                <tr><td>USD en Bs</td><td class="num">{{ total_usd_en_bs|intcomma }} Bs</td></tr>
-                <tr><td>EUR en Bs</td><td class="num">{{ total_eur_en_bs|intcomma }} Bs</td></tr>
+                <tr><td>Total Bolívares</td><td class="num">{{ total_final_en_bs|intcomma }} Bs</td></tr>
+                <tr><td>Equivalente en USD</td><td class="num">{{ total_equiv_usd|floatformat:2|intcomma }} USD</td></tr>
+                <tr><td>Equivalente en EUR</td><td class="num">{{ total_equiv_eur|floatformat:2|intcomma }} EUR</td></tr>
                 <tr><td><strong>Total Bs</strong></td><td class="num monto-usd">{{ total_final_en_bs|intcomma }} Bs</td></tr>
             </tbody>
             </table>
@@ -62,7 +56,7 @@
 </table>
 {% endblock %}
 {% block pie_informe %}
-<div class="fila-total-informe">TOTAL INGRESOS &nbsp; {{ total_final_en_bs|intcomma }} Bs &nbsp; {{ total_usd|intcomma }} US$</div>
+<div class="fila-total-informe">TOTAL INGRESOS &nbsp; {{ total_final_en_bs|intcomma }} Bs &nbsp; ≈ {{ total_equiv_usd|floatformat:2|intcomma }} USD</div>
 <div class="pie-avisos-informe">
     SEA RESPONSABLE. PAGUE PUNTUAL, DESPUES DE 3 MESES DE DEUDA PASARA A DEPARTAMENTO LEGAL<br>
     CUANDO REALICE EL PAGO INFORMELO AL WHATSAPP DEL CONDOMINIO<br>
