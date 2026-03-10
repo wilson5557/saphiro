@@ -64,6 +64,21 @@ def url_panel_usuario(user):
 
 
 @register.filter
+def formato_moneda(value):
+    """Formato de monto con signo menos al inicio si es negativo (evita '123,45-'). Usar en PDFs."""
+    if value is None:
+        return '—'
+    try:
+        m = Decimal(str(value))
+    except (TypeError, ValueError):
+        return str(value)
+    from django.contrib.humanize import intcomma
+    q = abs(m).quantize(Decimal('0.01'))
+    signo = '- ' if m < 0 else ''
+    return signo + intcomma(float(q))
+
+
+@register.filter
 def format_fecha_deuda(value):
     """Formatea string YYYY-MM-DD a dd/mm/yyyy. Si está vacío o no es esa forma, devuelve el valor o '—'."""
     if value is None or str(value).strip() == '':

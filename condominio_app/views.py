@@ -4498,10 +4498,18 @@ def admin_reportes(request):
             apartado_prestaciones = Decimal('0')
             saldo_actual_prestaciones = saldo_ant_prestaciones
 
+            inicio_dt = _parse_fecha_reporte(inicio_inm) or (datetime.strptime(str(inicio_inm)[:10], '%Y-%m-%d').date() if isinstance(inicio_inm, str) else inicio_inm)
+            fin_dt = _parse_fecha_reporte(fin_inm) or (datetime.strptime(str(fin_inm)[:10], '%Y-%m-%d').date() if isinstance(fin_inm, str) else fin_inm)
+            try:
+                es_periodo_mensual = (inicio_dt and fin_dt and inicio_dt.year == fin_dt.year and inicio_dt.month == fin_dt.month)
+            except (TypeError, AttributeError):
+                es_periodo_mensual = False
+            titulo_seccion_gastos = 'RELACIÓN MENSUAL DE GASTOS (su parte por alícuota)' if es_periodo_mensual else 'RELACIÓN DE GASTOS DEL PERÍODO (su parte por alícuota)'
             data_inm = {
-                'inicio': _parse_fecha_reporte(inicio_inm) or inicio_inm,
-                'fin': _parse_fecha_reporte(fin_inm) or fin_inm,
+                'inicio': inicio_dt or inicio_inm,
+                'fin': fin_dt or fin_inm,
                 'domicilio': domicilio,
+                'titulo_seccion_gastos': titulo_seccion_gastos,
                 'alicuota_display': alicuota_inm,
                 'deudas': deudas_inm,
                 'total_bs': total_bs_inm, 'total_usd': total_usd_inm, 'total_eur': total_eur_inm,

@@ -9,7 +9,7 @@
 <p style="margin-bottom: 10px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
 
 {% if gastos_por_categoria %}
-<p style="margin-top: 12px; font-weight: bold; font-size: 12px;">RELACIÓN MENSUAL DE GASTOS (su parte por alícuota)</p>
+<p style="margin-top: 12px; font-weight: bold; font-size: 12px;">{{ titulo_seccion_gastos|default:"RELACIÓN DE GASTOS DEL PERÍODO (su parte por alícuota)" }}</p>
 <table class="table-informe table-lista-simple">
     <thead>
         <tr>
@@ -26,22 +26,22 @@
         {% for row in gastos_por_categoria %}
         <tr>
             <td>{{ row.nombre }}</td>
-            <td class="num">{{ row.total_bs|floatformat:2|intcomma }}{% equiv_bcv row.total_bs "BS" tasa_bs tasa_euro as eq %}{% if eq %} <span class="text-success">≈ {{ eq.value|floatformat:2 }} {{ eq.currency }}</span>{% endif %}</td>
-            <td class="num">{{ row.total_usd|floatformat:2|intcomma }}{% equiv_bcv row.total_usd "USD" tasa_bs tasa_euro as eq2 %}{% if eq2 %} <span class="text-success">≈ {{ eq2.value|floatformat:2 }} {{ eq2.currency }}</span>{% endif %}</td>
-            <td class="num">{{ row.total_eur|floatformat:2|intcomma }}{% equiv_bcv row.total_eur "EUR" tasa_bs tasa_euro as eq3 %}{% if eq3 %} <span class="text-success">≈ {{ eq3.value|floatformat:2 }} {{ eq3.currency }}</span>{% endif %}</td>
-            <td class="num">{{ row.monto_pagar_bs|floatformat:2|intcomma }}{% equiv_bcv row.monto_pagar_bs "BS" tasa_bs tasa_euro as eq4 %}{% if eq4 %} <span class="text-success">≈ {{ eq4.value|floatformat:2 }} {{ eq4.currency }}</span>{% endif %}</td>
-            <td class="num">{{ row.monto_pagar_usd|floatformat:2|intcomma }}{% equiv_bcv row.monto_pagar_usd "USD" tasa_bs tasa_euro as eq5 %}{% if eq5 %} <span class="text-success">≈ {{ eq5.value|floatformat:2 }} {{ eq5.currency }}</span>{% endif %}</td>
-            <td class="num">{{ row.monto_pagar_eur|floatformat:2|intcomma }}{% equiv_bcv row.monto_pagar_eur "EUR" tasa_bs tasa_euro as eq6 %}{% if eq6 %} <span class="text-success">≈ {{ eq6.value|floatformat:2 }} {{ eq6.currency }}</span>{% endif %}</td>
+            <td class="num">{{ row.total_bs|formato_moneda }}{% if row.total_bs %}{% equiv_bcv row.total_bs "BS" tasa_bs tasa_euro as eq %}{% if eq %} <span class="text-success">≈ {{ eq.value|floatformat:2|intcomma }} {{ eq.currency }}</span>{% endif %}{% endif %}</td>
+            <td class="num">{% if row.total_usd %}{{ row.total_usd|formato_moneda }}{% equiv_bcv row.total_usd "USD" tasa_bs tasa_euro as eq2 %}{% if eq2 %} <span class="text-success">≈ {{ eq2.value|floatformat:2|intcomma }} {{ eq2.currency }}</span>{% endif %}{% else %}—{% endif %}</td>
+            <td class="num">{% if row.total_eur %}{{ row.total_eur|formato_moneda }}{% equiv_bcv row.total_eur "EUR" tasa_bs tasa_euro as eq3 %}{% if eq3 %} <span class="text-success">≈ {{ eq3.value|floatformat:2|intcomma }} {{ eq3.currency }}</span>{% endif %}{% else %}—{% endif %}</td>
+            <td class="num">{{ row.monto_pagar_bs|formato_moneda }}{% if row.monto_pagar_bs %}{% equiv_bcv row.monto_pagar_bs "BS" tasa_bs tasa_euro as eq4 %}{% if eq4 %} <span class="text-success">≈ {{ eq4.value|floatformat:2|intcomma }} {{ eq4.currency }}</span>{% endif %}{% endif %}</td>
+            <td class="num">{% if row.monto_pagar_usd %}{{ row.monto_pagar_usd|formato_moneda }}{% equiv_bcv row.monto_pagar_usd "USD" tasa_bs tasa_euro as eq5 %}{% if eq5 %} <span class="text-success">≈ {{ eq5.value|floatformat:2|intcomma }} {{ eq5.currency }}</span>{% endif %}{% else %}—{% endif %}</td>
+            <td class="num">{% if row.monto_pagar_eur %}{{ row.monto_pagar_eur|formato_moneda }}{% equiv_bcv row.monto_pagar_eur "EUR" tasa_bs tasa_euro as eq6 %}{% if eq6 %} <span class="text-success">≈ {{ eq6.value|floatformat:2|intcomma }} {{ eq6.currency }}</span>{% endif %}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>Total gastos / Cuota del período</strong></td>
-            <td class="num"><strong>{{ total_gastos_bs|floatformat:2|intcomma }}</strong></td>
-            <td class="num"><strong>{{ total_gastos_usd|floatformat:2|intcomma }}</strong></td>
-            <td class="num"><strong>{{ total_gastos_eur|floatformat:2|intcomma }}</strong></td>
-            <td class="num"><strong>{{ cuota_periodo_bs|floatformat:2|intcomma }}</strong></td>
-            <td class="num"><strong>{{ cuota_periodo_usd|floatformat:2|intcomma }}</strong></td>
-            <td class="num"><strong>{{ cuota_periodo_eur|floatformat:2|intcomma }}</strong></td>
+            <td class="num"><strong>{{ total_gastos_bs|formato_moneda }}</strong></td>
+            <td class="num"><strong>{% if total_gastos_usd %}{{ total_gastos_usd|formato_moneda }}{% else %}—{% endif %}</strong></td>
+            <td class="num"><strong>{% if total_gastos_eur %}{{ total_gastos_eur|formato_moneda }}{% else %}—{% endif %}</strong></td>
+            <td class="num"><strong>{{ cuota_periodo_bs|formato_moneda }}</strong></td>
+            <td class="num"><strong>{% if cuota_periodo_usd %}{{ cuota_periodo_usd|formato_moneda }}{% else %}—{% endif %}</strong></td>
+            <td class="num"><strong>{% if cuota_periodo_eur %}{{ cuota_periodo_eur|formato_moneda }}{% else %}—{% endif %}</strong></td>
         </tr>
     </tbody>
 </table>

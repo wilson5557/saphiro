@@ -17,9 +17,9 @@
         .cabecera-izq .entidad { font-weight: bold; margin-bottom: 6px; }
         .cabecera-izq .cuentas { font-size: 10px; line-height: 1.5; }
         .cabecera-der .titulo-informe { font-weight: bold; font-size: 12px; }
-        .cabecera-der .fecha-generado { font-size: 10px; }
-        .cabecera-der .titulo-fecha-linea { font-weight: bold; font-size: 12px; }
-        .cabecera-der .titulo-fecha-linea .fecha-generado { font-weight: normal; font-size: 10px; margin-left: 8px; }
+        .cabecera-der .fecha-generado { font-size: 9px; font-weight: normal; }
+        .cabecera-der .titulo-fecha-linea { font-weight: bold; font-size: 11px; word-wrap: break-word; max-width: 100%; }
+        .cabecera-der .titulo-fecha-linea .fecha-generado { font-weight: normal; font-size: 9px; margin-left: 6px; }
         /* Estilo foto: cabecera tabla gris, centrada, sin bordes gruesos en datos */
         .table-informe { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 11px; }
         .table-informe thead th { padding: 6px 8px; background-color: #e9ecef; color: #212529; font-weight: bold; text-align: center; text-transform: uppercase; border-bottom: 1px solid #000; border-left: none; border-right: none; border-top: none; }
@@ -66,7 +66,7 @@
                 {% endif %}
             </td>
             <td class="cabecera-der">
-                <div class="titulo-fecha-linea">{% block titulo_informe %}INFORME{% endblock %} <span class="fecha-generado">{{ fecha_generado|date:"d/m/y" }} {{ fecha_generado|time:"H:i:s" }}</span></div>
+                <div class="titulo-fecha-linea">{% block titulo_informe %}INFORME{% endblock %}<span class="fecha-generado"> {{ fecha_generado|date:"d/m/y" }} {{ fecha_generado|time:"H:i:s" }}</span></div>
             </td>
         </tr>
     </table>
