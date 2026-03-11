@@ -19,7 +19,6 @@
             <th>Descripción</th>
             <th class="num">Monto Bs</th>
             <th class="num">Monto USD</th>
-            <th class="num">Monto EUR</th>
         </tr>
     </thead>
     <tbody>
@@ -28,14 +27,12 @@
             <td>{{ item.descripcion }}</td>
             <td class="num">{% equiv_a_bs item.monto item.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_usd item.monto item.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
-            <td class="num">{% equiv_a_eur item.monto item.moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>Total gastos</strong></td>
             <td class="num"><strong>{{ total_gastos_en_bs|floatformat:2|intcomma }} Bs</strong></td>
             <td class="num"><strong>{{ total_gastos_en_usd|floatformat:2|intcomma }} USD</strong></td>
-            <td class="num"><strong>{{ total_gastos_en_eur|floatformat:2|intcomma }} EUR</strong></td>
         </tr>
     </tbody>
 </table>
