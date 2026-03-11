@@ -1263,6 +1263,20 @@ class="d-none"
                       <i class="fa fa-remove"></i> Cancelar
                   </button>
                 </form>
+                <p class="small text-muted mt-2">Cada guardado crea un nuevo registro. Los montos de movimientos ya registrados no se modifican; la tasa se usa solo para mostrar equivalentes en reportes.</p>
+                {% if historial_tasas %}
+                <h5 class="mt-4">Registro de tasas por día</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mt-2" style="font-size: 12px;">
+                        <thead class="thead-light"><tr><th>Fecha</th><th>Tasa Bs/USD</th><th>Tasa Bs/EUR</th></tr></thead>
+                        <tbody>
+                        {% for t in historial_tasas %}
+                        <tr><td>{{ t.created_at|date:"d/m/Y H:i" }}</td><td>{{ t.tasa_BCV_USD|floatformat:2 }} Bs</td><td>{{ t.tasa_BCV_EUR|floatformat:2 }} Bs</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

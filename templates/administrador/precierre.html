@@ -1,6 +1,7 @@
 {% extends "layouts/admin-layout.html" %}
 {% load static %}
 {% load i18n %}
+{% load humanize %}
 {% load reportes_filters %}
 
 {% block title_page %}Precierre - Vista previa del cierre{% endblock title_page %}
@@ -19,50 +20,30 @@
     <table class="table table-bordered text-center mt-3" style="font-size: 12px;">
         <thead class="thead-light">
         <tr>
-            <th>Total de gastos (BS)</th>
-            <th>Total de ingresos (BS)</th>
-            <th>Resultado neto (BS)</th>
+            <th></th>
+            <th>Total gastos</th>
+            <th>Total ingresos</th>
+            <th>Resultado neto</th>
         </tr>
         </thead>
         <tbody>
         <tr>
-            <td>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} BS{% equiv_bcv t_gastos.id_movimiento__monto_movimiento__sum "BS" tasa_bs tasa_euro as eq_g %}{% if eq_g %} <span class="text-success">≈ {{ eq_g.value|floatformat:2 }} {{ eq_g.currency }}</span>{% endif %}</td>
-            <td>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} BS{% equiv_bcv t_ingresos.id_movimiento__monto_movimiento__sum "BS" tasa_bs tasa_euro as eq_i %}{% if eq_i %} <span class="text-success">≈ {{ eq_i.value|floatformat:2 }} {{ eq_i.currency }}</span>{% endif %}</td>
-            <td class="{% if Diferencia > 0 %}text-success{% elif Diferencia < 0 %}text-danger{% endif %}"><strong>{{ Diferencia|default:0 }} BS</strong></td>
+            <th class="thead-light">BS</th>
+            <td>{{ total_gastos_en_bs|floatformat:2|intcomma }} Bs</td>
+            <td>{{ total_ingresos_en_bs|floatformat:2|intcomma }} Bs</td>
+            <td class="{% if diferencia_en_bs > 0 %}text-success{% elif diferencia_en_bs < 0 %}text-danger{% endif %}"><strong>{{ diferencia_en_bs|floatformat:2|intcomma }} Bs</strong></td>
         </tr>
-        </tbody>
-    </table>
-
-    <table class="table table-bordered text-center mt-3" style="font-size: 12px;">
-        <thead class="thead-light">
         <tr>
-            <th>Total de gastos (USD)</th>
-            <th>Total de ingresos (USD)</th>
-            <th>Resultado neto (USD)</th>
+            <th class="thead-light">USD</th>
+            <td>{{ total_gastos_en_usd|floatformat:2|intcomma }} USD</td>
+            <td>{{ total_ingresos_en_usd|floatformat:2|intcomma }} USD</td>
+            <td class="{% if diferencia_en_usd > 0 %}text-success{% elif diferencia_en_usd < 0 %}text-danger{% endif %}"><strong>{{ diferencia_en_usd|floatformat:2|intcomma }} USD</strong></td>
         </tr>
-        </thead>
-        <tbody>
         <tr>
-            <td>{{ t_gastos_USD.id_movimiento__monto_movimiento__sum|default:0 }}</td>
-            <td>{{ t_ingresos_USD.id_movimiento__monto_movimiento__sum|default:0 }}</td>
-            <td class="{% if Diferencia_USD > 0 %}text-success{% elif Diferencia_USD < 0 %}text-danger{% endif %}"><strong>{{ Diferencia_USD|default:0 }}</strong></td>
-        </tr>
-        </tbody>
-    </table>
-
-    <table class="table table-bordered text-center mt-3" style="font-size: 12px;">
-        <thead class="thead-light">
-        <tr>
-            <th>Total de gastos (EUR)</th>
-            <th>Total de ingresos (EUR)</th>
-            <th>Resultado neto (EUR)</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>{{ t_gastos_EUR.id_movimiento__monto_movimiento__sum|default:0 }}</td>
-            <td>{{ t_ingresos_EUR.id_movimiento__monto_movimiento__sum|default:0 }}</td>
-            <td class="{% if Diferencia_EUR > 0 %}text-success{% elif Diferencia_EUR < 0 %}text-danger{% endif %}"><strong>{{ Diferencia_EUR|default:0 }}</strong></td>
+            <th class="thead-light">EUR</th>
+            <td>{{ total_gastos_en_eur|floatformat:2|intcomma }} EUR</td>
+            <td>{{ total_ingresos_en_eur|floatformat:2|intcomma }} EUR</td>
+            <td class="{% if diferencia_en_eur > 0 %}text-success{% elif diferencia_en_eur < 0 %}text-danger{% endif %}"><strong>{{ diferencia_en_eur|floatformat:2|intcomma }} EUR</strong></td>
         </tr>
         </tbody>
     </table>
@@ -71,13 +52,18 @@
     <h3 class="text-center mt-4" style="font-size: 12px;">INGRESOS</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
         <thead class="thead-light">
-        <tr><th>Descripción</th><th>Total (BS)</th></tr>
+        <tr><th>Descripción</th><th class="text-right">Monto Bs</th><th class="text-right">Monto USD</th><th class="text-right">Monto EUR</th></tr>
         </thead>
         <tbody>
         {% for ingreso in ingresos %}
-        <tr><td>{{ ingreso.descripcion }}</td><td>{{ ingreso.monto|floatformat:2 }} BS{% equiv_bcv ingreso.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-success">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td></tr>
+        <tr>
+            <td>{{ ingreso.descripcion }}</td>
+            <td class="text-right">{% equiv_a_bs ingreso.monto ingreso.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
+            <td class="text-right">{% equiv_a_usd ingreso.monto ingreso.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="text-right">{% equiv_a_eur ingreso.monto ingreso.moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
+        </tr>
         {% endfor %}
-        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td><strong>{{ t_ingresos.id_movimiento__monto_movimiento__sum|default:0 }} BS</strong></td></tr>
+        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td class="text-right"><strong>{{ total_ingresos_en_bs|floatformat:2|intcomma }} Bs</strong></td><td class="text-right"><strong>{{ total_ingresos_en_usd|floatformat:2|intcomma }} USD</strong></td><td class="text-right"><strong>{{ total_ingresos_en_eur|floatformat:2|intcomma }} EUR</strong></td></tr>
         </tbody>
     </table>
     {% else %}
@@ -89,13 +75,18 @@
     <h3 class="text-center mt-4" style="font-size: 12px;">GASTOS</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
         <thead class="thead-light">
-        <tr><th>Descripción</th><th>Total (BS)</th></tr>
+        <tr><th>Descripción</th><th class="text-right">Monto Bs</th><th class="text-right">Monto USD</th><th class="text-right">Monto EUR</th></tr>
         </thead>
         <tbody>
         {% for gasto in gastos %}
-        <tr><td>{{ gasto.descripcion }}</td><td>{{ gasto.monto|floatformat:2 }} BS{% equiv_bcv gasto.monto "BS" tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-success">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td></tr>
+        <tr>
+            <td>{{ gasto.descripcion }}</td>
+            <td class="text-right">{% equiv_a_bs gasto.monto gasto.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
+            <td class="text-right">{% equiv_a_usd gasto.monto gasto.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="text-right">{% equiv_a_eur gasto.monto gasto.moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
+        </tr>
         {% endfor %}
-        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td><strong>{{ t_gastos.id_movimiento__monto_movimiento__sum|default:0 }} BS</strong></td></tr>
+        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td class="text-right"><strong>{{ total_gastos_en_bs|floatformat:2|intcomma }} Bs</strong></td><td class="text-right"><strong>{{ total_gastos_en_usd|floatformat:2|intcomma }} USD</strong></td><td class="text-right"><strong>{{ total_gastos_en_eur|floatformat:2|intcomma }} EUR</strong></td></tr>
         </tbody>
     </table>
     {% else %}
@@ -105,39 +96,42 @@
 
     <h3 class="text-center mt-4" style="font-size: 12px;">DEUDAS ACUMULADAS</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
-        <tr><td>Por impagos de los propietarios</td><td class="text-center">{{ monto_deuda_prop|default:0 }} BS{% equiv_bcv monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d %}{% if eq_d %} <span class="text-success">≈ {{ eq_d.value|floatformat:2 }} {{ eq_d.currency }}</span>{% endif %}</td></tr>
+        <thead class="thead-light"><tr><th></th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr></thead>
+        <tr><td>Por impagos de los propietarios</td><td class="text-right">{{ monto_deuda_prop|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_u %}{% if eq_d_u %}{{ eq_d_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_e %}{% if eq_d_e %}{{ eq_d_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
     </table>
 
     <h3 class="text-center mt-4" style="font-size: 12px;">MOVIMIENTO DE FONDOS</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
         <thead class="thead-light">
-        <tr><th>Concepto</th><th class="text-center">Saldo anterior</th><th class="text-center">Apartado del mes</th><th class="text-center">Saldo actual</th></tr>
+        <tr><th>Concepto</th><th class="text-right">BS</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr>
         </thead>
         <tbody>
-        <tr><td>Fondo de reserva</td><td class="text-center">{{ saldo_anterior_reserva|default:0 }} BS{% equiv_bcv saldo_anterior_reserva "BS" tasa_bs tasa_euro as e1 %}{% if e1 %} <span class="text-success">≈ {{ e1.value|floatformat:2 }} {{ e1.currency }}</span>{% endif %}</td><td class="text-center">{{ apartado_fondo_reserva|default:0 }} BS{% equiv_bcv apartado_fondo_reserva "BS" tasa_bs tasa_euro as e2 %}{% if e2 %} <span class="text-success">≈ {{ e2.value|floatformat:2 }} {{ e2.currency }}</span>{% endif %} (10% gastos)</td><td class="text-center">{{ saldo_actual_reserva|default:0 }} BS{% equiv_bcv saldo_actual_reserva "BS" tasa_bs tasa_euro as e3 %}{% if e3 %} <span class="text-success">≈ {{ e3.value|floatformat:2 }} {{ e3.currency }}</span>{% endif %}</td></tr>
-        <tr><td>Fondo de prestaciones</td><td class="text-center">{{ saldo_anterior_prestaciones|default:0 }} BS{% equiv_bcv saldo_anterior_prestaciones "BS" tasa_bs tasa_euro as e4 %}{% if e4 %} <span class="text-success">≈ {{ e4.value|floatformat:2 }} {{ e4.currency }}</span>{% endif %}</td><td class="text-center">{{ apartado_prestaciones|default:0 }}</td><td class="text-center">{{ saldo_actual_prestaciones|default:0 }} BS{% equiv_bcv saldo_actual_prestaciones "BS" tasa_bs tasa_euro as e5 %}{% if e5 %} <span class="text-success">≈ {{ e5.value|floatformat:2 }} {{ e5.currency }}</span>{% endif %}</td></tr>
+        <tr><td>Fondo de reserva — Saldo anterior</td><td class="text-right">{{ saldo_anterior_reserva|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd saldo_anterior_reserva "BS" tasa_bs tasa_euro as e1u %}{% if e1u %}{{ e1u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur saldo_anterior_reserva "BS" tasa_bs tasa_euro as e1e %}{% if e1e %}{{ e1e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Fondo de reserva — Apartado (10% gastos)</td><td class="text-right">{{ apartado_fondo_reserva|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd apartado_fondo_reserva "BS" tasa_bs tasa_euro as e2u %}{% if e2u %}{{ e2u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur apartado_fondo_reserva "BS" tasa_bs tasa_euro as e2e %}{% if e2e %}{{ e2e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Fondo de reserva — Saldo actual</td><td class="text-right">{{ saldo_actual_reserva|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd saldo_actual_reserva "BS" tasa_bs tasa_euro as e3u %}{% if e3u %}{{ e3u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur saldo_actual_reserva "BS" tasa_bs tasa_euro as e3e %}{% if e3e %}{{ e3e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Fondo de prestaciones — Saldo anterior</td><td class="text-right">{{ saldo_anterior_prestaciones|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd saldo_anterior_prestaciones "BS" tasa_bs tasa_euro as e4u %}{% if e4u %}{{ e4u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur saldo_anterior_prestaciones "BS" tasa_bs tasa_euro as e4e %}{% if e4e %}{{ e4e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Fondo de prestaciones — Saldo actual</td><td class="text-right">{{ saldo_actual_prestaciones|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd saldo_actual_prestaciones "BS" tasa_bs tasa_euro as e5u %}{% if e5u %}{{ e5u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur saldo_actual_prestaciones "BS" tasa_bs tasa_euro as e5e %}{% if e5e %}{{ e5e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Gastos bancarios del mes</td><td class="text-right">{{ total_gastos_bancarios_mes|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd total_gastos_bancarios_mes "BS" tasa_bs tasa_euro as e6u %}{% if e6u %}{{ e6u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur total_gastos_bancarios_mes "BS" tasa_bs tasa_euro as e6e %}{% if e6e %}{{ e6e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
         </tbody>
-    </table>
-    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
-        <tr><td>Gastos bancarios del mes</td><td class="text-center">{{ total_gastos_bancarios_mes|default:0 }} BS{% equiv_bcv total_gastos_bancarios_mes "BS" tasa_bs tasa_euro as e6 %}{% if e6 %} <span class="text-success">≈ {{ e6.value|floatformat:2 }} {{ e6.currency }}</span>{% endif %}</td></tr>
     </table>
 
     <h3 class="text-center mt-4" style="font-size: 12px;">FONDOS (totales por tipo)</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
-        <tr><td>De reserva</td><td class="text-center">{{ fondo_reserva|default:0 }}</td></tr>
-        <tr><td>Operacional</td><td class="text-center">{{ fondo_operacional|default:0 }}</td></tr>
-        <tr><td>Prestaciones</td><td class="text-center">{{ fondo_prestaciones|default:0 }}</td></tr>
-        <tr><td>Otros fondos</td><td class="text-center">{{ fondo_otros|default:0 }}</td></tr>
+        <thead class="thead-light"><tr><th></th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr></thead>
+        <tr><td>De reserva</td><td class="text-right">{{ fondo_reserva|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_reserva "BS" tasa_bs tasa_euro as fr_u %}{% if fr_u %}{{ fr_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_reserva "BS" tasa_bs tasa_euro as fr_e %}{% if fr_e %}{{ fr_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Operacional</td><td class="text-right">{{ fondo_operacional|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_operacional "BS" tasa_bs tasa_euro as fo_u %}{% if fo_u %}{{ fo_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_operacional "BS" tasa_bs tasa_euro as fo_e %}{% if fo_e %}{{ fo_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Prestaciones</td><td class="text-right">{{ fondo_prestaciones|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_prestaciones "BS" tasa_bs tasa_euro as fp_u %}{% if fp_u %}{{ fp_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_prestaciones "BS" tasa_bs tasa_euro as fp_e %}{% if fp_e %}{{ fp_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <tr><td>Otros fondos</td><td class="text-right">{{ fondo_otros|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_otros "BS" tasa_bs tasa_euro as fot_u %}{% if fot_u %}{{ fot_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_otros "BS" tasa_bs tasa_euro as fot_e %}{% if fot_e %}{{ fot_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
     </table>
 
     <h3 class="text-center mt-4" style="font-size: 12px;">MONTOS ESTABLECIDOS Y PARÁMETROS</h3>
     <div class="row mt-2">
         <div class="col-md-6">
             <table class="table table-sm table-bordered" style="font-size: 11px;">
-                <thead class="thead-light"><tr><th colspan="2">Precios establecidos</th></tr></thead>
+                <thead class="thead-light"><tr><th>Precios establecidos</th><th class="text-right">Bs</th><th class="text-right">USD</th></tr></thead>
                 <tbody>
                 {% for precio, tipo_precio in precios %}
-                <tr><td>{{ tipo_precio }}</td><td>{{ precio }} BS</td></tr>
+                <tr><td>{{ tipo_precio }}</td><td class="text-right">{{ precio|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd precio "BS" tasa_bs tasa_euro as pr_u %}{% if pr_u %}{{ pr_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td></tr>
                 {% endfor %}
                 </tbody>
             </table>

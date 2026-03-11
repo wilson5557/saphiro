@@ -3214,6 +3214,7 @@ def admin_configuracion(request, type=''):
                              extra_tags='alert-success')
             return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "condominio"}))
 
+    historial_tasas = Tasas.objects.all().order_by('-created_at')[:50] if ultima_tasa else []
     return render(request, 'administrador/configuracion.html', {'config_form': config_form, 'bancos_form': banco_form,
                                                                 'torres_form': torres_form, 'precios_form': precios_form,
                                                                 'tasas_form': tasas_form, 'recargo_descuento_form': recargo_descuento_form,
@@ -3224,7 +3225,8 @@ def admin_configuracion(request, type=''):
                                                                 'propietarios': propietarios,
                                                                 'propietarios_form': propietarios_form,
                                                                 'user_form': user_form,
-                                                                'domicilios_propietarios': domicilios_propietarios})
+                                                                'domicilios_propietarios': domicilios_propietarios,
+                                                                'historial_tasas': historial_tasas})
 
 
 # ------------------------------CONFIGURACION SISTEMA------------------------------
@@ -3321,16 +3323,12 @@ def configuracion_tasas_de_cambio(request):
     if request.method == 'POST':
         tasas_form = Tasas_de_cambioForm(data=request.POST)
         if tasas_form.is_valid():
-            print("TASAS DE CAMBIO ACTUALIZADAS")
-            today = timezone.now()
-            if tasa_id is not None:
-                Tasas.objects.filter(pk=tasa_id).update(tasa_BCV_USD=request.POST['tasa_BCV_USD'],
-                                                        tasa_BCV_EUR=request.POST['tasa_BCV_EUR'],
-                                                        updated_at=timezone.now())
-            else:
-                Tasas.objects.create(tasa_BCV_USD=request.POST['tasa_BCV_USD'],
-                                     tasa_BCV_EUR=request.POST['tasa_BCV_EUR'])
-            messages.success(request, '¡Las tasas de cambio han sido actualizadas de manera satisfactoria!',
+            # Siempre crear nuevo registro para mantener historial por día (no se alteran movimientos ya registrados)
+            Tasas.objects.create(
+                tasa_BCV_USD=request.POST['tasa_BCV_USD'],
+                tasa_BCV_EUR=request.POST['tasa_BCV_EUR']
+            )
+            messages.success(request, 'Tasa registrada. Los montos de movimientos ya registrados no se modifican; la tasa se usa solo para mostrar equivalentes.',
                              extra_tags='alert-success')
             return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "tasa"}))
         else:
@@ -3340,9 +3338,11 @@ def configuracion_tasas_de_cambio(request):
                              extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('condominio_app:admin_configuracion', kwargs={'type': "tasa"}))
 
+    # Historial de tasas (últimas 50) para select/listado; la app usa siempre la última (Tasas.objects.last())
+    historial_tasas = Tasas.objects.all().order_by('-created_at')[:50]
     return render(request, 'administrador/configuracion.html',
                   {'conf': condominio, 'tasas_form': tasas_form,
-                   'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+                   'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro, 'historial_tasas': historial_tasas})
 
 
 @login_required
@@ -4258,6 +4258,16 @@ def admin_reportes(request):
                         if deuda.is_active:
                             total_pendiente_eur += deuda.monto_deuda
 
+                # Totales en cada moneda (para mostrar equivalente en resumen)
+                t_bs_d = Decimal(str(tasa_bs or 0))
+                t_eur_d = Decimal(str(tasa_euro or 0))
+                total_en_bs = total_bs + (total_usd * t_bs_d if t_bs_d else Decimal('0')) + (total_eur * t_eur_d if t_eur_d else Decimal('0'))
+                total_en_usd = (total_bs / t_bs_d if t_bs_d else Decimal('0')) + total_usd + (total_eur * t_eur_d / t_bs_d if t_bs_d else Decimal('0'))
+                total_en_eur = (total_bs / t_eur_d if t_eur_d else Decimal('0')) + (total_usd * t_bs_d / t_eur_d if t_eur_d else Decimal('0')) + total_eur
+                pendiente_en_bs = total_pendiente_bs + (total_pendiente_usd * t_bs_d if t_bs_d else Decimal('0')) + (total_pendiente_eur * t_eur_d if t_eur_d else Decimal('0'))
+                pendiente_en_usd = (total_pendiente_bs / t_bs_d if t_bs_d else Decimal('0')) + total_pendiente_usd + (total_pendiente_eur * t_eur_d / t_bs_d if t_bs_d else Decimal('0'))
+                pendiente_en_eur = (total_pendiente_bs / t_eur_d if t_eur_d else Decimal('0')) + (total_pendiente_usd * t_bs_d / t_eur_d if t_eur_d else Decimal('0')) + total_pendiente_eur
+
                 todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data = {
@@ -4268,9 +4278,11 @@ def admin_reportes(request):
                     'total_bs': total_bs,
                     'total_usd': total_usd,
                     'total_eur': total_eur,
+                    'total_en_bs': total_en_bs, 'total_en_usd': total_en_usd, 'total_en_eur': total_en_eur,
                     'total_pendiente_bs': total_pendiente_bs,
                     'total_pendiente_usd': total_pendiente_usd,
                     'total_pendiente_eur': total_pendiente_eur,
+                    'pendiente_en_bs': pendiente_en_bs, 'pendiente_en_usd': pendiente_en_usd, 'pendiente_en_eur': pendiente_en_eur,
                     'fecha_generado': timezone.now(),
                     'condominio': condominio,
                     'datos_condominio': condominio,
@@ -4524,6 +4536,35 @@ def admin_reportes(request):
             tasa_bs_d = Decimal(str(tasa_bs or 0))
             tasa_eur_d = Decimal(str(tasa_euro or 0))
             total_gastos_mes_bs = total_gastos_bs + (total_gastos_usd * tasa_bs_d if tasa_bs_d else Decimal('0')) + (total_gastos_eur * tasa_eur_d if tasa_eur_d else Decimal('0'))
+            # Un valor por columna (BS, USD, EUR) para cada fila de gastos por categoría
+            for item in lista_gastos_categoria:
+                t_bs, t_usd, t_eur = item['total_bs'], item['total_usd'], item['total_eur']
+                item['total_en_bs'] = (t_bs + (t_usd * tasa_bs_d if tasa_bs_d else 0) + (t_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+                item['total_en_usd'] = ((t_bs / tasa_bs_d if tasa_bs_d else 0) + t_usd + (t_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+                item['total_en_eur'] = ((t_bs / tasa_eur_d if tasa_eur_d else 0) + (t_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + t_eur).quantize(Decimal('0.01'))
+                mp_bs, mp_usd, mp_eur = item['monto_pagar_bs'], item['monto_pagar_usd'], item['monto_pagar_eur']
+                item['monto_pagar_en_bs'] = (mp_bs + (mp_usd * tasa_bs_d if tasa_bs_d else 0) + (mp_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+                item['monto_pagar_en_usd'] = ((mp_bs / tasa_bs_d if tasa_bs_d else 0) + mp_usd + (mp_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+                item['monto_pagar_en_eur'] = ((mp_bs / tasa_eur_d if tasa_eur_d else 0) + (mp_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + mp_eur).quantize(Decimal('0.01'))
+            total_gastos_en_bs = total_gastos_bs + (total_gastos_usd * tasa_bs_d if tasa_bs_d else Decimal('0')) + (total_gastos_eur * tasa_eur_d if tasa_eur_d else Decimal('0'))
+            total_gastos_en_usd = (total_gastos_bs / tasa_bs_d if tasa_bs_d else Decimal('0')) + total_gastos_usd + (total_gastos_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else Decimal('0'))
+            total_gastos_en_eur = (total_gastos_bs / tasa_eur_d if tasa_eur_d else Decimal('0')) + (total_gastos_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else Decimal('0')) + total_gastos_eur
+            cuota_en_bs = (cuota_periodo_bs + (cuota_periodo_usd * tasa_bs_d if tasa_bs_d else 0) + (cuota_periodo_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+            cuota_en_usd = ((cuota_periodo_bs / tasa_bs_d if tasa_bs_d else 0) + cuota_periodo_usd + (cuota_periodo_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+            cuota_en_eur = ((cuota_periodo_bs / tasa_eur_d if tasa_eur_d else 0) + (cuota_periodo_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + cuota_periodo_eur).quantize(Decimal('0.01'))
+            # Un valor por columna para MOVIMIENTO DE CUOTAS
+            saldo_ant_en_bs = (saldo_anterior_bs + (saldo_anterior_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_anterior_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+            saldo_ant_en_usd = ((saldo_anterior_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_anterior_usd + (saldo_anterior_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+            saldo_ant_en_eur = ((saldo_anterior_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_anterior_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_anterior_eur).quantize(Decimal('0.01'))
+            saldo_cuota_en_bs = cuota_en_bs
+            saldo_cuota_en_usd = cuota_en_usd
+            saldo_cuota_en_eur = cuota_en_eur
+            pagos_en_bs = (pagos_bs + (pagos_usd * tasa_bs_d if tasa_bs_d else 0) + (pagos_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+            pagos_en_usd = ((pagos_bs / tasa_bs_d if tasa_bs_d else 0) + pagos_usd + (pagos_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+            pagos_en_eur = ((pagos_bs / tasa_eur_d if tasa_eur_d else 0) + (pagos_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + pagos_eur).quantize(Decimal('0.01'))
+            saldo_act_en_bs = (saldo_actual_bs + (saldo_actual_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_actual_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+            saldo_act_en_usd = ((saldo_actual_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_actual_usd + (saldo_actual_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+            saldo_act_en_eur = ((saldo_actual_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_actual_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_actual_eur).quantize(Decimal('0.01'))
             apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
             saldo_actual_reserva = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
             apartado_prestaciones = Decimal('0')
@@ -4550,10 +4591,15 @@ def admin_reportes(request):
                 'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
                 'gastos_por_categoria': lista_gastos_categoria,
                 'total_gastos_bs': total_gastos_bs, 'total_gastos_usd': total_gastos_usd, 'total_gastos_eur': total_gastos_eur,
+                'total_gastos_en_bs': total_gastos_en_bs, 'total_gastos_en_usd': total_gastos_en_usd, 'total_gastos_en_eur': total_gastos_en_eur,
                 'cuota_periodo_bs': cuota_periodo_bs, 'cuota_periodo_usd': cuota_periodo_usd, 'cuota_periodo_eur': cuota_periodo_eur,
+                'cuota_en_bs': cuota_en_bs, 'cuota_en_usd': cuota_en_usd, 'cuota_en_eur': cuota_en_eur,
                 'pagos_bs': pagos_bs, 'pagos_usd': pagos_usd, 'pagos_eur': pagos_eur,
                 'saldo_anterior_bs': saldo_anterior_bs, 'saldo_anterior_usd': saldo_anterior_usd, 'saldo_anterior_eur': saldo_anterior_eur,
+                'saldo_anterior_en_bs': saldo_ant_en_bs, 'saldo_anterior_en_usd': saldo_ant_en_usd, 'saldo_anterior_en_eur': saldo_ant_en_eur,
+                'pagos_en_bs': pagos_en_bs, 'pagos_en_usd': pagos_en_usd, 'pagos_en_eur': pagos_en_eur,
                 'saldo_actual_bs': saldo_actual_bs, 'saldo_actual_usd': saldo_actual_usd, 'saldo_actual_eur': saldo_actual_eur,
+                'saldo_actual_en_bs': saldo_act_en_bs, 'saldo_actual_en_usd': saldo_act_en_usd, 'saldo_actual_en_eur': saldo_act_en_eur,
                 'saldo_anterior_reserva': saldo_ant_reserva, 'apartado_fondo_reserva': apartado_reserva,
                 'saldo_actual_reserva': saldo_actual_reserva, 'apartado_prestaciones': apartado_prestaciones,
                 'saldo_anterior_prestaciones': saldo_ant_prestaciones, 'saldo_actual_prestaciones': saldo_actual_prestaciones,
@@ -4844,53 +4890,24 @@ def admin_cierres(request):
         template_path = 'PDF/cierre_mes.html'
         data = {}
 
-        # Gastos
+        # Gastos e ingresos: monto y moneda original (para columnas BS / USD / EUR en el PDF)
         gastos_lista = []
         for gasto in resultado_gasto:
-
             _desc = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
-            if gasto.id_movimiento.tipo_moneda == "BS":
-                data_gasto = {'descripcion': _desc, 'monto': gasto.id_movimiento.monto_movimiento}
-                gastos_lista.append(data_gasto)
-            elif gasto.id_movimiento.tipo_moneda == "USD":
-                monto_usd = Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
-                data_gasto = {'descripcion': _desc, 'monto': monto_usd}
-                gastos_lista.append(data_gasto)
-            elif gasto.id_movimiento.tipo_moneda == "EUR":
-                monto_eur = Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
-                data_gasto = {'descripcion': _desc, 'monto': monto_eur}
-                gastos_lista.append(data_gasto)
+            gastos_lista.append({'descripcion': _desc, 'monto': gasto.id_movimiento.monto_movimiento, 'moneda': gasto.id_movimiento.tipo_moneda or 'BS'})
 
         data['gastos'] = gastos_lista
         data['t_gastos'] = resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))
         data['t_gastos_USD'] = resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento'))
         data['t_gastos_EUR'] = resultado_gasto.filter(id_movimiento__tipo_moneda__iexact="EUR").aggregate(Sum('id_movimiento__monto_movimiento'))
 
-        # Ingresos
         ingresos_lista = []
         for ingreso in resultado_ingreso:
-            
             _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
-            if ingreso.id_movimiento.tipo_moneda == "BS":
-                data_ingreso = {'descripcion': _desc, 'monto': ingreso.id_movimiento.monto_movimiento}
-                ingresos_lista.append(data_ingreso)
-            elif ingreso.id_movimiento.tipo_moneda == "USD":
-                monto_usd = Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs)
-                data_ingreso = {'descripcion': _desc, 'monto': monto_usd}
-                ingresos_lista.append(data_ingreso)
-            elif ingreso.id_movimiento.tipo_moneda == "EUR":
-                monto_eur = Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_euro)
-                data_ingreso = {'descripcion': _desc, 'monto': monto_eur}
-                ingresos_lista.append(data_ingreso)
-
+            ingresos_lista.append({'descripcion': _desc, 'monto': ingreso.id_movimiento.monto_movimiento, 'moneda': ingreso.id_movimiento.tipo_moneda or 'BS'})
         for mov_prop in movimientos_propietarios:
             _desc = (mov_prop.descripcion_movimiento or mov_prop.concepto_movimiento or '')
-            if mov_prop.tipo_moneda == "BS":
-                ingresos_lista.append({'descripcion': _desc, 'monto': mov_prop.monto_movimiento})
-            elif mov_prop.tipo_moneda == "USD":
-                ingresos_lista.append({'descripcion': _desc, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)})
-            elif mov_prop.tipo_moneda == "EUR":
-                ingresos_lista.append({'descripcion': _desc, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)})
+            ingresos_lista.append({'descripcion': _desc, 'monto': mov_prop.monto_movimiento, 'moneda': mov_prop.tipo_moneda or 'BS'})
 
         data['ingresos'] = ingresos_lista
         total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
@@ -5046,6 +5063,24 @@ def admin_cierres(request):
         data["Diferencia"] = data['t_ingresos']['id_movimiento__monto_movimiento__sum'] - data['t_gastos']['id_movimiento__monto_movimiento__sum']
         data["Diferencia_USD"] = data['t_ingresos_USD']['id_movimiento__monto_movimiento__sum'] - data['t_gastos_USD']['id_movimiento__monto_movimiento__sum']
         data["Diferencia_EUR"] = data['t_ingresos_EUR']['id_movimiento__monto_movimiento__sum'] - data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum']
+
+        t_g = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
+        t_i = data['t_ingresos']['id_movimiento__monto_movimiento__sum'] or 0
+        t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
+        t_i_usd = data['t_ingresos_USD']['id_movimiento__monto_movimiento__sum'] or 0
+        t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
+        t_i_eur = data['t_ingresos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
+        t_bs_d = Decimal(str(tasa_bs or 1))
+        t_eur_d = Decimal(str(tasa_euro or 1))
+        data['total_gastos_en_bs'] = (Decimal(str(t_g)) + Decimal(str(t_g_usd)) * t_bs_d + Decimal(str(t_g_eur)) * t_eur_d).quantize(Decimal('0.01'))
+        data['total_gastos_en_usd'] = (Decimal(str(t_g)) / t_bs_d + Decimal(str(t_g_usd)) + Decimal(str(t_g_eur)) * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+        data['total_gastos_en_eur'] = (Decimal(str(t_g)) / t_eur_d + Decimal(str(t_g_usd)) * t_bs_d / t_eur_d + Decimal(str(t_g_eur))).quantize(Decimal('0.01'))
+        data['total_ingresos_en_bs'] = (Decimal(str(t_i)) + Decimal(str(t_i_usd)) * t_bs_d + Decimal(str(t_i_eur)) * t_eur_d).quantize(Decimal('0.01'))
+        data['total_ingresos_en_usd'] = (Decimal(str(t_i)) / t_bs_d + Decimal(str(t_i_usd)) + Decimal(str(t_i_eur)) * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+        data['total_ingresos_en_eur'] = (Decimal(str(t_i)) / t_eur_d + Decimal(str(t_i_usd)) * t_bs_d / t_eur_d + Decimal(str(t_i_eur))).quantize(Decimal('0.01'))
+        data['diferencia_en_bs'] = data['total_ingresos_en_bs'] - data['total_gastos_en_bs']
+        data['diferencia_en_usd'] = data['total_ingresos_en_usd'] - data['total_gastos_en_usd']
+        data['diferencia_en_eur'] = data['total_ingresos_en_eur'] - data['total_gastos_en_eur']
 
         data['fecha_generado'] = timezone.now()
 
@@ -5207,33 +5242,19 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
     ingreso_ids = resultado_ingreso.values_list('id_movimiento_id', flat=True)
     movimientos_propietarios = movimientos_propietarios.exclude(id_movimiento__in=ingreso_ids)
 
+    # Listas con monto y moneda original del movimiento (para mostrar un valor por columna BS/USD/EUR)
     gastos_lista = []
     for gasto in resultado_gasto:
         _d = (gasto.id_movimiento.descripcion_movimiento or gasto.id_movimiento.concepto_movimiento or '')
-        if gasto.id_movimiento.tipo_moneda == "BS":
-            gastos_lista.append({'descripcion': _d, 'monto': gasto.id_movimiento.monto_movimiento})
-        elif gasto.id_movimiento.tipo_moneda == "USD":
-            gastos_lista.append({'descripcion': _d, 'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_bs)})
-        elif gasto.id_movimiento.tipo_moneda == "EUR":
-            gastos_lista.append({'descripcion': _d, 'monto': Decimal(gasto.id_movimiento.monto_movimiento) / Decimal(tasa_euro)})
+        gastos_lista.append({'descripcion': _d, 'monto': gasto.id_movimiento.monto_movimiento, 'moneda': gasto.id_movimiento.tipo_moneda or 'BS'})
 
     ingresos_lista = []
     for ingreso in resultado_ingreso:
         _d = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
-        if ingreso.id_movimiento.tipo_moneda == "BS":
-            ingresos_lista.append({'descripcion': _d, 'monto': ingreso.id_movimiento.monto_movimiento})
-        elif ingreso.id_movimiento.tipo_moneda == "USD":
-            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_bs)})
-        elif ingreso.id_movimiento.tipo_moneda == "EUR":
-            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(ingreso.id_movimiento.monto_movimiento) / Decimal(tasa_euro)})
+        ingresos_lista.append({'descripcion': _d, 'monto': ingreso.id_movimiento.monto_movimiento, 'moneda': ingreso.id_movimiento.tipo_moneda or 'BS'})
     for mov_prop in movimientos_propietarios:
         _d = (mov_prop.descripcion_movimiento or mov_prop.concepto_movimiento or '')
-        if mov_prop.tipo_moneda == "BS":
-            ingresos_lista.append({'descripcion': _d, 'monto': mov_prop.monto_movimiento})
-        elif mov_prop.tipo_moneda == "USD":
-            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_bs)})
-        elif mov_prop.tipo_moneda == "EUR":
-            ingresos_lista.append({'descripcion': _d, 'monto': Decimal(mov_prop.monto_movimiento) / Decimal(tasa_euro)})
+        ingresos_lista.append({'descripcion': _d, 'monto': mov_prop.monto_movimiento, 'moneda': mov_prop.tipo_moneda or 'BS'})
 
     total_ingresos_bs = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="BS").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
     total_ingresos_usd = resultado_ingreso.filter(id_movimiento__tipo_moneda__iexact="USD").aggregate(Sum('id_movimiento__monto_movimiento'))['id_movimiento__monto_movimiento__sum'] or 0
@@ -5327,6 +5348,18 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
     data["Diferencia"] = t_i - t_g
     data["Diferencia_USD"] = t_i_usd - t_g_usd
     data["Diferencia_EUR"] = t_i_eur - t_g_eur
+    # Totales en cada moneda (un valor por columna para resumen)
+    t_bs_d = Decimal(str(tasa_bs or 1))
+    t_eur_d = Decimal(str(tasa_euro or 1))
+    data['total_gastos_en_bs'] = (Decimal(str(t_g)) + Decimal(str(t_g_usd)) * t_bs_d + Decimal(str(t_g_eur)) * t_eur_d).quantize(Decimal('0.01'))
+    data['total_gastos_en_usd'] = (Decimal(str(t_g)) / t_bs_d + Decimal(str(t_g_usd)) + Decimal(str(t_g_eur)) * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+    data['total_gastos_en_eur'] = (Decimal(str(t_g)) / t_eur_d + Decimal(str(t_g_usd)) * t_bs_d / t_eur_d + Decimal(str(t_g_eur))).quantize(Decimal('0.01'))
+    data['total_ingresos_en_bs'] = (Decimal(str(t_i)) + Decimal(str(t_i_usd)) * t_bs_d + Decimal(str(t_i_eur)) * t_eur_d).quantize(Decimal('0.01'))
+    data['total_ingresos_en_usd'] = (Decimal(str(t_i)) / t_bs_d + Decimal(str(t_i_usd)) + Decimal(str(t_i_eur)) * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+    data['total_ingresos_en_eur'] = (Decimal(str(t_i)) / t_eur_d + Decimal(str(t_i_usd)) * t_bs_d / t_eur_d + Decimal(str(t_i_eur))).quantize(Decimal('0.01'))
+    data['diferencia_en_bs'] = data['total_ingresos_en_bs'] - data['total_gastos_en_bs']
+    data['diferencia_en_usd'] = data['total_ingresos_en_usd'] - data['total_gastos_en_usd']
+    data['diferencia_en_eur'] = data['total_ingresos_en_eur'] - data['total_gastos_en_eur']
     data['fecha_generado'] = today
     mes = ["", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
     data['mes_cierre'] = mes[int(today.strftime("%m"))]
