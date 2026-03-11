@@ -1,5 +1,5 @@
 {% extends "PDF/base_informe_pdf.html" %}
-{% load static %}{% load i18n %}{% load humanize %}
+{% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Recibo de Pago{% endblock %}
 {% block titulo_informe %}RECIBO DE PAGO{% endblock %}
 {% block contenido_pdf %}
@@ -9,16 +9,17 @@
     <tr><td>ID recibo: <strong>{{ datosMovimiento.id_movimiento }}</strong></td><td>{{ datosCondo.email }}</td></tr>
 </table>
 <table class="table-informe table-lista-simple mt-3">
-    <thead><tr><th>Descripción</th><th class="num">Precio</th></tr></thead>
-    <tbody>{% for data in datosRecibo %}<tr><td>{{ data.descripcion_recibo }}</td><td class="num monto-usd">Bs. {{ data.monto|intcomma }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>Descripción</th><th class="num">Monto Bs.</th><th class="num">Monto en USD</th></tr></thead>
+    <tbody>{% for data in datosRecibo %}<tr><td>{{ data.descripcion_recibo }}</td><td class="num">Bs. {{ data.monto|floatformat:2|intcomma }}</td><td class="num">{% equiv_bcv data.monto "BS" tasa_bs tasa_euro as eq %}{% if eq %}{{ eq.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
 </table>
 <table class="table-informe table-lista-simple mt-3">
-    <thead><tr><th>Información de Pago</th><th>Concepto</th><th class="num">Total</th></tr></thead>
+    <thead><tr><th>Información de Pago</th><th>Concepto</th><th class="num">Total Bs.</th><th class="num">Total USD</th></tr></thead>
     <tbody>
         <tr>
             <td>Banco: <strong>{{ datosMovimiento.banco_emisor }}</strong><br>Nro. Cuenta: <strong>{{ datosMovimiento.referencia_movimiento }}</strong></td>
             <td><strong>{{ datosMovimiento.descripcion_movimiento }}</strong></td>
-            <td class="num monto-usd">BsS. {{ datosMovimiento.monto_movimiento|intcomma }}</td>
+            <td class="num">Bs. {{ datosMovimiento.monto_movimiento|floatformat:2|intcomma }}</td>
+            <td class="num">{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}</td>
         </tr>
     </tbody>
 </table>

@@ -12,6 +12,7 @@
             <th>Domicilio</th>
             <th>Descripción</th>
             <th class="num">Monto</th>
+            <th class="num">Monto en USD</th>
             <th>Moneda</th>
             <th>Fecha</th>
             <th>Estado</th>
@@ -22,19 +23,20 @@
         <tr>
             <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
             <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-            <td class="num">{{ deuda.monto_deuda|intcomma }}{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} &nbsp; ≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}{% endif %}</td>
+            <td class="num">{{ deuda.monto_deuda|floatformat:2|intcomma }} {{ deuda.tipo_moneda }}</td>
+            <td class="num">{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %}{{ equiv.value|floatformat:2|intcomma }} {{ equiv.currency }}{% else %}—{% endif %}</td>
             <td>{{ deuda.tipo_moneda }}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center">Sin registros</td></tr>
+        <tr><td colspan="7" class="text-center">Sin registros</td></tr>
         {% endfor %}
     </tbody>
 </table>
 <div class="fila-total-informe mt-3">
-    Total BS: {{ total_bs|intcomma }} &nbsp; Total USD: {{ total_usd|intcomma }} &nbsp; Total EUR: {{ total_eur|intcomma }}<br>
-    Pendiente BS: {{ total_pendiente_bs|intcomma }} &nbsp; Pendiente USD: {{ total_pendiente_usd|intcomma }} &nbsp; Pendiente EUR: {{ total_pendiente_eur|intcomma }}
+    Total BS: {{ total_bs|floatformat:2|intcomma }} &nbsp; Total USD: {{ total_usd|floatformat:2|intcomma }} &nbsp; Total EUR: {{ total_eur|floatformat:2|intcomma }}<br>
+    Pendiente BS: {{ total_pendiente_bs|floatformat:2|intcomma }} &nbsp; Pendiente USD: {{ total_pendiente_usd|floatformat:2|intcomma }} &nbsp; Pendiente EUR: {{ total_pendiente_eur|floatformat:2|intcomma }}
 </div>
 {% endblock %}
 {% block pie_informe %}

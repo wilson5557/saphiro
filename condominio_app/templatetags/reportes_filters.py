@@ -44,6 +44,27 @@ def equiv_bcv(monto, tipo_moneda, tasa_bs, tasa_euro):
 
 
 @register.simple_tag
+def equiv_a_bs(monto, tipo_moneda, tasa_bs, tasa_euro):
+    """Devuelve el monto convertido a BS (para reportes: un solo monto por columna BS)."""
+    if monto is None:
+        return None
+    try:
+        m = Decimal(str(monto))
+        t_bs = Decimal(str(tasa_bs or 0))
+        t_eur = Decimal(str(tasa_euro or 0))
+    except (TypeError, ValueError):
+        return None
+    mon = (tipo_moneda or 'BS').strip().upper() or 'BS'
+    if mon == 'BS':
+        return m.quantize(Decimal('0.01'))
+    if mon == 'USD' and t_bs and t_bs > 0:
+        return (m * t_bs).quantize(Decimal('0.01'))
+    if mon == 'EUR' and t_eur and t_eur > 0:
+        return (m * t_eur).quantize(Decimal('0.01'))
+    return None
+
+
+@register.simple_tag
 def equiv_a_usd(monto, tipo_moneda, tasa_bs, tasa_euro):
     """Devuelve el monto convertido a USD (para reportes: BS->/tasa, USD->monto, EUR->*tasa_eur/tasa_bs)."""
     if monto is None:
@@ -114,7 +135,7 @@ def formato_moneda(value):
         m = Decimal(str(value))
     except (TypeError, ValueError):
         return str(value)
-    from django.contrib.humanize import intcomma
+    from django.contrib.humanize.templatetags.humanize import intcomma
     q = abs(m).quantize(Decimal('0.01'))
     signo = '- ' if m < 0 else ''
     return signo + intcomma(float(q))

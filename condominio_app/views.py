@@ -1110,10 +1110,13 @@ def propietario_recibo_pago(request, id):
 
     nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
     bancos_cabecera = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in Bancos.objects.filter(id_condominio_id=condominio.id_condominio)]
+    ultima_tasa = Tasas.objects.last()
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date())
     html_string = render_to_string('PDF/recibos_pagos_pdf.html', {'datosRecibo': recibos, 'propietarios': propietarios,
                                                                   'datosMovimiento': movimientos, 'datosCondo': condominio,
                                                                   'datos_condominio': condominio, 'fecha_generado': timezone.now(),
-                                                                  'bancos_cabecera': bancos_cabecera, 'ruta_logo': ruta_logo})
+                                                                  'bancos_cabecera': bancos_cabecera, 'ruta_logo': ruta_logo,
+                                                                  'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
 
     # Crear un objeto HTML a partir de la cadena HTML
     # html = HTML(string=html_string, base_url=request.build_absolute_uri())  # DESACTIVADO - Windows GTK
@@ -2308,11 +2311,15 @@ def recibo_total_deuda(request, id):
     condominio = get_object_or_404(Condominio, id_condominio=propietarios.id_usuario.id_condominio_id)
     todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
     nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+    ultima_tasa = Tasas.objects.last()
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date())
     html_string = render_to_string('PDF/deudas_propietarios.html', {
         'deudas': deudas,
         'datos_condominio': condominio,
         'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
         'fecha_generado': timezone.now(),
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
     })
    # Crear un objeto HTML a partir de la cadena HTML
     # html = HTML(string=html_string, base_url=request.build_absolute_uri())  # DESACTIVADO - Windows GTK
@@ -3931,6 +3938,8 @@ def admin_reportes(request):
 
                 data['nombre_banco'] = nombre_banco
                 data['numero_cuenta'] = numero_cuenta
+                data['tasa_bs'] = tasa_bs
+                data['tasa_euro'] = tasa_euro
 
                 formato = (request.POST.get('formato') or 'PDF').upper()
                 nom_archivo = nombre_banco.replace(' ', '_')
@@ -5417,12 +5426,17 @@ def cierre_propietario(request, prop, cierre, user):
     # Obtener la consulta anterior
     cierre_anterior = Cierre_mes.objects.filter(id_cierre__lt=cierre.id_cierre).last()
 
+    ultima_tasa = Tasas.objects.last()
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date())
+
     if cierre_anterior:
 
         template_path = 'PDF/cierre_mes_propietario.html'
         data = {}
 
         data['fecha_generado'] = timezone.now()
+        data['tasa_bs'] = tasa_bs
+        data['tasa_euro'] = tasa_euro
 
         mes = ["", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE",
                "NOVIEMBRE", "DICIEMBRE"]
@@ -5460,6 +5474,8 @@ def cierre_propietario(request, prop, cierre, user):
         data = {}
 
         data['fecha_generado'] = timezone.now()
+        data['tasa_bs'] = tasa_bs
+        data['tasa_euro'] = tasa_euro
 
         mes = ["", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE",
                "NOVIEMBRE", "DICIEMBRE"]
@@ -5468,7 +5484,7 @@ def cierre_propietario(request, prop, cierre, user):
         data['año_cierre'] = cierre.fecha_cierre.strftime("%Y")
 
         movimientos_ids = Ingresos.objects.filter(id_propietario_id=prop.id_propietario).values_list('id_movimiento_id', flat=True)
-        data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__lte=cierre.fecha_cierre)
+        data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__lte=cierre.fecha_cierre).select_related('id_banco')
         data['deudas'] = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
         data['datos_propietario'] = Propietario.objects.select_related('id_usuario').get(pk=prop.pk)
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)

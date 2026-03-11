@@ -17,8 +17,8 @@
             <td>{{ gasto.id_movimiento.referencia_movimiento|default:"-" }}</td>
             <td>{{ gasto.id_movimiento.descripcion_movimiento|default:gasto.id_movimiento.concepto_movimiento }}</td>
             {% with banco=gasto.id_movimiento.id_banco moneda=banco.tipo_moneda|default:"BS" monto=gasto.id_movimiento.monto_movimiento %}
-            <td class="num">{% if moneda == 'BS' %}{{ monto|floatformat:2|intcomma }} Bs{% else %}{% equiv_bcv monto moneda tasa_bs tasa_euro as eq_bs %}{% if eq_bs %}{{ eq_bs.value|floatformat:2|intcomma }} {{ eq_bs.currency }}{% else %}—{% endif %}{% endif %}</td>
-            <td class="num monto-usd">{% equiv_a_usd monto moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_bs monto moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_usd monto moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_eur monto moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
             {% endwith %}
             <td>{% for b in bancos %}{% if b.id_banco == gasto.id_movimiento.id_banco_id %}{{ b.nombre_banco }}{% endif %}{% endfor %}</td>
@@ -30,8 +30,8 @@
     </tbody>
 </table>
 <table class="table-informe mt-5">
-    <thead><tr><th>Total Bolívares</th><th class="num">Total USD (equiv.)</th><th class="num">Total EUR (equiv.)</th></tr></thead>
-    <tbody><tr><td>{{ total_final_en_bs|intcomma }} Bs</td><td class="num monto-usd">{{ total_equiv_usd|default:total_usd|floatformat:2|intcomma }} USD</td><td class="num">{{ total_equiv_eur|default:total_eur|floatformat:2|intcomma }} EUR</td></tr></tbody>
+    <thead><tr><th class="num">Total Bs</th><th class="num">Total USD</th><th class="num">Total EUR</th></tr></thead>
+    <tbody><tr><td class="num">{{ total_final_en_bs|floatformat:2|intcomma }} Bs</td><td class="num">{{ total_equiv_usd|default:total_usd|floatformat:2|intcomma }} USD</td><td class="num">{{ total_equiv_eur|default:total_eur|floatformat:2|intcomma }} EUR</td></tr></tbody>
 </table>
 <table class="table-informe mt-5" style="width:100%;">
     <tr>
@@ -42,12 +42,11 @@
         </td>
         <td style="width:10%;"></td>
         <td style="width:45%;">
-            <table class="table-informe"><thead><tr><th colspan="2">Total conversión</th></tr></thead>
+            <table class="table-informe"><thead><tr><th colspan="2">Total en cada moneda</th></tr></thead>
             <tbody>
-                <tr><td>Total Bolívares</td><td class="num">{{ total_final_en_bs|intcomma }} Bs</td></tr>
-                <tr><td>Equivalente en USD</td><td class="num">{{ total_equiv_usd|floatformat:2|intcomma }} USD</td></tr>
-                <tr><td>Equivalente en EUR</td><td class="num">{{ total_equiv_eur|floatformat:2|intcomma }} EUR</td></tr>
-                <tr><td><strong>Total Bs</strong></td><td class="num monto-usd">{{ total_final_en_bs|intcomma }} Bs</td></tr>
+                <tr><td>Total Bs</td><td class="num">{{ total_final_en_bs|floatformat:2|intcomma }} Bs</td></tr>
+                <tr><td>Total USD</td><td class="num">{{ total_equiv_usd|floatformat:2|intcomma }} USD</td></tr>
+                <tr><td>Total EUR</td><td class="num">{{ total_equiv_eur|floatformat:2|intcomma }} EUR</td></tr>
             </tbody>
             </table>
         </td>

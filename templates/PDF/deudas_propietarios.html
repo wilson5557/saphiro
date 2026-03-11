@@ -8,6 +8,7 @@
         <tr>
             <th>Descripción</th>
             <th class="num">Monto</th>
+            <th class="num">Monto en USD</th>
             <th>Moroso</th>
             <th>Fecha</th>
             <th>Domicilio</th>
@@ -19,7 +20,8 @@
         {% for deuda in deudas %}
         <tr>
             <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-            <td class="num">{{ deuda.monto_deuda|intcomma }}</td>
+            <td class="num">{{ deuda.monto_deuda|floatformat:2|intcomma }} {{ deuda.tipo_moneda }}</td>
+            <td class="num">{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %}{{ equiv.value|floatformat:2|intcomma }} {{ equiv.currency }}{% else %}—{% endif %}</td>
             <td>{% if deuda.is_moroso %}Sí{% else %}No{% endif %}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{{ deuda.id_domicilio.nombre_domicilio }}</td>
@@ -27,7 +29,7 @@
             <td>{{ deuda.tipo_moneda }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="text-center">Sin registros</td></tr>
+        <tr><td colspan="8" class="text-center">Sin registros</td></tr>
         {% endfor %}
     </tbody>
 </table>
