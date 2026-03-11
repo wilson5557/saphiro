@@ -5480,8 +5480,9 @@ def admin_cierres(request):
             else:
                 alicuota_decimal = 0
 
-            # Deuda del inmueble = Gastos a repartir × Alícuota
-            monto_deuda = gastos_a_repartir * Decimal(str(alicuota_decimal))
+            # Deuda del inmueble = Gastos a repartir × alícuota / 100 (misma fórmula que reporte por inmueble)
+            alic_div_100 = Decimal(str(alicuota_decimal)) / Decimal('100')
+            monto_deuda = (gastos_a_repartir * alic_div_100).quantize(Decimal('0.01'))
 
             deudas_prop.fecha_deuda = today.strftime("%Y-%m-%d")
             deudas_prop.tipo_deuda = "2"
