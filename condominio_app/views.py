@@ -4505,7 +4505,8 @@ def admin_reportes(request):
                         gastos_por_categoria[cat_id]['total_usd'] += m
                     elif mon == 'EUR':
                         gastos_por_categoria[cat_id]['total_eur'] += m
-            # Ordenar por nombre y añadir monto a pagar (alícuota)
+            # Monto a pagar = total de gastos * alícuota / 100 (fórmula explícita)
+            alic_div_100 = Decimal(str(alicuota_num)) / Decimal('100')
             lista_gastos_categoria = []
             total_gastos_bs = Decimal('0')
             total_gastos_usd = Decimal('0')
@@ -4520,13 +4521,13 @@ def admin_reportes(request):
                 lista_gastos_categoria.append({
                     'nombre': d['nombre'],
                     'total_bs': t_bs, 'total_usd': t_usd, 'total_eur': t_eur,
-                    'monto_pagar_bs': (t_bs * Decimal(str(alicuota_num))).quantize(Decimal('0.01')),
-                    'monto_pagar_usd': (t_usd * Decimal(str(alicuota_num))).quantize(Decimal('0.01')),
-                    'monto_pagar_eur': (t_eur * Decimal(str(alicuota_num))).quantize(Decimal('0.01')),
+                    'monto_pagar_bs': (t_bs * alic_div_100).quantize(Decimal('0.01')),
+                    'monto_pagar_usd': (t_usd * alic_div_100).quantize(Decimal('0.01')),
+                    'monto_pagar_eur': (t_eur * alic_div_100).quantize(Decimal('0.01')),
                 })
-            cuota_periodo_bs = (total_gastos_bs * Decimal(str(alicuota_num))).quantize(Decimal('0.01'))
-            cuota_periodo_usd = (total_gastos_usd * Decimal(str(alicuota_num))).quantize(Decimal('0.01'))
-            cuota_periodo_eur = (total_gastos_eur * Decimal(str(alicuota_num))).quantize(Decimal('0.01'))
+            cuota_periodo_bs = (total_gastos_bs * alic_div_100).quantize(Decimal('0.01'))
+            cuota_periodo_usd = (total_gastos_usd * alic_div_100).quantize(Decimal('0.01'))
+            cuota_periodo_eur = (total_gastos_eur * alic_div_100).quantize(Decimal('0.01'))
 
             # Pagos del propietario en el período (recibos aplicados a deudas de este domicilio)
             recibos_inm = Recibos.objects.filter(
