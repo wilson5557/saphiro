@@ -4484,7 +4484,8 @@ def admin_reportes(request):
             alicuota_inm = _alicuota_para_display(domicilio)
             alicuota_num = float(alicuota_inm) if alicuota_inm is not None else 0
 
-            # Relación de gastos por categoría (total condominio y monto a pagar por este inmueble)
+            # Relación de gastos por categoría (total condominio y monto a pagar por este inmueble).
+            # Criterio: fecha_movimiento del movimiento (si la descripción dice "ENERO" pero se registró en marzo, entra en el período marzo).
             gastos_periodo = Gastos.objects.filter(
                 id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
                 id_movimiento__fecha_movimiento__range=[inicio_inm, fin_inm]
@@ -4857,6 +4858,7 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         alicuota_inm = _alicuota_para_display(domicilio)
         alicuota_num = float(alicuota_inm) if alicuota_inm is not None else 0
 
+        # Gastos por fecha_movimiento del movimiento (período inicio_inm..fin_inm)
         gastos_periodo = Gastos.objects.filter(
             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
             id_movimiento__fecha_movimiento__range=[inicio_inm, fin_inm]
@@ -5823,7 +5825,13 @@ def cierre_propietario(request, prop, cierre, user):
 
         movimientos_ids = Ingresos.objects.filter(id_propietario_id=prop.id_propietario).values_list('id_movimiento_id', flat=True)
         data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__range=[cierre_anterior.fecha_cierre, cierre.fecha_cierre]).select_related('id_banco')
-        data['deudas'] = deudas_cierre = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
+        # Solo deudas de los inmuebles de este propietario (no de todo el condominio)
+        data['deudas'] = deudas_cierre = Deudas.objects.filter(
+            tipo_deuda="2",
+            id_domicilio__id_propietario_id=prop.id_propietario,
+            id_domicilio__id_condominio_id=user.id_condominio_id,
+            is_active=True
+        ).select_related('id_domicilio')
         data['datos_propietario'] = prop
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
         data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
@@ -5873,7 +5881,13 @@ def cierre_propietario(request, prop, cierre, user):
 
         movimientos_ids = Ingresos.objects.filter(id_propietario_id=prop.id_propietario).values_list('id_movimiento_id', flat=True)
         data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__lte=cierre.fecha_cierre).select_related('id_banco')
-        data['deudas'] = deudas_cierre = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
+        # Solo deudas de los inmuebles de este propietario (no de todo el condominio)
+        data['deudas'] = deudas_cierre = Deudas.objects.filter(
+            tipo_deuda="2",
+            id_domicilio__id_propietario_id=prop.id_propietario,
+            id_domicilio__id_condominio_id=user.id_condominio_id,
+            is_active=True
+        ).select_related('id_domicilio')
         data['datos_propietario'] = Propietario.objects.select_related('id_usuario').get(pk=prop.pk)
         t_bs_d = Decimal(str(tasa_bs or 1))
         t_eur_d = Decimal(str(tasa_euro or 1))
