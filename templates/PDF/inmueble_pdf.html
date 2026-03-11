@@ -11,6 +11,36 @@
 <p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {% if alicuota_display is not None %}{{ alicuota_display|floatformat:4 }}{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</p>
 <p style="margin-bottom: 10px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
 
+{% if lista_gastos_detalle %}
+<p style="margin-top: 12px; font-weight: bold; font-size: 12px;">LISTA DE GASTOS DEL PERÍODO</p>
+<table class="table-informe table-lista-simple">
+    <thead>
+        <tr>
+            <th>Descripción</th>
+            <th class="num">Monto Bs</th>
+            <th class="num">Monto USD</th>
+            <th class="num">Monto EUR</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in lista_gastos_detalle %}
+        <tr>
+            <td>{{ item.descripcion }}</td>
+            <td class="num">{% equiv_a_bs item.monto item.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_usd item.monto item.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_eur item.monto item.moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="fila-total-informe">
+            <td><strong>Total gastos</strong></td>
+            <td class="num"><strong>{{ total_gastos_en_bs|floatformat:2|intcomma }} Bs</strong></td>
+            <td class="num"><strong>{{ total_gastos_en_usd|floatformat:2|intcomma }} USD</strong></td>
+            <td class="num"><strong>{{ total_gastos_en_eur|floatformat:2|intcomma }} EUR</strong></td>
+        </tr>
+    </tbody>
+</table>
+{% endif %}
+
 {% if gastos_por_categoria %}
 <p style="margin-top: 12px; font-weight: bold; font-size: 12px;">{{ titulo_seccion_gastos|default:"RELACIÓN DE GASTOS DEL PERÍODO (su parte por alícuota)" }}</p>
 <table class="table-informe table-lista-simple">

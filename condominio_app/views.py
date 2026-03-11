@@ -4529,6 +4529,18 @@ def admin_reportes(request):
             cuota_periodo_usd = (total_gastos_usd * alic_div_100).quantize(Decimal('0.01'))
             cuota_periodo_eur = (total_gastos_eur * alic_div_100).quantize(Decimal('0.01'))
 
+            # Lista detallada de gastos (igual que precierre: cada ítem con descripción, monto, moneda)
+            lista_gastos_detalle = []
+            for g in gastos_periodo:
+                mov = g.id_movimiento
+                if mov:
+                    _d = (getattr(mov, 'descripcion_movimiento', None) or getattr(mov, 'concepto_movimiento', None) or '')
+                    lista_gastos_detalle.append({
+                        'descripcion': _d,
+                        'monto': mov.monto_movimiento or Decimal('0'),
+                        'moneda': (mov.tipo_moneda or 'BS').strip().upper(),
+                    })
+
             # Pagos del propietario en el período (recibos aplicados a deudas de este domicilio)
             recibos_inm = Recibos.objects.filter(
                 id_deuda__id_domicilio_id=domicilio_id,
@@ -4651,6 +4663,7 @@ def admin_reportes(request):
                 'condominio': condominio, 'datos_condominio': condominio,
                 'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
                 'gastos_por_categoria': lista_gastos_categoria,
+                'lista_gastos_detalle': lista_gastos_detalle,
                 'total_gastos_bs': total_gastos_bs, 'total_gastos_usd': total_gastos_usd, 'total_gastos_eur': total_gastos_eur,
                 'total_gastos_en_bs': total_gastos_en_bs, 'total_gastos_en_usd': total_gastos_en_usd, 'total_gastos_en_eur': total_gastos_en_eur,
                 'cuota_periodo_bs': cuota_periodo_bs, 'cuota_periodo_usd': cuota_periodo_usd, 'cuota_periodo_eur': cuota_periodo_eur,
@@ -4824,6 +4837,230 @@ def admin_reportes(request):
 
 # ------------------------------ADMINISTRACION Y GESTIÓN DE CIERRES MENSUALES------------------------------
 @login_required
+def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin_inm):
+    """Construye el diccionario data_inm para el reporte por inmueble (PDF o envío por correo)."""
+    try:
+        domicilio_id = domicilio.id_domicilio
+        deudas_inm = Deudas.objects.filter(
+            id_domicilio_id=domicilio_id,
+            tipo_deuda="2",
+            fecha_deuda__range=[inicio_inm, fin_inm]
+        ).select_related('id_domicilio').order_by('fecha_deuda')
+        total_bs_inm = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or 'BS').strip().upper() == 'BS')
+        total_usd_inm = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'USD')
+        total_eur_inm = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'EUR')
+        total_pend_bs = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or 'BS').strip().upper() == 'BS' and d.is_active)
+        total_pend_usd = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'USD' and d.is_active)
+        total_pend_eur = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'EUR' and d.is_active)
+        todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
+        nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+        alicuota_inm = _alicuota_para_display(domicilio)
+        alicuota_num = float(alicuota_inm) if alicuota_inm is not None else 0
+
+        gastos_periodo = Gastos.objects.filter(
+            id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
+            id_movimiento__fecha_movimiento__range=[inicio_inm, fin_inm]
+        ).select_related('id_categoria', 'id_movimiento')
+        gastos_por_categoria = {}
+        for g in gastos_periodo:
+            cat_id = g.id_categoria_id
+            cat_nombre = g.id_categoria.nombre_categoria if g.id_categoria else g.tipo_gasto or 'Otros'
+            if cat_id not in gastos_por_categoria:
+                gastos_por_categoria[cat_id] = {'nombre': cat_nombre, 'total_bs': Decimal('0'), 'total_usd': Decimal('0'), 'total_eur': Decimal('0')}
+            mov = g.id_movimiento
+            if mov:
+                m = mov.monto_movimiento or Decimal('0')
+                mon = (mov.tipo_moneda or 'BS').strip().upper()
+                if mon == 'BS':
+                    gastos_por_categoria[cat_id]['total_bs'] += m
+                elif mon == 'USD':
+                    gastos_por_categoria[cat_id]['total_usd'] += m
+                elif mon == 'EUR':
+                    gastos_por_categoria[cat_id]['total_eur'] += m
+        alic_div_100 = Decimal(str(alicuota_num)) / Decimal('100')
+        lista_gastos_categoria = []
+        total_gastos_bs = Decimal('0')
+        total_gastos_usd = Decimal('0')
+        total_gastos_eur = Decimal('0')
+        for cat_id, d in sorted(gastos_por_categoria.items(), key=lambda x: (x[1]['nombre'], x[0])):
+            t_bs, t_usd, t_eur = d['total_bs'], d['total_usd'], d['total_eur']
+            total_gastos_bs += t_bs
+            total_gastos_usd += t_usd
+            total_gastos_eur += t_eur
+            lista_gastos_categoria.append({
+                'nombre': d['nombre'],
+                'total_bs': t_bs, 'total_usd': t_usd, 'total_eur': t_eur,
+                'monto_pagar_bs': (t_bs * alic_div_100).quantize(Decimal('0.01')),
+                'monto_pagar_usd': (t_usd * alic_div_100).quantize(Decimal('0.01')),
+                'monto_pagar_eur': (t_eur * alic_div_100).quantize(Decimal('0.01')),
+            })
+        cuota_periodo_bs = (total_gastos_bs * alic_div_100).quantize(Decimal('0.01'))
+        cuota_periodo_usd = (total_gastos_usd * alic_div_100).quantize(Decimal('0.01'))
+        cuota_periodo_eur = (total_gastos_eur * alic_div_100).quantize(Decimal('0.01'))
+
+        lista_gastos_detalle = []
+        for g in gastos_periodo:
+            mov = g.id_movimiento
+            if mov:
+                _d = (getattr(mov, 'descripcion_movimiento', None) or getattr(mov, 'concepto_movimiento', None) or '')
+                lista_gastos_detalle.append({
+                    'descripcion': _d,
+                    'monto': mov.monto_movimiento or Decimal('0'),
+                    'moneda': (mov.tipo_moneda or 'BS').strip().upper(),
+                })
+
+        recibos_inm = Recibos.objects.filter(
+            id_deuda__id_domicilio_id=domicilio_id,
+            fecha_creacion__range=[inicio_inm, fin_inm]
+        ).select_related('id_movimiento')
+        pagos_bs = pagos_usd = pagos_eur = Decimal('0')
+        for r in recibos_inm:
+            mov = r.id_movimiento
+            monto = r.monto or (mov.monto_movimiento if mov else Decimal('0'))
+            if not monto:
+                continue
+            mon = (mov.tipo_moneda if mov else 'BS') or 'BS'
+            mon = mon.strip().upper()
+            if mon == 'BS':
+                pagos_bs += monto
+            elif mon == 'USD':
+                pagos_usd += monto
+            elif mon == 'EUR':
+                pagos_eur += monto
+
+        saldo_actual_bs = domicilio.saldo or Decimal('0')
+        saldo_actual_usd = domicilio.saldo_usd or Decimal('0')
+        saldo_actual_eur = domicilio.saldo_eur or Decimal('0')
+        saldo_anterior_bs = (saldo_actual_bs - cuota_periodo_bs + pagos_bs).quantize(Decimal('0.01'))
+        saldo_anterior_usd = (saldo_actual_usd - cuota_periodo_usd + pagos_usd).quantize(Decimal('0.01'))
+        saldo_anterior_eur = (saldo_actual_eur - cuota_periodo_eur + pagos_eur).quantize(Decimal('0.01'))
+
+        filtro_fondos_condo = {'id_movimiento__id_banco__id_condominio_id': condominio.id_condominio}
+        try:
+            inicio_dt_fondos = datetime.strptime(str(inicio_inm).strip(), '%Y-%m-%d').date() if isinstance(inicio_inm, str) else inicio_inm
+        except (ValueError, TypeError):
+            inicio_dt_fondos = None
+        if inicio_dt_fondos:
+            saldo_ant_reserva = Fondos.objects.filter(
+                tipo_fondo="RESERVA", **filtro_fondos_condo,
+                id_movimiento__fecha_movimiento__lt=inicio_dt_fondos
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
+            saldo_ant_prestaciones = Fondos.objects.filter(
+                tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
+                id_movimiento__fecha_movimiento__lt=inicio_dt_fondos
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
+        else:
+            saldo_ant_reserva = saldo_ant_prestaciones = Decimal('0')
+        ultima_tasa = Tasas.objects.last()
+        tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date() if hasattr(timezone, 'now') else date.today())
+        if (not tasa_bs or Decimal(str(tasa_bs)) <= 0) and ultima_tasa and getattr(ultima_tasa, 'tasa_BCV_USD', None):
+            tasa_bs = float(ultima_tasa.tasa_BCV_USD)
+        if (not tasa_euro or Decimal(str(tasa_euro)) <= 0) and ultima_tasa and getattr(ultima_tasa, 'tasa_BCV_EUR', None):
+            tasa_euro = float(ultima_tasa.tasa_BCV_EUR)
+        tasa_bs_d = Decimal(str(tasa_bs or 0))
+        tasa_eur_d = Decimal(str(tasa_euro or 0))
+        total_gastos_mes_bs = total_gastos_bs + (total_gastos_usd * tasa_bs_d if tasa_bs_d else Decimal('0')) + (total_gastos_eur * tasa_eur_d if tasa_eur_d else Decimal('0'))
+        for item in lista_gastos_categoria:
+            t_bs, t_usd, t_eur = item['total_bs'], item['total_usd'], item['total_eur']
+            item['total_en_bs'] = (t_bs + (t_usd * tasa_bs_d if tasa_bs_d else 0) + (t_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+            item['total_en_usd'] = ((t_bs / tasa_bs_d if tasa_bs_d else 0) + t_usd + (t_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+            item['total_en_eur'] = ((t_bs / tasa_eur_d if tasa_eur_d else 0) + (t_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + t_eur).quantize(Decimal('0.01'))
+            mp_bs, mp_usd, mp_eur = item['monto_pagar_bs'], item['monto_pagar_usd'], item['monto_pagar_eur']
+            item['monto_pagar_en_bs'] = (mp_bs + (mp_usd * tasa_bs_d if tasa_bs_d else 0) + (mp_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+            item['monto_pagar_en_usd'] = ((mp_bs / tasa_bs_d if tasa_bs_d else 0) + mp_usd + (mp_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+            item['monto_pagar_en_eur'] = ((mp_bs / tasa_eur_d if tasa_eur_d else 0) + (mp_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + mp_eur).quantize(Decimal('0.01'))
+        total_gastos_en_bs = total_gastos_bs + (total_gastos_usd * tasa_bs_d if tasa_bs_d else Decimal('0')) + (total_gastos_eur * tasa_eur_d if tasa_eur_d else Decimal('0'))
+        total_gastos_en_usd = (total_gastos_bs / tasa_bs_d if tasa_bs_d else Decimal('0')) + total_gastos_usd + (total_gastos_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else Decimal('0'))
+        total_gastos_en_eur = (total_gastos_bs / tasa_eur_d if tasa_eur_d else Decimal('0')) + (total_gastos_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else Decimal('0')) + total_gastos_eur
+        cuota_en_bs = (cuota_periodo_bs + (cuota_periodo_usd * tasa_bs_d if tasa_bs_d else 0) + (cuota_periodo_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+        cuota_en_usd = ((cuota_periodo_bs / tasa_bs_d if tasa_bs_d else 0) + cuota_periodo_usd + (cuota_periodo_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+        cuota_en_eur = ((cuota_periodo_bs / tasa_eur_d if tasa_eur_d else 0) + (cuota_periodo_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + cuota_periodo_eur).quantize(Decimal('0.01'))
+        saldo_ant_en_bs = (saldo_anterior_bs + (saldo_anterior_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_anterior_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+        saldo_ant_en_usd = ((saldo_anterior_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_anterior_usd + (saldo_anterior_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+        saldo_ant_en_eur = ((saldo_anterior_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_anterior_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_anterior_eur).quantize(Decimal('0.01'))
+        pagos_en_bs = (pagos_bs + (pagos_usd * tasa_bs_d if tasa_bs_d else 0) + (pagos_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+        pagos_en_usd = ((pagos_bs / tasa_bs_d if tasa_bs_d else 0) + pagos_usd + (pagos_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+        pagos_en_eur = ((pagos_bs / tasa_eur_d if tasa_eur_d else 0) + (pagos_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + pagos_eur).quantize(Decimal('0.01'))
+        saldo_act_en_bs = (saldo_actual_bs + (saldo_actual_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_actual_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+        saldo_act_en_usd = ((saldo_actual_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_actual_usd + (saldo_actual_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+        saldo_act_en_eur = ((saldo_actual_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_actual_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_actual_eur).quantize(Decimal('0.01'))
+        t_bs_i = Decimal(str(total_bs_inm))
+        t_usd_i = Decimal(str(total_usd_inm))
+        t_eur_i = Decimal(str(total_eur_inm))
+        total_deudas_en_bs = (t_bs_i + t_usd_i * tasa_bs_d + t_eur_i * tasa_eur_d).quantize(Decimal('0.01'))
+        total_deudas_en_usd = (t_bs_i / tasa_bs_d + t_usd_i + t_eur_i * tasa_eur_d / tasa_bs_d).quantize(Decimal('0.01'))
+        total_deudas_en_eur = (t_bs_i / tasa_eur_d + t_usd_i * tasa_bs_d / tasa_eur_d + t_eur_i).quantize(Decimal('0.01'))
+        p_bs, p_usd, p_eur = Decimal(str(total_pend_bs)), Decimal(str(total_pend_usd)), Decimal(str(total_pend_eur))
+        pendiente_deudas_en_bs = (p_bs + p_usd * tasa_bs_d + p_eur * tasa_eur_d).quantize(Decimal('0.01'))
+        pendiente_deudas_en_usd = (p_bs / tasa_bs_d + p_usd + p_eur * tasa_eur_d / tasa_bs_d).quantize(Decimal('0.01'))
+        pendiente_deudas_en_eur = (p_bs / tasa_eur_d + p_usd * tasa_bs_d / tasa_eur_d + p_eur).quantize(Decimal('0.01'))
+        apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+        saldo_actual_reserva = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
+        apartado_prestaciones = Decimal('0')
+        saldo_actual_prestaciones = saldo_ant_prestaciones
+
+        inicio_dt = _parse_fecha_reporte(inicio_inm) or (datetime.strptime(str(inicio_inm)[:10], '%Y-%m-%d').date() if isinstance(inicio_inm, str) else inicio_inm)
+        fin_dt = _parse_fecha_reporte(fin_inm) or (datetime.strptime(str(fin_inm)[:10], '%Y-%m-%d').date() if isinstance(fin_inm, str) else fin_inm)
+        try:
+            es_periodo_mensual = (inicio_dt and fin_dt and inicio_dt.year == fin_dt.year and inicio_dt.month == fin_dt.month)
+        except (TypeError, AttributeError):
+            es_periodo_mensual = False
+        titulo_seccion_gastos = 'RELACIÓN MENSUAL DE GASTOS (su parte por alícuota)' if es_periodo_mensual else 'RELACIÓN DE GASTOS DEL PERÍODO (su parte por alícuota)'
+        data_inm = {
+            'inicio': inicio_dt or inicio_inm,
+            'fin': fin_dt or fin_inm,
+            'domicilio': domicilio,
+            'titulo_seccion_gastos': titulo_seccion_gastos,
+            'alicuota_display': alicuota_inm,
+            'deudas': deudas_inm,
+            'total_bs': total_bs_inm, 'total_usd': total_usd_inm, 'total_eur': total_eur_inm,
+            'total_pendiente_bs': total_pend_bs, 'total_pendiente_usd': total_pend_usd, 'total_pendiente_eur': total_pend_eur,
+            'total_en_bs': total_deudas_en_bs, 'total_en_usd': total_deudas_en_usd, 'total_en_eur': total_deudas_en_eur,
+            'pendiente_en_bs': pendiente_deudas_en_bs, 'pendiente_en_usd': pendiente_deudas_en_usd, 'pendiente_en_eur': pendiente_deudas_en_eur,
+            'fecha_generado': timezone.now(),
+            'condominio': condominio, 'datos_condominio': condominio,
+            'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
+            'gastos_por_categoria': lista_gastos_categoria,
+            'lista_gastos_detalle': lista_gastos_detalle,
+            'total_gastos_bs': total_gastos_bs, 'total_gastos_usd': total_gastos_usd, 'total_gastos_eur': total_gastos_eur,
+            'total_gastos_en_bs': total_gastos_en_bs, 'total_gastos_en_usd': total_gastos_en_usd, 'total_gastos_en_eur': total_gastos_en_eur,
+            'cuota_periodo_bs': cuota_periodo_bs, 'cuota_periodo_usd': cuota_periodo_usd, 'cuota_periodo_eur': cuota_periodo_eur,
+            'cuota_en_bs': cuota_en_bs, 'cuota_en_usd': cuota_en_usd, 'cuota_en_eur': cuota_en_eur,
+            'pagos_bs': pagos_bs, 'pagos_usd': pagos_usd, 'pagos_eur': pagos_eur,
+            'saldo_anterior_bs': saldo_anterior_bs, 'saldo_anterior_usd': saldo_anterior_usd, 'saldo_anterior_eur': saldo_anterior_eur,
+            'saldo_anterior_en_bs': saldo_ant_en_bs, 'saldo_anterior_en_usd': saldo_ant_en_usd, 'saldo_anterior_en_eur': saldo_ant_en_eur,
+            'pagos_en_bs': pagos_en_bs, 'pagos_en_usd': pagos_en_usd, 'pagos_en_eur': pagos_en_eur,
+            'saldo_actual_bs': saldo_actual_bs, 'saldo_actual_usd': saldo_actual_usd, 'saldo_actual_eur': saldo_actual_eur,
+            'saldo_actual_en_bs': saldo_act_en_bs, 'saldo_actual_en_usd': saldo_act_en_usd, 'saldo_actual_en_eur': saldo_act_en_eur,
+            'saldo_anterior_reserva': saldo_ant_reserva, 'apartado_fondo_reserva': apartado_reserva,
+            'saldo_actual_reserva': saldo_actual_reserva, 'apartado_prestaciones': apartado_prestaciones,
+            'saldo_anterior_prestaciones': saldo_ant_prestaciones, 'saldo_actual_prestaciones': saldo_actual_prestaciones,
+            'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
+        }
+        deudas_con_equiv = []
+        t_bs = Decimal(str(tasa_bs or 0))
+        t_eur = Decimal(str(tasa_euro or 0))
+        for d in deudas_inm:
+            equiv_val, equiv_cur = None, None
+            try:
+                m = Decimal(str(d.monto_deuda or 0))
+                mon = (d.tipo_moneda or 'BS').strip().upper() or 'BS'
+                if mon == 'BS' and t_bs and t_bs > 0:
+                    equiv_val, equiv_cur = (m / t_bs).quantize(Decimal('0.01')), 'USD'
+                elif mon == 'USD' and t_bs and t_bs > 0:
+                    equiv_val, equiv_cur = (m * t_bs).quantize(Decimal('0.01')), 'BS'
+                elif mon == 'EUR' and t_eur and t_eur > 0:
+                    equiv_val, equiv_cur = (m * t_eur).quantize(Decimal('0.01')), 'BS'
+            except (TypeError, ValueError):
+                pass
+            deudas_con_equiv.append({'deuda': d, 'equiv_val': equiv_val, 'equiv_cur': equiv_cur})
+        data_inm['deudas_con_equiv'] = deudas_con_equiv
+        return data_inm
+    except Exception as e:
+        logger.exception('_build_data_reporte_inmueble: %s', e)
+        return None
+
+
 def admin_cierres(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
@@ -5254,6 +5491,52 @@ def admin_cierres(request):
 
             if monto_deuda > 0:
                 Domicilio.objects.filter(id_domicilio=deudor.id_domicilio).update(estado_deuda=True)
+
+        # Enviar reporte por inmueble a cada propietario por correo (mismo contenido que precierre: lista de gastos + totales)
+        try:
+            cierres_ordenados = Cierre_mes.objects.filter(id_condominio=datos_condominio).order_by('-fecha_cierre')
+            if cierres_ordenados.count() >= 2:
+                prev_cierre = cierres_ordenados[1]
+                inicio_cierre = prev_cierre.fecha_cierre.date()
+            else:
+                inicio_cierre = (today.date() - timedelta(days=30)) if hasattr(today, 'date') else (today - timedelta(days=30))
+            fin_cierre = today.date() if hasattr(today, 'date') else today
+            template_path_inm = 'PDF/inmueble_pdf.html'
+            for dom in domicilios_qs:
+                data_inm = _build_data_reporte_inmueble(request, datos_condominio, dom, str(inicio_cierre), str(fin_cierre))
+                if not data_inm:
+                    continue
+                propietario_inm = dom.id_propietario
+                if not propietario_inm or not getattr(propietario_inm, 'id_usuario_id', None):
+                    continue
+                usuario_inm = propietario_inm.id_usuario
+                email_destino = getattr(usuario_inm, 'email', None) if usuario_inm else None
+                if not email_destino:
+                    continue
+                try:
+                    template = get_template(template_path_inm)
+                    html = template.render(data_inm)
+                    pdf_buffer = io.BytesIO()
+                    pisa_status = pisa.CreatePDF(html, dest=pdf_buffer, link_callback=link_callback)
+                    if pisa_status.err:
+                        continue
+                    pdf_buffer.seek(0)
+                    nombre_condominio = getattr(datos_condominio, 'nombre_condominio', 'Condominio') or 'Condominio'
+                    nombre_inm = (dom.nombre_domicilio or 'Inmueble').replace(' ', '_')
+                    asunto = 'Reporte por inmueble - Cierre del mes - {} - {}'.format(nombre_condominio, nombre_inm)
+                    cuerpo = 'Estimado/a {}, adjuntamos el reporte del inmueble {} correspondiente al cierre del período {} a {}. Saludos.'.format(
+                        propietario_inm.nombre_propietario,
+                        dom.nombre_domicilio or dom.id_domicilio,
+                        data_inm['inicio'].strftime('%d/%m/%Y') if hasattr(data_inm['inicio'], 'strftime') else str(data_inm['inicio']),
+                        data_inm['fin'].strftime('%d/%m/%Y') if hasattr(data_inm['fin'], 'strftime') else str(data_inm['fin']),
+                    )
+                    email_msg = EmailMultiAlternatives(asunto, cuerpo, settings.EMAIL_HOST_USER, [email_destino])
+                    email_msg.attach('Reporte_inmueble_{}_{}_{}.pdf'.format(nombre_inm, inicio_cierre, fin_cierre), pdf_buffer.getvalue(), 'application/pdf')
+                    email_msg.send(fail_silently=True)
+                except Exception:
+                    logger.exception('Error enviando reporte por inmueble a %s', email_destino)
+        except Exception as e:
+            logger.exception('Error al enviar reportes por inmueble tras cierre: %s', e)
 
         return response
 
