@@ -4282,25 +4282,31 @@ def admin_reportes(request):
                     fecha_deuda__range=[inicio, fin]
                 ).select_related('id_domicilio').order_by('id_domicilio', 'fecha_deuda')
 
-                total_bs = 0
-                total_usd = 0
-                total_eur = 0
-                total_pendiente_bs = 0
-                total_pendiente_usd = 0
-                total_pendiente_eur = 0
+                total_bs = Decimal('0')
+                total_usd = Decimal('0')
+                total_eur = Decimal('0')
+                total_pendiente_bs = Decimal('0')
+                total_pendiente_usd = Decimal('0')
+                total_pendiente_eur = Decimal('0')
                 for deuda in deudas:
-                    if deuda.tipo_moneda == 'BS':
-                        total_bs += deuda.monto_deuda
+                    mon = (getattr(deuda, 'tipo_moneda', None) or 'BS')
+                    if not isinstance(mon, str):
+                        mon = str(mon).strip().upper() or 'BS'
+                    else:
+                        mon = mon.strip().upper() or 'BS'
+                    m = Decimal(str(deuda.monto_deuda or 0))
+                    if mon == 'BS':
+                        total_bs += m
                         if deuda.is_active:
-                            total_pendiente_bs += deuda.monto_deuda
-                    elif deuda.tipo_moneda == 'USD':
-                        total_usd += deuda.monto_deuda
+                            total_pendiente_bs += m
+                    elif mon == 'USD':
+                        total_usd += m
                         if deuda.is_active:
-                            total_pendiente_usd += deuda.monto_deuda
-                    elif deuda.tipo_moneda == 'EUR':
-                        total_eur += deuda.monto_deuda
+                            total_pendiente_usd += m
+                    elif mon == 'EUR':
+                        total_eur += m
                         if deuda.is_active:
-                            total_pendiente_eur += deuda.monto_deuda
+                            total_pendiente_eur += m
 
                 # Totales en cada moneda (para mostrar equivalente en resumen)
                 t_bs_d = Decimal(str(tasa_bs or 0))
