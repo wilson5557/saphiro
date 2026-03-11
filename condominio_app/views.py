@@ -2313,6 +2313,23 @@ def recibo_total_deuda(request, id):
     nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
     ultima_tasa = Tasas.objects.last()
     tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date())
+    total_bs = Decimal('0')
+    total_usd = Decimal('0')
+    total_eur = Decimal('0')
+    for deuda in deudas:
+        m = Decimal(str(deuda.monto_deuda or 0))
+        mon = (getattr(deuda, 'tipo_moneda', None) or 'BS').strip().upper()
+        if mon == 'BS':
+            total_bs += m
+        elif mon == 'USD':
+            total_usd += m
+        elif mon == 'EUR':
+            total_eur += m
+    t_bs_d = Decimal(str(tasa_bs or 1))
+    t_eur_d = Decimal(str(tasa_euro or 1))
+    total_en_bs = (total_bs + total_usd * t_bs_d + total_eur * t_eur_d).quantize(Decimal('0.01'))
+    total_en_usd = (total_bs / t_bs_d + total_usd + total_eur * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+    total_en_eur = (total_bs / t_eur_d + total_usd * t_bs_d / t_eur_d + total_eur).quantize(Decimal('0.01'))
     html_string = render_to_string('PDF/deudas_propietarios.html', {
         'deudas': deudas,
         'datos_condominio': condominio,
@@ -2320,6 +2337,12 @@ def recibo_total_deuda(request, id):
         'fecha_generado': timezone.now(),
         'tasa_bs': tasa_bs,
         'tasa_euro': tasa_euro,
+        'total_en_bs': total_en_bs,
+        'total_en_usd': total_en_usd,
+        'total_en_eur': total_en_eur,
+        'pendiente_en_bs': total_en_bs,
+        'pendiente_en_usd': total_en_usd,
+        'pendiente_en_eur': total_en_eur,
     })
    # Crear un objeto HTML a partir de la cadena HTML
     # html = HTML(string=html_string, base_url=request.build_absolute_uri())  # DESACTIVADO - Windows GTK
@@ -4104,16 +4127,26 @@ def admin_reportes(request):
                     fecha_deuda__range=[inicio, fin]
                 ).select_related('id_domicilio', 'id_domicilio__id_propietario')
 
-                total_bs = 0
-                total_usd = 0
-                total_eur = 0
+                total_bs = Decimal('0')
+                total_usd = Decimal('0')
+                total_eur = Decimal('0')
                 for deuda in deudas:
-                    if deuda.tipo_moneda == 'BS':
-                        total_bs += deuda.monto_deuda
-                    elif deuda.tipo_moneda == 'USD':
-                        total_usd += deuda.monto_deuda
-                    elif deuda.tipo_moneda == 'EUR':
-                        total_eur += deuda.monto_deuda
+                    m = Decimal(str(deuda.monto_deuda or 0))
+                    mon = (deuda.tipo_moneda or 'BS').strip().upper()
+                    if mon == 'BS':
+                        total_bs += m
+                    elif mon == 'USD':
+                        total_usd += m
+                    elif mon == 'EUR':
+                        total_eur += m
+                t_bs_d = Decimal(str(tasa_bs or 1))
+                t_eur_d = Decimal(str(tasa_euro or 1))
+                total_en_bs = (total_bs + total_usd * t_bs_d + total_eur * t_eur_d).quantize(Decimal('0.01'))
+                total_en_usd = (total_bs / t_bs_d + total_usd + total_eur * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+                total_en_eur = (total_bs / t_eur_d + total_usd * t_bs_d / t_eur_d + total_eur).quantize(Decimal('0.01'))
+                pendiente_en_bs = total_en_bs
+                pendiente_en_usd = total_en_usd
+                pendiente_en_eur = total_en_eur
 
                 todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
@@ -4124,6 +4157,12 @@ def admin_reportes(request):
                     'total_bs': total_bs,
                     'total_usd': total_usd,
                     'total_eur': total_eur,
+                    'total_en_bs': total_en_bs,
+                    'total_en_usd': total_en_usd,
+                    'total_en_eur': total_en_eur,
+                    'pendiente_en_bs': pendiente_en_bs,
+                    'pendiente_en_usd': pendiente_en_usd,
+                    'pendiente_en_eur': pendiente_en_eur,
                     'fecha_generado': timezone.now(),
                     'condominio': condominio,
                     'datos_condominio': condominio,
@@ -4228,10 +4267,15 @@ def admin_reportes(request):
                     return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
                 # Solo inmuebles de este propietario en este condominio (no otros propietarios ni otros condominios)
-                domicilios_propietario = Domicilio.objects.filter(
+                domicilios_propietario_qs = Domicilio.objects.filter(
                     id_propietario_id=propietario_id,
                     id_condominio_id=condominio.id_condominio
-                ).values_list('id_domicilio', flat=True)
+                ).select_related('id_torre')
+                domicilios_propietario = list(domicilios_propietario_qs.values_list('id_domicilio', flat=True))
+                # Para el bloque resaltado (Inmueble, Propietario, Tipo, m², Alicuota) como en reporte por inmueble
+                domicilios_con_alicuota = [
+                    (dom, _alicuota_para_display(dom)) for dom in domicilios_propietario_qs
+                ]
                 deudas = Deudas.objects.filter(
                     id_domicilio_id__in=domicilios_propietario,
                     tipo_deuda="2",
@@ -4275,6 +4319,7 @@ def admin_reportes(request):
                     'fin': _parse_fecha_reporte(fin) or fin,
                     'deudas': deudas,
                     'propietario': propietario,
+                    'domicilios_con_alicuota': domicilios_con_alicuota,
                     'total_bs': total_bs,
                     'total_usd': total_usd,
                     'total_eur': total_eur,
@@ -4428,12 +4473,12 @@ def admin_reportes(request):
                 tipo_deuda="2",
                 fecha_deuda__range=[inicio_inm, fin_inm]
             ).select_related('id_domicilio').order_by('fecha_deuda')
-            total_bs_inm = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'BS')
-            total_usd_inm = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'USD')
-            total_eur_inm = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'EUR')
-            total_pend_bs = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'BS' and d.is_active)
-            total_pend_usd = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'USD' and d.is_active)
-            total_pend_eur = sum(d.monto_deuda for d in deudas_inm if d.tipo_moneda == 'EUR' and d.is_active)
+            total_bs_inm = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or 'BS').strip().upper() == 'BS')
+            total_usd_inm = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'USD')
+            total_eur_inm = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'EUR')
+            total_pend_bs = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or 'BS').strip().upper() == 'BS' and d.is_active)
+            total_pend_usd = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'USD' and d.is_active)
+            total_pend_eur = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_inm if (d.tipo_moneda or '').strip().upper() == 'EUR' and d.is_active)
             todos_bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
             nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
             alicuota_inm = _alicuota_para_display(domicilio)
@@ -4565,6 +4610,19 @@ def admin_reportes(request):
             saldo_act_en_bs = (saldo_actual_bs + (saldo_actual_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_actual_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
             saldo_act_en_usd = ((saldo_actual_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_actual_usd + (saldo_actual_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
             saldo_act_en_eur = ((saldo_actual_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_actual_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_actual_eur).quantize(Decimal('0.01'))
+            # Totales consolidados de deudas (por equivalencia) para el cuadro gris
+            t_bs_i = Decimal(str(total_bs_inm))
+            t_usd_i = Decimal(str(total_usd_inm))
+            t_eur_i = Decimal(str(total_eur_inm))
+            total_deudas_en_bs = (t_bs_i + t_usd_i * tasa_bs_d + t_eur_i * tasa_eur_d).quantize(Decimal('0.01'))
+            total_deudas_en_usd = (t_bs_i / tasa_bs_d + t_usd_i + t_eur_i * tasa_eur_d / tasa_bs_d).quantize(Decimal('0.01'))
+            total_deudas_en_eur = (t_bs_i / tasa_eur_d + t_usd_i * tasa_bs_d / tasa_eur_d + t_eur_i).quantize(Decimal('0.01'))
+            p_bs = Decimal(str(total_pend_bs))
+            p_usd = Decimal(str(total_pend_usd))
+            p_eur = Decimal(str(total_pend_eur))
+            pendiente_deudas_en_bs = (p_bs + p_usd * tasa_bs_d + p_eur * tasa_eur_d).quantize(Decimal('0.01'))
+            pendiente_deudas_en_usd = (p_bs / tasa_bs_d + p_usd + p_eur * tasa_eur_d / tasa_bs_d).quantize(Decimal('0.01'))
+            pendiente_deudas_en_eur = (p_bs / tasa_eur_d + p_usd * tasa_bs_d / tasa_eur_d + p_eur).quantize(Decimal('0.01'))
             apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
             saldo_actual_reserva = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
             apartado_prestaciones = Decimal('0')
@@ -4586,6 +4644,8 @@ def admin_reportes(request):
                 'deudas': deudas_inm,
                 'total_bs': total_bs_inm, 'total_usd': total_usd_inm, 'total_eur': total_eur_inm,
                 'total_pendiente_bs': total_pend_bs, 'total_pendiente_usd': total_pend_usd, 'total_pendiente_eur': total_pend_eur,
+                'total_en_bs': total_deudas_en_bs, 'total_en_usd': total_deudas_en_usd, 'total_en_eur': total_deudas_en_eur,
+                'pendiente_en_bs': pendiente_deudas_en_bs, 'pendiente_en_usd': pendiente_deudas_en_usd, 'pendiente_en_eur': pendiente_deudas_en_eur,
                 'fecha_generado': timezone.now(),
                 'condominio': condominio, 'datos_condominio': condominio,
                 'bancos_cabecera': [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos],
@@ -5166,7 +5226,7 @@ def admin_cierres(request):
 
             if dom.alicuota_domicilio is not None:
                 a = float(dom.alicuota_domicilio)
-                alicuota_decimal = (a / 100) if a > 1 else a
+                alicuota_decimal = (a / 100) if a >= 1 else a
             elif total_m2 and total_m2 > 0 and m2_dom > 0:
                 alicuota_decimal = float(m2_dom / total_m2)
                 # Asignar al inmueble para que el propietario la vea y quede para futuros cierres
@@ -5479,13 +5539,24 @@ def cierre_propietario(request, prop, cierre, user):
 
         movimientos_ids = Ingresos.objects.filter(id_propietario_id=prop.id_propietario).values_list('id_movimiento_id', flat=True)
         data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__range=[cierre_anterior.fecha_cierre, cierre.fecha_cierre]).select_related('id_banco')
-        data['deudas'] = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
+        data['deudas'] = deudas_cierre = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
         data['datos_propietario'] = prop
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
         data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
         todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
         nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
         data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
+        t_bs_d = Decimal(str(tasa_bs or 1))
+        t_eur_d = Decimal(str(tasa_euro or 1))
+        total_d_bs = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or 'BS').strip().upper() == 'BS')
+        total_d_usd = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or '').strip().upper() == 'USD')
+        total_d_eur = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or '').strip().upper() == 'EUR')
+        data['total_en_bs'] = (total_d_bs + total_d_usd * t_bs_d + total_d_eur * t_eur_d).quantize(Decimal('0.01'))
+        data['total_en_usd'] = (total_d_bs / t_bs_d + total_d_usd + total_d_eur * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+        data['total_en_eur'] = (total_d_bs / t_eur_d + total_d_usd * t_bs_d / t_eur_d + total_d_eur).quantize(Decimal('0.01'))
+        data['pendiente_en_bs'] = data['total_en_bs']
+        data['pendiente_en_usd'] = data['total_en_usd']
+        data['pendiente_en_eur'] = data['total_en_eur']
 
         nombre_pdf = "cierre_mes_{}_{}.pdf".format(prop.nombre_propietario, cierre.fecha_cierre.strftime("%d-%m-%Y %H.%M.%S"))
 
@@ -5518,8 +5589,19 @@ def cierre_propietario(request, prop, cierre, user):
 
         movimientos_ids = Ingresos.objects.filter(id_propietario_id=prop.id_propietario).values_list('id_movimiento_id', flat=True)
         data['movimientos'] = Movimientos_bancarios.objects.filter(pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=user.id_condominio_id, created_at__lte=cierre.fecha_cierre).select_related('id_banco')
-        data['deudas'] = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
+        data['deudas'] = deudas_cierre = Deudas.objects.filter(tipo_deuda="2", id_domicilio__id_propietario__id_usuario__id_condominio_id=user.id_condominio_id, is_active=True).select_related('id_domicilio')
         data['datos_propietario'] = Propietario.objects.select_related('id_usuario').get(pk=prop.pk)
+        t_bs_d = Decimal(str(tasa_bs or 1))
+        t_eur_d = Decimal(str(tasa_euro or 1))
+        total_d_bs = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or 'BS').strip().upper() == 'BS')
+        total_d_usd = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or '').strip().upper() == 'USD')
+        total_d_eur = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or '').strip().upper() == 'EUR')
+        data['total_en_bs'] = (total_d_bs + total_d_usd * t_bs_d + total_d_eur * t_eur_d).quantize(Decimal('0.01'))
+        data['total_en_usd'] = (total_d_bs / t_bs_d + total_d_usd + total_d_eur * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+        data['total_en_eur'] = (total_d_bs / t_eur_d + total_d_usd * t_bs_d / t_eur_d + total_d_eur).quantize(Decimal('0.01'))
+        data['pendiente_en_bs'] = data['total_en_bs']
+        data['pendiente_en_usd'] = data['total_en_usd']
+        data['pendiente_en_eur'] = data['total_en_eur']
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
         data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
         todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
@@ -6860,8 +6942,8 @@ def _alicuota_para_display(domicilio):
     """Devuelve la alícuota en formato decimal (0.16 para 16%): guardada o calculada por m²."""
     if domicilio.alicuota_domicilio is not None:
         a = float(domicilio.alicuota_domicilio)
-        # Si viene como % (16), convertir a decimal (0.16); si ya es decimal (0.16), mantener
-        return round((a / 100) if a > 1 else a, 4)
+        # Si viene como % (1, 16, etc.), convertir a decimal (0.01, 0.16); si ya es decimal (< 1), mantener
+        return round((a / 100) if a >= 1 else a, 4)
     if not domicilio.id_condominio_id:
         return None
     try:

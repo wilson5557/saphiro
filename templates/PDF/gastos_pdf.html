@@ -54,7 +54,9 @@
 </table>
 {% endblock %}
 {% block pie_informe %}
-<div class="fila-total-informe">TOTAL GASTOS COMUNES &nbsp; {{ total_final_en_bs|intcomma }} Bs &nbsp; ≈ {{ total_equiv_usd|floatformat:2|intcomma }} USD</div>
+<div class="fila-total-informe mt-3">
+    Total BS: {{ total_final_en_bs|floatformat:2|intcomma }} Bs &nbsp; Total USD: {{ total_equiv_usd|default:0|floatformat:2|intcomma }} USD &nbsp; Total EUR: {{ total_equiv_eur|default:0|floatformat:2|intcomma }} EUR
+</div>
 <div class="pie-avisos-informe">
     SEA RESPONSABLE. PAGUE PUNTUAL, DESPUES DE 3 MESES DE DEUDA PASARA A DEPARTAMENTO LEGAL<br>
     CUANDO REALICE EL PAGO INFORMELO AL WHATSAPP DEL CONDOMINIO<br>

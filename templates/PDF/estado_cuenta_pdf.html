@@ -3,9 +3,18 @@
 {% block titulo_pagina %}Estado de Cuenta del Propietario{% endblock %}
 {% block titulo_informe %}ESTADO DE CUENTA DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
-<p style="margin-top: 10px; margin-bottom: 5px;"><strong>Propietario:</strong> {{ propietario.nombre_propietario }}</p>
-<p style="margin-bottom: 5px;">Fecha inicio: {{ inicio|date:'d/m/Y' }}</p>
-<p style="margin-bottom: 10px;">Fecha fin: {{ fin|date:'d/m/Y' }}</p>
+<div style="margin-top: 10px; margin-bottom: 12px; padding: 10px 12px; background-color: #e8f4f8; border: 1px solid #b8d4e0;">
+    {% for dom, alic in domicilios_con_alicuota %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmueble:</strong> {{ dom.nombre_domicilio }}{% if dom.id_torre %} ({{ dom.id_torre.nombre_torre }}){% endif %}</p>
+    {% empty %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmueble:</strong> —</p>
+    {% endfor %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Propietario:</strong> {{ propietario.nombre_propietario }}</p>
+    {% for dom, alic in domicilios_con_alicuota %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;">Tipo: {{ dom.tipo_domicilio|default:"—" }} &nbsp; m²: {{ dom.size_domicilio|default:"—" }} &nbsp; Alicuota: {% if alic is not None %}{{ alic|floatformat:4 }}{% else %}—{% endif %}</p>
+    {% endfor %}
+    <p style="margin: 0; font-size: 11px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
+</div>
 <table class="table-informe table-lista-simple">
     <thead>
         <tr>

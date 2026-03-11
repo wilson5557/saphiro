@@ -155,8 +155,8 @@
     </tbody>
 </table>
 <div class="fila-total-informe mt-3">
-    Total BS: {{ total_bs|intcomma }} &nbsp; Total USD: {{ total_usd|intcomma }} &nbsp; Total EUR: {{ total_eur|intcomma }}<br>
-    Pendiente BS: {{ total_pendiente_bs|intcomma }} &nbsp; Pendiente USD: {{ total_pendiente_usd|intcomma }} &nbsp; Pendiente EUR: {{ total_pendiente_eur|intcomma }}
+    Total BS: {{ total_en_bs|floatformat:2|intcomma }} Bs &nbsp; Total USD: {{ total_en_usd|floatformat:2|intcomma }} USD &nbsp; Total EUR: {{ total_en_eur|floatformat:2|intcomma }} EUR<br>
+    Pendiente BS: {{ pendiente_en_bs|floatformat:2|intcomma }} Bs &nbsp; Pendiente USD: {{ pendiente_en_usd|floatformat:2|intcomma }} USD &nbsp; Pendiente EUR: {{ pendiente_en_eur|floatformat:2|intcomma }} EUR
 </div>
 {% endblock %}
 {% block pie_informe %}

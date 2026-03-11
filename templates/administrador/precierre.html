@@ -75,7 +75,7 @@
     <h3 class="text-center mt-4" style="font-size: 12px;">GASTOS</h3>
     <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
         <thead class="thead-light">
-        <tr><th>Descripción</th><th class="text-right">Monto Bs</th><th class="text-right">Monto USD</th><th class="text-right">Monto EUR</th></tr>
+        <tr><th>Descripción</th><th class="text-right">Monto Bs</th><th class="text-right">Monto USD</th></tr>
         </thead>
         <tbody>
         {% for gasto in gastos %}
@@ -83,10 +83,9 @@
             <td>{{ gasto.descripcion }}</td>
             <td class="text-right">{% equiv_a_bs gasto.monto gasto.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
             <td class="text-right">{% equiv_a_usd gasto.monto gasto.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
-            <td class="text-right">{% equiv_a_eur gasto.monto gasto.moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
-        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td class="text-right"><strong>{{ total_gastos_en_bs|floatformat:2|intcomma }} Bs</strong></td><td class="text-right"><strong>{{ total_gastos_en_usd|floatformat:2|intcomma }} USD</strong></td><td class="text-right"><strong>{{ total_gastos_en_eur|floatformat:2|intcomma }} EUR</strong></td></tr>
+        <tr class="table-secondary"><td><strong>TOTAL</strong></td><td class="text-right"><strong>{{ total_gastos_en_bs|floatformat:2|intcomma }} Bs</strong></td><td class="text-right"><strong>{{ total_gastos_en_usd|floatformat:2|intcomma }} USD</strong></td></tr>
         </tbody>
     </table>
     {% else %}
