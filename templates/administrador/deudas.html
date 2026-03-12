@@ -5,6 +5,7 @@
 {% load i18n %}
 {% load widget_tweaks %}
 {% load reportes_filters %}
+{% load humanize %}
 
 {% block title_page %}
   Esparta Suites - Administración
@@ -59,10 +60,23 @@
         <div class="divider"></div>
 
         <div class="row mt-3">
-          <div class="col-md-12 text-center">
-            <div class="alert alert-info">
-              <strong>Total de deudas activas:</strong>
-              BS {{ total_deudas_bs }} | USD {{ total_deudas_usd }} | EUR {{ total_deudas_eur }}
+          <div class="col-md-12">
+            <div class="rounded p-3" style="background-color: #e9ecef; border: 1px solid #ced4da;">
+              <strong class="d-block mb-2">Totales de movimientos (por moneda, según equivalencia)</strong>
+              <div class="row">
+                <div class="col-md-6">
+                  <strong>Total BS:</strong> {{ total_en_bs|floatformat:2|intcomma }} Bs &nbsp;|&nbsp;
+                  <strong>Total USD:</strong> {{ total_en_usd|floatformat:2|intcomma }} USD &nbsp;|&nbsp;
+                  <strong>Total EUR:</strong> {{ total_en_eur|floatformat:2|intcomma }} EUR
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-md-6">
+                  <strong>Pendiente BS:</strong> {{ pendiente_en_bs|floatformat:2|intcomma }} Bs &nbsp;|&nbsp;
+                  <strong>Pendiente USD:</strong> {{ pendiente_en_usd|floatformat:2|intcomma }} USD &nbsp;|&nbsp;
+                  <strong>Pendiente EUR:</strong> {{ pendiente_en_eur|floatformat:2|intcomma }} EUR
+                </div>
+              </div>
             </div>
           </div>
         </div>

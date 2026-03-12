@@ -28,16 +28,18 @@
         </tr>
     </thead>
     <tbody>
-        {% for deuda in deudas %}
+        {% for item in deudas_para_vista %}
+        {% with deuda=item.deuda monto_d=item.monto_display moneda_d=item.moneda_display %}
         <tr>
             <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
             <td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
-            <td class="num">{% equiv_a_bs deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
-            <td class="num">{% equiv_a_usd deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
-            <td class="num">{% equiv_a_eur deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_bs monto_d moneda_d tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_usd monto_d moneda_d tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_eur monto_d moneda_d tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
             <td>{% if deuda.is_active %}Pendiente{% else %}Pagada{% endif %}</td>
         </tr>
+        {% endwith %}
         {% empty %}
         <tr><td colspan="7" class="text-center">Sin registros</td></tr>
         {% endfor %}
