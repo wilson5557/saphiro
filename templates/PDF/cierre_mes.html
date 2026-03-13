@@ -4,8 +4,8 @@
 {% load humanize %}
 {% load reportes_filters %}
 
-{% block titulo_pagina %}Cierre del mes {{ mes_cierre }} {{ año_cierre }}{% endblock %}
-{% block titulo_informe %}CIERRE DEL MES DE {{ mes_cierre }} DE {{ año_cierre }}{% endblock %}
+{% block titulo_pagina %}Relación mensual de gastos de {{ mes_cierre }} {{ año_cierre }}{% endblock %}
+{% block titulo_informe %}RELACIÓN MENSUAL DE GASTOS DE {{ mes_cierre }} DE {{ año_cierre }}{% endblock %}
 
 {% block contenido_pdf %}
 <style>
@@ -88,7 +88,6 @@
             <th>Descripción</th>
             <th class="num">Monto Bs.</th>
             <th class="num">Monto USD</th>
-            <th class="num">Monto EUR</th>
         </tr>
     </thead>
     <tbody>
@@ -97,14 +96,12 @@
             <td>{{ gasto.descripcion }}</td>
             <td class="num">{% equiv_a_bs gasto.monto gasto.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_usd gasto.monto gasto.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
-            <td class="num">{% equiv_a_eur gasto.monto gasto.moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="fila-total-informe">
             <td><strong>TOTAL</strong></td>
             <td class="num"><strong>{{ total_gastos_en_bs|default:0|floatformat:2|intcomma }} Bs</strong></td>
             <td class="num"><strong>{{ total_gastos_en_usd|default:0|floatformat:2|intcomma }} USD</strong></td>
-            <td class="num"><strong>{{ total_gastos_en_eur|default:0|floatformat:2|intcomma }} EUR</strong></td>
         </tr>
     </tbody>
 </table>

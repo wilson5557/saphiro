@@ -7224,73 +7224,59 @@ def obtener_inmuebles_propietario(request):
 
     return JsonResponse({'inmuebles': []})
 
+# Listas estáticas de bancos por moneda (para select en caja: mostrar moneda seleccionada primero + resto).
+BANCOS_BS = [
+    ('100% BANCO', '100% BANCO'),
+    ('BANCAMIGA', 'BANCAMIGA'),
+    ('BANCO ACTIVO', 'BANCO ACTIVO'),
+    ('BANCO AGRICOLA DE VENEZUELA', 'BANCO AGRICOLA DE VENEZUELA'),
+    ('BANCO BICENTENARIO', 'BANCO BICENTENARIO'),
+    ('BANCO CARONÍ', 'BANCO CARONÍ'),
+    ('BANCO DE COMERCIO EXTERIOR', 'BANCO DE COMERCIO EXTERIOR'),
+    ('BANCO DE LA FUERZA ARMADA NACIONAL BOLIVARIANA', 'BANCO DE LA FUERZA ARMADA NACIONAL BOLIVARIANA'),
+    ('BANCO DE VENEZUELA', 'BANCO DE VENEZUELA'),
+    ('BANCO DEL CARIBE', 'BANCO DEL CARIBE'),
+    ('BANCO DEL TESORO', 'BANCO DEL TESORO'),
+    ('BANCO EXTERIOR', 'BANCO EXTERIOR'),
+    ('BANCO INTERNACIONAL DE DESARROLLO', 'BANCO INTERNACIONAL DE DESARROLLO'),
+    ('BANCO NACIONAL DE CRÉDITO', 'BANCO NACIONAL DE CRÉDITO'),
+    ('BANCO PLAZA', 'BANCO PLAZA'),
+    ('BANCO PROVINCIAL', 'BANCO PROVINCIAL'),
+    ('BANCO SOFITASA', 'BANCO SOFITASA'),
+    ('BANCRECER', 'BANCRECER'),
+    ('BANESCO', 'BANESCO'),
+    ('BANPLUS', 'BANPLUS'),
+    ('BFC BANCO FONDO COMUN', 'BFC BANCO FONDO COMUN'),
+    ('DEL SUR', 'DEL SUR'),
+    ('MERCANTIL', 'MERCANTIL'),
+    ('VENEZOLANO DE CRÉDITO', 'VENEZOLANO DE CRÉDITO'),
+]
+BANCOS_USD = [
+    ('BANK OF AMERICA', 'BANK OF AMERICA'),
+    ('CITIBANK', 'CITIBANK'),
+    ('PAYPAL', 'PAYPAL'),
+    ('ZELLE', 'ZELLE'),
+    ('CAJA CHICA - FONDO EFECTIVO $', 'CAJA CHICA - FONDO EFECTIVO $'),
+]
+BANCOS_EUR = [
+    ('BBVA', 'BBVA'),
+    ('BANCO SANTANDER', 'BANCO SANTANDER'),
+]
+
+
 @require_http_methods(['GET'])
 def obtener_bancos(request):
-
-    if request.GET.get('tipo_moneda') == "BS":
-
-        bancos = [('100% BANCO','100% BANCO'),
-                  ('BANCAMIGA','BANCAMIGA'),
-                  ('BANCO ACTIVO','BANCO ACTIVO'),
-                  ('BANCO AGRICOLA DE VENEZUELA','BANCO AGRICOLA DE VENEZUELA'),
-                  ('BANCO BICENTENARIO','BANCO BICENTENARIO'),
-                  ('BANCO CARONÍ','BANCO CARONÍ'),
-                  ('BANCO DE COMERCIO EXTERIOR','BANCO DE COMERCIO EXTERIOR'),
-                  ('BANCO DE LA FUERZA ARMADA NACIONAL BOLIVARIANA','BANCO DE LA FUERZA ARMADA NACIONAL BOLIVARIANA'),
-                  ('BANCO DE VENEZUELA','BANCO DE VENEZUELA'),
-                  ('BANCO DEL CARIBE', 'BANCO DEL CARIBE'),
-                  ('BANCO DEL TESORO','BANCO DEL TESORO'),
-                  ('BANCO EXTERIOR','BANCO EXTERIOR'),
-                  ('BANCO INTERNACIONAL DE DESARROLLO','BANCO INTERNACIONAL DE DESARROLLO'),
-                  ('BANCO NACIONAL DE CRÉDITO','BANCO NACIONAL DE CRÉDITO'),
-                  ('BANCO PLAZA','BANCO PLAZA'),
-                  ('BANCO PROVINCIAL','BANCO PROVINCIAL'),
-                  ('BANCO SOFITASA','BANCO SOFITASA'),
-                  ('BANCRECER','BANCRECER'),
-                  ('BANESCO','BANESCO'),
-                  ('BANPLUS','BANPLUS'),
-                  ('BFC BANCO FONDO COMUN','BFC BANCO FONDO COMUN'),
-                  ('DEL SUR','DEL SUR'),
-                  ('MERCANTIL','MERCANTIL'),
-                  ('VENEZOLANO DE CRÉDITO','VENEZOLANO DE CRÉDITO')]
-
-        print(len(bancos))
-
-        data = {
-            'bancos': bancos,
-            'cantidad_bancos': len(bancos)
-        }
-
-        return JsonResponse(data)
-
-    elif request.GET.get('tipo_moneda') == "USD":
-        bancos = [('BANK OF AMERICA', 'BANK OF AMERICA'),
-                  ('CITIBANK', 'CITIBANK'),
-                  ('PAYPAL', 'PAYPAL'),
-                  ('ZELLE', 'ZELLE'),
-                  ('CAJA CHICA - FONDO EFECTIVO $', 'CAJA CHICA - FONDO EFECTIVO $')]
-
-        print(len(bancos))
-
-        data = {
-            'bancos': bancos,
-            'cantidad_bancos': len(bancos)
-        }
-
-        return JsonResponse(data)
-
-    elif request.GET.get('tipo_moneda') == "EUR":
-        bancos = [('BBVA', 'BBVA'),
-                  ('BANCO SANTANDER', 'BANCO SANTANDER')]
-
-        print(len(bancos))
-
-        data = {
-            'bancos': bancos,
-            'cantidad_bancos': len(bancos)
-        }
-
-        return JsonResponse(data)
+    """Devuelve bancos: primero los de la moneda seleccionada, luego el resto (sin importar si el condominio tiene banco en esa moneda)."""
+    tipo_moneda = (request.GET.get('tipo_moneda') or 'BS').strip().upper()
+    if tipo_moneda == 'BS':
+        bancos = BANCOS_BS + BANCOS_USD + BANCOS_EUR
+    elif tipo_moneda == 'USD':
+        bancos = BANCOS_USD + BANCOS_BS + BANCOS_EUR
+    elif tipo_moneda == 'EUR':
+        bancos = BANCOS_EUR + BANCOS_BS + BANCOS_USD
+    else:
+        bancos = BANCOS_BS + BANCOS_USD + BANCOS_EUR
+    return JsonResponse({'bancos': bancos, 'cantidad_bancos': len(bancos)})
 
 def _alicuota_para_display(domicilio):
     """Devuelve la alícuota en formato decimal (0.16 para 16%): guardada o calculada por m²."""

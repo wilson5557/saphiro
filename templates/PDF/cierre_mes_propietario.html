@@ -1,7 +1,7 @@
 {% extends "PDF/base_informe_pdf.html" %}
 {% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
-{% block titulo_pagina %}Cierre del mes - {{ datos_propietario.nombre_propietario }}{% endblock %}
-{% block titulo_informe %}CIERRE DEL MES - PROPIETARIO{% endblock %}
+{% block titulo_pagina %}Movimientos del propietario - {{ datos_propietario.nombre_propietario }}{% endblock %}
+{% block titulo_informe %}MOVIMIENTOS DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
 <p style="margin-top: 10px;"><strong>Propietario:</strong> {{ datos_propietario.nombre_propietario }} &nbsp; {{ datos_propietario.tipo_dni }}-{{ datos_propietario.dni }} &nbsp; {{ datos_propietario.id_usuario.email }}</p>
 {% if datos_domicilio %}

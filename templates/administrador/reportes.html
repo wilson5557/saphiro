@@ -43,14 +43,18 @@
         </button>
       </div>
 
-      <!-- REPORTE DE PROPIETARIOS Y CIERRE DE MES -->
+      <!-- PROPIETARIOS, RELACIÓN MENSUAL DE GASTOS (CONDOMINIO), MOVIMIENTOS DEL PROPIETARIO -->
       <div class="row col-sm-12 mx-auto mt-4 mb-3 center-all div_btn" style="width: 100%;">
         <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reportePropietarios" aria-expanded="false" aria-controls="reportePropietarios">
           Propietarios
         </button>
 
-        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#cierreMes" aria-expanded="false" aria-controls="cierreMes">
-          Cierre de mes
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#relacionMensualGastos" aria-expanded="false" aria-controls="relacionMensualGastos">
+          Relación mensual de gastos
+        </button>
+
+        <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#movimientosPropietario" aria-expanded="false" aria-controls="movimientosPropietario">
+          Movimientos del propietario
         </button>
       </div>
 
@@ -65,10 +69,10 @@
         </button>
       </div>
 
-      <!-- REPORTE POR INMUEBLE -->
+      <!-- RELACIÓN MENSUAL DE GASTOS POR INMUEBLE -->
       <div class="row col-sm-12 mx-auto mt-4 mb-3 center-all div_btn" style="width: 100%;">
         <button class="btn btn-primary col-12 col-sm-12 col-md-12 col-lg-5 btn-option mr-2 ml-2" type="button" data-toggle="collapse" data-target="#reporteInmueble" aria-expanded="false" aria-controls="reporteInmueble">
-          Reporte por inmueble
+          Relación mensual de gastos por inmueble
         </button>
       </div>
 
@@ -372,10 +376,10 @@
         </div>
       </div>
 
-      <!-- REPORTE POR INMUEBLE -->
+      <!-- RELACIÓN MENSUAL DE GASTOS POR INMUEBLE -->
       <div class="collapse" id="reporteInmueble" style="width: 100%;">
         <div class="card card-body">
-          <h4 class="text-center">Reporte por inmueble</h4>
+          <h4 class="text-center">Relación mensual de gastos por inmueble</h4>
           <h6 class="text-center">Indique el rango de fechas y el inmueble.</h6>
           <form method="post" target="_blank">
             {% csrf_token %}
@@ -418,44 +422,24 @@
               </div>
             </div>
             <input type="hidden" name="reporte" value="INMUEBLE">
-            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up mr-2" data-toggle="popover" data-content="Generar reporte del inmueble seleccionado"><i class="fa fa-download pr-1"></i> Generar reporte</button>
-            <button type="submit" name="enviar_correo_inmueble" value="1" formtarget="_self" class="btn btn-primary col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Envía el PDF del reporte por inmueble por correo al propietario del inmueble seleccionado"><i class="fa fa-envelope pr-1"></i> Enviar por correo al propietario</button>
+            <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up mr-2" data-toggle="popover" data-content="Generar relación mensual de gastos del inmueble seleccionado"><i class="fa fa-download pr-1"></i> Generar reporte</button>
+            <button type="submit" name="enviar_correo_inmueble" value="1" formtarget="_self" class="btn btn-primary col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Envía el PDF por correo al propietario del inmueble seleccionado"><i class="fa fa-envelope pr-1"></i> Enviar por correo al propietario</button>
           </form>
         </div>
       </div>
 
-      <!-- CIERRE DE MES -->
-      <div class="collapse" id="cierreMes" style="width: 100%;">
+      <!-- RELACIÓN MENSUAL DE GASTOS (reporte condominio: gastos/ingresos del cierre) -->
+      <div class="collapse" id="relacionMensualGastos" style="width: 100%;">
         <div class="card card-body">
-          <h4 class="text-center">Cierre de Mes</h4>
+          <h4 class="text-center">Relación mensual de gastos</h4>
+          <h6 class="text-center">Genera el reporte del cierre del condominio (gastos e ingresos del período).</h6>
           <form method="post" target="_blank">
             {% csrf_token %}
             {% if cierre %}
             <div class="form-group row mt-4">
-              <label for="cierre" class="col-sm-5 col-form-label text-dark">Indique que tipo de cierre desea ver: </label>
+              <label for="cierre_relacion" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
               <div class="col-sm-5">
-                <select class="form-control" id="cierre" name="cierre">
-                  <option value="CONDOMINIO">Condominio</option>
-                  <option value="PROPIETARIO">Propietario</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group row mt-4 d-none" id="select_prop">
-              <label for="cierre_prop" class="col-sm-5 col-form-label text-dark">Seleccione el propietario: </label>
-              <div class="col-sm-5">
-                <select class="form-control" id="propietario_seleccionado" name="propietario_seleccionado" disabled>
-                  {% for domicilio in propietarios %}
-                  <option value="{{domicilio.id_propietario_id}}">{{domicilio.nombre_domicilio}} - {{domicilio.id_propietario.nombre_propietario}}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group row mt-4">
-              <label for="cierre_condo" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
-              <div class="col-sm-5">
-                <select class="form-control" id="cierre_del_mes" name="cierre_del_mes" required>
+                <select class="form-control" id="cierre_relacion" name="cierre_del_mes" required>
                   <option value="" disabled selected>Seleccione un cierre...</option>
                   {% for id, pdf in cierre %}
                   <option value="{{id}}">{{pdf}}</option>
@@ -463,18 +447,54 @@
                 </select>
               </div>
             </div>
-
-            <input type="hidden" name="reporte" id="reporte" value="CIERRE_MES">
-            <input type="hidden" name="seleccion" id="seleccion" value="" disabled>
-            <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Haz click aquí para generar el reporte del cierre mensual realizado."><i class="fa fa-download pr-1"></i> Generar Cierre de mes</button>
+            <input type="hidden" name="reporte" value="CIERRE_MES">
+            <input type="hidden" name="cierre" value="CONDOMINIO">
+            <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Genera el PDF de relación mensual de gastos del condominio."><i class="fa fa-download pr-1"></i> Generar Relación mensual de gastos</button>
             {% else %}
             <div class="form-group row mt-4">
-              <label for="cierre" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
+              <p class="text-muted">NO SE HA REALIZADO NINGÚN CIERRE</p>
+            </div>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+
+      <!-- MOVIMIENTOS DEL PROPIETARIO (reporte por propietario: deudas y movimientos del cierre) -->
+      <div class="collapse" id="movimientosPropietario" style="width: 100%;">
+        <div class="card card-body">
+          <h4 class="text-center">Movimientos del propietario</h4>
+          <h6 class="text-center">Seleccione el propietario y el cierre para generar el reporte de movimientos y deudas.</h6>
+          <form method="post" target="_blank">
+            {% csrf_token %}
+            {% if cierre %}
+            <div class="form-group row mt-4">
+              <label for="propietario_mov" class="col-sm-5 col-form-label text-dark">Seleccione el propietario: </label>
               <div class="col-sm-5">
-                <select class="form-control" id="cierre" name="cierre" required>
-                  <option value="" disabled>NO SE HA REALIZADO NINGÚN CIERRE</option>
+                <select class="form-control" id="propietario_mov" name="propietario_seleccionado" required>
+                  <option value="" disabled selected>Seleccione un propietario...</option>
+                  {% for domicilio in propietarios %}
+                  <option value="{{ domicilio.id_propietario_id }}">{{ domicilio.nombre_domicilio }} - {{ domicilio.id_propietario.nombre_propietario }}</option>
+                  {% endfor %}
                 </select>
               </div>
+            </div>
+            <div class="form-group row mt-4">
+              <label for="cierre_del_mes_mov" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
+              <div class="col-sm-5">
+                <select class="form-control" id="cierre_del_mes_mov" name="cierre_del_mes" required>
+                  <option value="" disabled selected>Seleccione un cierre...</option>
+                  {% for id, pdf in cierre %}
+                  <option value="{{id}}">{{pdf}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <input type="hidden" name="reporte" value="CIERRE_MES">
+            <input type="hidden" name="cierre" value="PROPIETARIO">
+            <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Genera el PDF de movimientos del propietario."><i class="fa fa-download pr-1"></i> Generar Movimientos del propietario</button>
+            {% else %}
+            <div class="form-group row mt-4">
+              <p class="text-muted">NO SE HA REALIZADO NINGÚN CIERRE</p>
             </div>
             {% endif %}
           </form>
@@ -508,22 +528,5 @@
   }) 
 </script>
 
-<script>
-  $(document).on('change', '#cierre', function () {
-    var tipo_reporte_cierre = document.getElementById('cierre').value
-    if (tipo_reporte_cierre == "CONDOMINIO") {
-      document.getElementById('propietario_seleccionado').disabled = true;
-      document.getElementById('select_prop').classList.add('d-none')
-    } else {
-      document.getElementById('propietario_seleccionado').disabled = false;
-      document.getElementById('select_prop').classList.remove('d-none')
-    }
-  });
-
-  $(document).on('change', '#cierre_del_mes', function () {
-    var cierre = document.getElementById('cierre_del_mes').value
-    document.getElementById('seleccion').value = cierre;
-  });
-</script>
 {% endblock body_block %}
 
