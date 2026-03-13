@@ -69,8 +69,8 @@
           <div class="form-group row d-none" id="deudas_select_wrapper">
             <label class="col-sm-3 col-form-label text-dark">Deudas del propietario:</label>
             <div class="col-sm-8">
-              <div class="d-none" id="solvente_texto">
-                <strong>SOLVENTE</strong>
+              <div id="total_deuda_propietario_wrapper">
+                <strong>Total deuda: <span id="total_deuda_monto">0.00</span> <span id="total_deuda_moneda">BS</span></strong>
               </div>
               <div class="container mt-3 deudas_dom d-none" id="deudas_dom">
                 <div class="row d-none" id="condo">
@@ -211,7 +211,8 @@
       var montoMovimientoInput = document.getElementById("id_monto_movimiento");
       var monedaPagoInput = document.getElementById("moneda_pago");
       var cancelarPagoCajaBtn = document.getElementById("CancelarPagoCaja");
-      var solventeTexto = document.getElementById("solvente_texto");
+      var totalDeudaMontoEl = document.getElementById("total_deuda_monto");
+      var totalDeudaMonedaEl = document.getElementById("total_deuda_moneda");
       var nombreBancoSelect = document.getElementById("nombre_banco");
       var cajaTasasContainer = document.getElementById("caja_tasas_container");
       var conversionTasaTexto = document.getElementById("conversion_tasa_texto");
@@ -258,8 +259,23 @@
         }
       }
 
-      if (!tipoDeudaSelect || !propSeleccionado || !propietarioSelect || !deudasWrapper || !deudasDom || !deudaCondominio || !deudaCuota || !condoRow || !cuotaRow || !monedaSelect || !totalFila || !totalMonedaLabel || !totalMontoLabel || !opcionesBtn || !pagarBtn || !propietarioPagoInput || !pagoDeudasForm || !montoMovimientoInput || !monedaPagoInput || !solventeTexto) {
+      if (!tipoDeudaSelect || !propSeleccionado || !propietarioSelect || !deudasWrapper || !deudasDom || !deudaCondominio || !deudaCuota || !condoRow || !cuotaRow || !monedaSelect || !totalFila || !totalMonedaLabel || !totalMontoLabel || !opcionesBtn || !pagarBtn || !propietarioPagoInput || !pagoDeudasForm || !montoMovimientoInput || !monedaPagoInput || !totalDeudaMontoEl || !totalDeudaMonedaEl) {
         return;
+      }
+
+      function convertirAMoneda(monto, monedaOrigen, monedaDestino) {
+        var n = parseFloat(monto) || 0;
+        if (n === 0) return 0;
+        var tasas = getTasas();
+        var orig = (monedaOrigen || "BS").toUpperCase();
+        var dest = (monedaDestino || "BS").toUpperCase();
+        var enBs = n;
+        if (orig === "USD" && tasas.tasa_bs > 0) enBs = n * tasas.tasa_bs;
+        else if (orig === "EUR" && tasas.tasa_euro > 0) enBs = n * tasas.tasa_euro;
+        if (dest === "BS") return enBs;
+        if (dest === "USD" && tasas.tasa_bs > 0) return enBs / tasas.tasa_bs;
+        if (dest === "EUR" && tasas.tasa_euro > 0) return enBs / tasas.tasa_euro;
+        return enBs;
       }
 
       function llenarBancosPorMoneda(moneda) {
@@ -330,6 +346,11 @@
         }
       }
 
+      function actualizarTotalDeudaPropietario(totalEnMoneda, moneda) {
+        if (totalDeudaMontoEl) totalDeudaMontoEl.textContent = formatMonto(totalEnMoneda);
+        if (totalDeudaMonedaEl) totalDeudaMonedaEl.textContent = (moneda || "BS").toUpperCase();
+      }
+
       function resetDeudasDom() {
         deudaCondominio.innerHTML = '<li class="list-group-item"><strong>Condominio</strong></li>';
         deudaCuota.innerHTML = '<li class="list-group-item"><strong>Cuotas extras</strong></li>';
@@ -338,11 +359,11 @@
         deudasDom.classList.add("d-none");
         totalFila.classList.add("d-none");
         pagoDeudasForm.classList.add("d-none");
-        solventeTexto.classList.add("d-none");
         opcionesBtn.classList.add("d-none");
         totalMonedaLabel.textContent = (monedaSelect.value || "BS").toUpperCase();
         totalMontoLabel.textContent = "0.00";
         actualizarEquivalenteBs(monedaSelect.value || "BS", 0);
+        actualizarTotalDeudaPropietario(0, monedaSelect.value || "BS");
       }
 
       tipoDeudaSelect.addEventListener("change", function () {
@@ -374,34 +395,31 @@
             var deudas = (data && data.deudas) ? data.deudas : [];
             var hayCondo = false;
             var hayCuota = false;
+            var monedaSeleccionada = (monedaSelect.value || "").toUpperCase();
             resetDeudasDom();
-            solventeTexto.classList.add("d-none");
 
-            if (deudas.length === 0) {
-              deudasWrapper.classList.remove("d-none");
-              solventeTexto.classList.remove("d-none");
-              return;
+            var totalEnMoneda = 0;
+            for (var k = 0; k < deudas.length; k++) {
+              totalEnMoneda += convertirAMoneda(deudas[k].monto_deuda || 0, deudas[k].tipo_moneda || "BS", monedaSeleccionada);
             }
+            actualizarTotalDeudaPropietario(totalEnMoneda, monedaSeleccionada);
+            deudasWrapper.classList.remove("d-none");
 
             if (deudas.length > 0) {
               for (var i = 0; i < deudas.length; i++) {
                 var deuda = deudas[i];
-                var monto = deuda.monto_deuda || 0;
-                var moneda = deuda.tipo_moneda || '';
+                var montoOrig = parseFloat(deuda.monto_deuda) || 0;
+                var moneda = (deuda.tipo_moneda || "BS").toString().toUpperCase();
+                var montoConvertido = convertirAMoneda(montoOrig, moneda, monedaSeleccionada);
                 var concepto = deuda.concepto_deuda || 'Sin concepto';
                 var categoria = deuda.categoria_deuda || '';
-                var monedaSeleccionada = (monedaSelect.value || "").toUpperCase();
-
-                if (String(moneda).toUpperCase() !== monedaSeleccionada) {
-                  continue;
-                }
 
                 var itemHtml = '<li class="list-group-item d-flex" style="justify-content: space-between;">' +
                   concepto +
                   '<div class="d-flex">' +
-                  '<div class="monto_cuota" data-base-monto="' + monto + '" data-base-moneda="' + moneda + '">' + monto + '</div>' +
-                  '<div class="tipo_moneda_cuota ml-1">' + moneda + '</div>' +
-                  '<input type="checkbox" class="seleccion_cuota ml-3 checkbox" value="' + deuda.id_deuda + '" data-monto="' + monto + '" data-moneda="' + moneda + '" data-id-deuda="' + deuda.id_deuda + '" name="montos_deudas" form="PagoDeudasForm">' +
+                  '<div class="monto_cuota" data-base-monto="' + montoOrig + '" data-base-moneda="' + moneda + '">' + formatMonto(montoConvertido) + '</div>' +
+                  '<div class="tipo_moneda_cuota ml-1">' + monedaSeleccionada + '</div>' +
+                  '<input type="checkbox" class="seleccion_cuota ml-3 checkbox" value="' + deuda.id_deuda + '" data-monto="' + montoConvertido + '" data-moneda="' + monedaSeleccionada + '" data-id-deuda="' + deuda.id_deuda + '" name="montos_deudas" form="PagoDeudasForm">' +
                   '</div>' +
                   '</li>';
 
@@ -415,7 +433,6 @@
               }
             }
 
-            deudasWrapper.classList.remove("d-none");
             if (hayCondo) {
               condoRow.classList.remove("d-none");
             }
@@ -426,15 +443,12 @@
               deudasDom.classList.remove("d-none");
               opcionesBtn.classList.remove("d-none");
             }
-            if (!hayCondo && !hayCuota) {
-              deudasWrapper.classList.remove("d-none");
-              solventeTexto.classList.remove("d-none");
-            }
             updateSelectedTotals();
           })
           .catch(function () {
             resetDeudasDom();
             deudasWrapper.classList.remove("d-none");
+            actualizarTotalDeudaPropietario(0, monedaSelect.value || "BS");
             deudaCuota.insertAdjacentHTML('beforeend', '<li class="list-group-item">Error al obtener deudas</li>');
             cuotaRow.classList.remove("d-none");
             deudasDom.classList.remove("d-none");
