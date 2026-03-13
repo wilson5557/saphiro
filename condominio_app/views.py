@@ -30,7 +30,7 @@ from django.db.models.functions import ExtractYear, ExtractMonth
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from datetime import date, datetime, timedelta, time
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import re
 from random import randint, seed
 from faker import Faker
@@ -2182,14 +2182,16 @@ def admin_deudas_caja(request):
                 total_esperado += _convertir_a_moneda(
                     d.monto_deuda, d.tipo_moneda, moneda_pago, tasa_bs, tasa_euro
                 )
-            total_esperado = total_esperado.quantize(Decimal('0.01'))
+            # Redondear igual que el frontend (Math.round mitad arriba) para que coincidan
+            total_esperado = total_esperado.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
             monto_movimiento = Decimal(request.POST.get('monto_movimiento', '0'))
             if monto_movimiento <= 0:
                 messages.warning(request, 'El monto debe ser mayor a 0.', extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
 
-            if abs(monto_movimiento.quantize(Decimal('0.01')) - total_esperado) > Decimal('0.02'):
+            # Tolerancia 0.05 por posibles diferencias de redondeo entre frontend y backend
+            if abs(monto_movimiento.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) - total_esperado) > Decimal('0.05'):
                 messages.warning(
                     request,
                     'El monto enviado no coincide con la suma de las deudas seleccionadas (convertidas a la moneda de pago).',
