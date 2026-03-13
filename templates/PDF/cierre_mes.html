@@ -9,12 +9,12 @@
 
 {% block contenido_pdf %}
 <style>
-    /* Tablas INGRESOS y GASTOS: Descripción + Monto Bs. + Monto USD + Monto EUR */
+    /* Tablas INGRESOS y GASTOS: márgenes y columnas alineadas */
     .tabla-cierre-desc-monto { table-layout: fixed; width: 100%; }
     .tabla-cierre-desc-monto thead th:first-child,
-    .tabla-cierre-desc-monto tbody td:first-child { width: 40%; word-wrap: break-word; }
+    .tabla-cierre-desc-monto tbody td:first-child { width: 58%; word-wrap: break-word; padding: 6px 10px; text-align: left; }
     .tabla-cierre-desc-monto thead th.num,
-    .tabla-cierre-desc-monto tbody td.num { width: 18%; }
+    .tabla-cierre-desc-monto tbody td.num { width: 21%; padding: 6px 10px; text-align: right; }
 </style>
 <table class="table-informe" style="margin-top: 10px;">
     <thead>

@@ -4500,12 +4500,26 @@ def admin_reportes(request):
                     return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
 
         elif request.POST['reporte'] == 'INMUEBLE':
-            if request.POST['fecha_inicio_inm'] > request.POST['fecha_fin_inm']:
-                messages.warning(request, 'La fecha inicial no puede ser mayor a la fecha final.',
-                             extra_tags='alert-danger')
+            cierre_id = request.POST.get('cierre_del_mes')
+            if not cierre_id:
+                messages.warning(request, 'Debe seleccionar un cierre.', extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
-            inicio_inm = request.POST['fecha_inicio_inm']
-            fin_inm = request.POST['fecha_fin_inm']
+            cierre_obj = Cierre_mes.objects.filter(
+                id_cierre=cierre_id,
+                id_condominio_id=user.id_condominio_id
+            ).first()
+            if not cierre_obj:
+                messages.warning(request, 'No se encontró el cierre seleccionado.', extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+            cierre_anterior = Cierre_mes.objects.filter(
+                id_cierre__lt=cierre_obj.id_cierre,
+                id_condominio_id=user.id_condominio_id
+            ).order_by('-fecha_cierre').first()
+            if cierre_anterior:
+                inicio_inm = cierre_anterior.fecha_cierre.strftime('%Y-%m-%d')
+            else:
+                inicio_inm = cierre_obj.fecha_cierre.replace(day=1).strftime('%Y-%m-%d')
+            fin_inm = cierre_obj.fecha_cierre.strftime('%Y-%m-%d')
             domicilio_id = request.POST.get('inmueble_select')
             formato_inm = (request.POST.get('formato') or 'PDF').upper()
             if not domicilio_id:
@@ -4864,12 +4878,17 @@ def admin_reportes(request):
                     return response
             
             else:
-
-                cierre = Cierre_mes.objects.get(id_cierre=request.POST['cierre_del_mes'])
+                # Movimientos del propietario: no depende de elegir un cierre; se usa el último cierre del condominio
                 prop = Propietario.objects.get(id_propietario=request.POST['propietario_seleccionado'])
-
+                cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('-fecha_cierre').first()
+                if not cierre:
+                    messages.warning(
+                        request,
+                        'No hay ningún cierre registrado. Debe realizar al menos un cierre para generar Movimientos del propietario.',
+                        extra_tags='alert-danger',
+                    )
+                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
                 pdf = cierre_propietario(request, prop, cierre, user)
-
                 return pdf
 
     else:
@@ -5906,7 +5925,7 @@ def cierre_propietario(request, prop, cierre, user):
         data['pendiente_en_usd'] = data['total_en_usd']
         data['pendiente_en_eur'] = data['total_en_eur']
 
-        nombre_pdf = "cierre_mes_{}_{}.pdf".format(prop.nombre_propietario, cierre.fecha_cierre.strftime("%d-%m-%Y %H.%M.%S"))
+        nombre_pdf = "movimientos_propietario_{}_{}.pdf".format(prop.nombre_propietario.replace(' ', '_'), cierre.fecha_cierre.strftime("%d-%m-%Y_%H.%M.%S"))
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="' + nombre_pdf + '"'
@@ -5962,7 +5981,7 @@ def cierre_propietario(request, prop, cierre, user):
         nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
         data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
 
-        nombre_pdf = "cierre_mes_{}_{}.pdf".format(prop.nombre_propietario, cierre.fecha_cierre.strftime("%d-%m-%Y %H.%M.%S"))
+        nombre_pdf = "movimientos_propietario_{}_{}.pdf".format(prop.nombre_propietario.replace(' ', '_'), cierre.fecha_cierre.strftime("%d-%m-%Y_%H.%M.%S"))
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="' + nombre_pdf + '"'

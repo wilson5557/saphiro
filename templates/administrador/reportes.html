@@ -380,19 +380,19 @@
       <div class="collapse" id="reporteInmueble" style="width: 100%;">
         <div class="card card-body">
           <h4 class="text-center">Relación mensual de gastos por inmueble</h4>
-          <h6 class="text-center">Indique el rango de fechas y el inmueble.</h6>
+          <h6 class="text-center">Indique el cierre y el inmueble (este reporte depende del cierre de mes).</h6>
           <form method="post" target="_blank">
             {% csrf_token %}
+            {% if cierre %}
             <div class="form-group row mt-4">
-              <label for="fecha_inicio_inm" class="col-sm-3 col-form-label text-dark">Fecha de inicio: </label>
+              <label for="cierre_inmueble" class="col-sm-3 col-form-label text-dark">Indique el cierre que desea ver: </label>
               <div class="col-sm-5">
-                <input type="date" class="form-control text-dark" id="fecha_inicio_inm" name="fecha_inicio_inm" required>
-              </div>
-            </div>
-            <div class="form-group row mt-4">
-              <label for="fecha_fin_inm" class="col-sm-3 col-form-label text-dark">Fecha final: </label>
-              <div class="col-sm-5">
-                <input type="date" class="form-control text-dark" id="fecha_fin_inm" name="fecha_fin_inm" required>
+                <select class="form-control text-dark" id="cierre_inmueble" name="cierre_del_mes" required>
+                  <option value="" disabled selected>Seleccione un cierre...</option>
+                  {% for id, pdf in cierre %}
+                  <option value="{{ id }}">{{ pdf }}</option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
             <div class="form-group row">
@@ -424,6 +424,11 @@
             <input type="hidden" name="reporte" value="INMUEBLE">
             <button type="submit" class="btn btn-success col-sm-4 mt-3 move-up mr-2" data-toggle="popover" data-content="Generar relación mensual de gastos del inmueble seleccionado"><i class="fa fa-download pr-1"></i> Generar reporte</button>
             <button type="submit" name="enviar_correo_inmueble" value="1" formtarget="_self" class="btn btn-primary col-sm-4 mt-3 move-up" data-toggle="popover" data-content="Envía el PDF por correo al propietario del inmueble seleccionado"><i class="fa fa-envelope pr-1"></i> Enviar por correo al propietario</button>
+            {% else %}
+            <div class="form-group row mt-4">
+              <p class="text-muted">NO SE HA REALIZADO NINGÚN CIERRE. Debe realizar al menos un cierre para generar este reporte.</p>
+            </div>
+            {% endif %}
           </form>
         </div>
       </div>
@@ -442,7 +447,7 @@
                 <select class="form-control" id="cierre_relacion" name="cierre_del_mes" required>
                   <option value="" disabled selected>Seleccione un cierre...</option>
                   {% for id, pdf in cierre %}
-                  <option value="{{id}}">{{pdf}}</option>
+                  <option value="{{ id }}">{{ pdf }}</option>
                   {% endfor %}
                 </select>
               </div>
@@ -459,32 +464,20 @@
         </div>
       </div>
 
-      <!-- MOVIMIENTOS DEL PROPIETARIO (reporte por propietario: deudas y movimientos del cierre) -->
+      <!-- MOVIMIENTOS DEL PROPIETARIO (reporte por propietario: deudas y movimientos; no depende del cierre) -->
       <div class="collapse" id="movimientosPropietario" style="width: 100%;">
         <div class="card card-body">
           <h4 class="text-center">Movimientos del propietario</h4>
-          <h6 class="text-center">Seleccione el propietario y el cierre para generar el reporte de movimientos y deudas.</h6>
+          <h6 class="text-center">Seleccione el propietario para generar el reporte de movimientos y deudas (no depende del cierre).</h6>
           <form method="post" target="_blank">
             {% csrf_token %}
-            {% if cierre %}
             <div class="form-group row mt-4">
               <label for="propietario_mov" class="col-sm-5 col-form-label text-dark">Seleccione el propietario: </label>
               <div class="col-sm-5">
                 <select class="form-control" id="propietario_mov" name="propietario_seleccionado" required>
                   <option value="" disabled selected>Seleccione un propietario...</option>
-                  {% for domicilio in propietarios %}
-                  <option value="{{ domicilio.id_propietario_id }}">{{ domicilio.nombre_domicilio }} - {{ domicilio.id_propietario.nombre_propietario }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-            <div class="form-group row mt-4">
-              <label for="cierre_del_mes_mov" class="col-sm-5 col-form-label text-dark">Indique el cierre que desea ver: </label>
-              <div class="col-sm-5">
-                <select class="form-control" id="cierre_del_mes_mov" name="cierre_del_mes" required>
-                  <option value="" disabled selected>Seleccione un cierre...</option>
-                  {% for id, pdf in cierre %}
-                  <option value="{{id}}">{{pdf}}</option>
+                  {% for p in propietarios_select %}
+                  <option value="{{ p.id_propietario }}">{{ p.nombre_propietario }}</option>
                   {% endfor %}
                 </select>
               </div>
@@ -492,11 +485,6 @@
             <input type="hidden" name="reporte" value="CIERRE_MES">
             <input type="hidden" name="cierre" value="PROPIETARIO">
             <button type="submit" class="btn btn-success col-sm-12 mt-3 move-up" data-toggle="popover" data-content="Genera el PDF de movimientos del propietario."><i class="fa fa-download pr-1"></i> Generar Movimientos del propietario</button>
-            {% else %}
-            <div class="form-group row mt-4">
-              <p class="text-muted">NO SE HA REALIZADO NINGÚN CIERRE</p>
-            </div>
-            {% endif %}
           </form>
         </div>
       </div>
