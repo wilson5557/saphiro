@@ -4878,16 +4878,15 @@ def admin_reportes(request):
                     return response
             
             else:
-                # Movimientos del propietario: no depende de elegir un cierre; se usa el último cierre del condominio
+                # Movimientos del propietario: no depende del cierre; si no hay cierre se usa la fecha actual para el período
                 prop = Propietario.objects.get(id_propietario=request.POST['propietario_seleccionado'])
                 cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('-fecha_cierre').first()
                 if not cierre:
-                    messages.warning(
-                        request,
-                        'No hay ningún cierre registrado. Debe realizar al menos un cierre para generar Movimientos del propietario.',
-                        extra_tags='alert-danger',
-                    )
-                    return HttpResponseRedirect(reverse('condominio_app:admin_reportes'))
+                    class PseudoCierre:
+                        pass
+                    cierre = PseudoCierre()
+                    cierre.id_cierre = 0
+                    cierre.fecha_cierre = timezone.now()
                 pdf = cierre_propietario(request, prop, cierre, user)
                 return pdf
 
