@@ -2182,7 +2182,6 @@ def admin_deudas_caja(request):
                 total_esperado += _convertir_a_moneda(
                     d.monto_deuda, d.tipo_moneda, moneda_pago, tasa_bs, tasa_euro
                 )
-            # Redondear igual que el frontend (Math.round mitad arriba) para que coincidan
             total_esperado = total_esperado.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
             monto_movimiento = Decimal(request.POST.get('monto_movimiento', '0'))
@@ -2190,8 +2189,11 @@ def admin_deudas_caja(request):
                 messages.warning(request, 'El monto debe ser mayor a 0.', extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
 
-            # Tolerancia 0.05 por posibles diferencias de redondeo entre frontend y backend
-            if abs(monto_movimiento.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) - total_esperado) > Decimal('0.05'):
+            # El frontend ya envía el total convertido a la moneda de pago; tolerancia generosa
+            # (1% del total o 5 unidades) para no bloquear por diferencias de redondeo
+            diferencia = abs(monto_movimiento - total_esperado)
+            tolerancia = max(Decimal('5.00'), total_esperado * Decimal('0.01'))
+            if diferencia > tolerancia:
                 messages.warning(
                     request,
                     'El monto enviado no coincide con la suma de las deudas seleccionadas (convertidas a la moneda de pago).',
