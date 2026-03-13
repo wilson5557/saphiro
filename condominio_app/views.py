@@ -2141,33 +2141,58 @@ def admin_deudas_caja(request):
                 messages.warning(request, 'Debe seleccionar al menos una deuda.', extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
 
+            # Aceptar deudas en cualquier moneda; el monto enviado viene convertido a la moneda de pago
+            # No filtrar por tipo_moneda ni tipo_deuda: se aceptan todas las deudas activas del propietario
             deudas_qs = Deudas.objects.filter(
                 id_deuda__in=deudas_ids,
                 is_active=True,
-                tipo_deuda=Deudas.TipoDeuda.PROPIETARIO,
-                tipo_moneda=moneda_pago,
                 id_domicilio__id_propietario_id=propietario_id,
                 id_domicilio__id_condominio_id=user.id_condominio_id,
             ).select_related('id_domicilio')
 
-            if deudas_qs.count() != len(deudas_ids):
+            ids_encontrados = set(deudas_qs.values_list('id_deuda', flat=True))
+            ids_solicitados = set(int(x) for x in deudas_ids if str(x).isdigit())
+            if ids_encontrados != ids_solicitados:
                 messages.warning(
                     request,
-                    'Las deudas seleccionadas no son validas para el propietario o moneda indicada.',
+                    'Las deudas seleccionadas no son válidas para el propietario indicado.',
                     extra_tags='alert-danger',
                 )
                 return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
 
-            total_deuda = deudas_qs.aggregate(total=Sum('monto_deuda'))['total'] or Decimal('0')
+            def _convertir_a_moneda(monto, moneda_origen, moneda_destino, t_bs, t_eur):
+                m = Decimal(str(monto or 0))
+                if m == 0:
+                    return m
+                orig = (str(moneda_origen or 'BS')).strip().upper()
+                dest = (str(moneda_destino or 'BS')).strip().upper()
+                t_bs_d = Decimal(str(t_bs or 1))
+                t_eur_d = Decimal(str(t_eur or 1))
+                en_bs = m if orig == 'BS' else (m * t_bs_d if orig == 'USD' else m * t_eur_d)
+                if dest == 'BS':
+                    return en_bs
+                if dest == 'USD' and t_bs_d > 0:
+                    return en_bs / t_bs_d
+                if dest == 'EUR' and t_eur_d > 0:
+                    return en_bs / t_eur_d
+                return en_bs
+
+            total_esperado = Decimal('0')
+            for d in deudas_qs:
+                total_esperado += _convertir_a_moneda(
+                    d.monto_deuda, d.tipo_moneda, moneda_pago, tasa_bs, tasa_euro
+                )
+            total_esperado = total_esperado.quantize(Decimal('0.01'))
+
             monto_movimiento = Decimal(request.POST.get('monto_movimiento', '0'))
             if monto_movimiento <= 0:
                 messages.warning(request, 'El monto debe ser mayor a 0.', extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
 
-            if monto_movimiento.quantize(Decimal('0.01')) != total_deuda.quantize(Decimal('0.01')):
+            if abs(monto_movimiento.quantize(Decimal('0.01')) - total_esperado) > Decimal('0.02'):
                 messages.warning(
                     request,
-                    'El monto enviado no coincide con la suma de las deudas seleccionadas.',
+                    'El monto enviado no coincide con la suma de las deudas seleccionadas (convertidas a la moneda de pago).',
                     extra_tags='alert-danger',
                 )
                 return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
