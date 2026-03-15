@@ -5343,6 +5343,7 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         return None
 
 
+@login_required
 def admin_cierres(request):
     user = request.user
     # Si el usuario no es un administrador entonces se le redirigirá a la página de propietarios
