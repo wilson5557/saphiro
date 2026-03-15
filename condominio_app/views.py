@@ -4013,8 +4013,10 @@ def admin_reportes(request):
                 elif formato == 'EXCEL':
                     output = io.StringIO()
                     writer = csv.writer(output)
-                    writer.writerow(['Fecha', 'Referencia', 'Descripción', 'Monto', 'Moneda', 'Banco', 'Propietario'])
-                    for ingreso in data['ingresos']:
+                    writer.writerow(['Fecha', 'Referencia', 'Descripción', 'Monto', 'Moneda', 'Banco', 'Apartamento'])
+                    for item in data.get('ingresos_datos', []):
+                        ingreso = item['ingreso']
+                        apartamento = item.get('apartamento', '-')
                         moneda = 'BS'
                         for b in data['bancos']:
                             if ingreso.id_movimiento.id_banco_id == b.id_banco:
@@ -4028,7 +4030,7 @@ def admin_reportes(request):
                             ingreso.id_movimiento.monto_movimiento,
                             moneda,
                             ingreso.id_movimiento.id_banco.nombre_banco if ingreso.id_movimiento.id_banco else '',
-                            (ingreso.id_propietario.nombre_propietario if getattr(ingreso, 'id_propietario', None) else '') or '',
+                            apartamento,
                         ])
                     response = HttpResponse(output.getvalue(), content_type='text/csv')
                     response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.csv"'.format(inicio, fin)
@@ -4036,16 +4038,18 @@ def admin_reportes(request):
                 elif formato == 'TXT':
                     lines = ['Reporte de ingresos', 'Fecha inicio: {}'.format(inicio), 'Fecha fin: {}'.format(fin),
                              'Total BS: {} | Total USD: {} | Total EUR: {}'.format(total_bs, total_usd, total_eur), '']
-                    for ingreso in data['ingresos']:
+                    for item in data.get('ingresos_datos', []):
+                        ingreso = item['ingreso']
+                        apartamento = item.get('apartamento', '-')
                         moneda = 'BS'
                         for b in data['bancos']:
                             if ingreso.id_movimiento.id_banco_id == b.id_banco:
                                 moneda = b.tipo_moneda
                                 break
                         _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
-                        lines.append('{} | {} | {} | {} | {}'.format(
+                        lines.append('{} | {} | {} | {} | {} | {}'.format(
                             ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-',
-                            _desc, ingreso.id_movimiento.monto_movimiento, moneda))
+                            _desc, ingreso.id_movimiento.monto_movimiento, moneda, apartamento))
                     response = HttpResponse('\n'.join(lines), content_type='text/plain')
                     response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.txt"'.format(inicio, fin)
                     return response
