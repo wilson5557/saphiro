@@ -1220,8 +1220,10 @@ def reporte_movimientos_propietario_vista_previa(request):
         'año_cierre': cierre.fecha_cierre.strftime("%Y"),
         'datos_propietario': propietario,
         'datos_condominio': Condominio.objects.get(id_condominio=condominio_id),
-        'datos_domicilio': Domicilio.objects.filter(id_propietario_id=propietario.id_propietario),
     }
+    datos_domicilio = Domicilio.objects.filter(id_propietario_id=propietario.id_propietario).select_related('id_torre')
+    data['datos_domicilio'] = datos_domicilio
+    data['domicilios_con_alicuota'] = [(d, _alicuota_para_display(d)) for d in datos_domicilio]
     movimientos_ids = Ingresos.objects.filter(id_propietario_id=propietario.id_propietario).values_list('id_movimiento_id', flat=True)
     if cierre_anterior:
         data['movimientos'] = Movimientos_bancarios.objects.filter(
@@ -6097,7 +6099,9 @@ def cierre_propietario(request, prop, cierre, user):
         ).select_related('id_domicilio')
         data['datos_propietario'] = prop
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
-        data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
+        datos_dom = Domicilio.objects.filter(id_propietario_id=prop.id_propietario).select_related('id_torre')
+        data['datos_domicilio'] = datos_dom
+        data['domicilios_con_alicuota'] = [(d, _alicuota_para_display(d)) for d in datos_dom]
         todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
         nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
         data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
@@ -6164,7 +6168,9 @@ def cierre_propietario(request, prop, cierre, user):
         data['pendiente_en_usd'] = data['total_en_usd']
         data['pendiente_en_eur'] = data['total_en_eur']
         data['datos_condominio'] = Condominio.objects.get(id_condominio=request.user.id_condominio_id)
-        data['datos_domicilio'] = Domicilio.objects.filter(id_propietario_id=prop.id_propietario)
+        datos_dom = Domicilio.objects.filter(id_propietario_id=prop.id_propietario).select_related('id_torre')
+        data['datos_domicilio'] = datos_dom
+        data['domicilios_con_alicuota'] = [(d, _alicuota_para_display(d)) for d in datos_dom]
         todos_bancos = Bancos.objects.filter(id_condominio_id=request.user.id_condominio_id)
         nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
         data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]

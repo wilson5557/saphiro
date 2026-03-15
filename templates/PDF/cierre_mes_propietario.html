@@ -4,10 +4,14 @@
 {% block titulo_informe %}MOVIMIENTOS DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
 <div class="encabezado-sombreado">
+    {% if domicilios_con_alicuota %}
+    {% for dom, alic in domicilios_con_alicuota %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmueble:</strong> {{ dom.nombre_domicilio }}{% if dom.id_torre %} ({{ dom.id_torre.nombre_torre }}){% endif %} &nbsp; <strong>Tipo:</strong> {{ dom.tipo_domicilio|default:"—" }} &nbsp; m²: {{ dom.size_domicilio|default:"—" }} &nbsp; <strong>Alicuota:</strong> {% if alic is not None %}{{ alic|floatformat:4 }}{% else %}—{% endif %}</p>
+    {% endfor %}
+    {% else %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmuebles:</strong> {% if datos_domicilio %}{% for domicilio in datos_domicilio %}{{ domicilio.nombre_domicilio }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}—{% endif %}</p>
+    {% endif %}
     <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Propietario:</strong> {{ datos_propietario.nombre_propietario }} &nbsp; <strong>Cédula:</strong> {{ datos_propietario.tipo_dni|default:"" }}-{{ datos_propietario.dni|default:"—" }} &nbsp; <strong>Correo:</strong> {% if datos_propietario.id_usuario %}{{ datos_propietario.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if datos_propietario.telefono_movil %}{{ datos_propietario.codigo_tlf_movil|default:"" }}{{ datos_propietario.telefono_movil }}{% elif datos_propietario.telefono_hab %}{{ datos_propietario.codigo_tlf_hab|default:"" }}{{ datos_propietario.telefono_hab }}{% else %}—{% endif %}</p>
-    {% if datos_domicilio %}
-    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmuebles:</strong> {% for domicilio in datos_domicilio %}{{ domicilio.nombre_domicilio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
-    {% else %}<p style="margin: 0 0 5px 0; font-size: 11px;" class="text-danger"><strong>No posee inmuebles</strong></p>{% endif %}
     <p style="margin: 0; font-size: 11px;"><strong>Período:</strong> {{ mes_cierre }} {{ año_cierre }}</p>
 </div>
 <p style="font-size: 11px; font-weight: bold; margin-top: 15px;">MOVIMIENTOS REALIZADOS — {{ mes_cierre }} {{ año_cierre }}</p>

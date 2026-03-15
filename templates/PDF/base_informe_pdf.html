@@ -16,6 +16,7 @@
         .cabecera-der { width: 45%; text-align: right; }
         .cabecera-izq .entidad { font-weight: bold; margin-bottom: 6px; }
         .cabecera-izq .cuentas { font-size: 10px; line-height: 1.5; }
+        .cabecera-izq .tasas-cierre { font-size: 9px; line-height: 1.3; margin-top: 4px; color: #333; }
         .cabecera-der .titulo-informe { font-weight: bold; font-size: 12px; }
         .cabecera-der .fecha-generado { font-size: 9px; font-weight: normal; }
         .cabecera-der .titulo-fecha-linea { font-weight: bold; font-size: 11px; word-wrap: break-word; max-width: 100%; }
@@ -56,8 +57,8 @@
         .pie-avisos { margin-top: 12px; text-align: center; font-size: 10px; line-height: 1.6; }
         .mt-3 { margin-top: 1rem; }
         .mt-5 { margin-top: 2rem; }
-        /* Encabezado sombreado: bloque de datos de inmueble/propietario/período */
-        .encabezado-sombreado { margin-top: 10px; margin-bottom: 12px; padding: 10px 12px; background-color: #e8f4f8; border: 1px solid #b8d4e0; }
+        /* Encabezado: bloque de datos de inmueble/propietario/período (sin fondo) */
+        .encabezado-sombreado { margin-top: 10px; margin-bottom: 12px; padding: 10px 12px; }
     </style>
     {% block extra_css_pdf %}{% endblock %}
 </head>
@@ -74,6 +75,9 @@
                 <div class="cuentas">{% for b in bancos_cabecera %}<div>{{ b.nombre_banco }} {{ b.nro_cuenta_formateado }}</div>{% endfor %}</div>
                 {% elif bancos %}
                 <div class="cuentas">{% for b in bancos %}<div>{{ b.nombre_banco }} {{ b.nro_cuenta }}</div>{% endfor %}</div>
+                {% endif %}
+                {% if tasa_bs or tasa_euro %}
+                <div class="tasas-cierre">Tasa de cierre ({{ fecha_generado|date:"d/m/Y" }}): 1 USD = {{ tasa_bs|default:0|floatformat:2 }} Bs &nbsp; 1 EUR = {{ tasa_euro|default:0|floatformat:2 }} Bs</div>
                 {% endif %}
             </td>
             <td class="cabecera-der">
