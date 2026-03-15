@@ -3944,8 +3944,18 @@ def admin_reportes(request):
                                     partes.append(nombre.strip())
                         apartamento = ', '.join(partes) if partes else '-'
                     else:
-                        # Otros ingresos: mantener lo que ya se mostraba (ej. id_propietario_id si existe)
-                        apartamento = str(ingreso.id_propietario_id) if getattr(ingreso, 'id_propietario_id', None) else '-'
+                        # Otros ingresos: mostrar nombre(s) del inmueble del propietario (igual que en Caja)
+                        prop_id = getattr(ingreso, 'id_propietario_id', None)
+                        if prop_id:
+                            domicilios = Domicilio.objects.filter(id_propietario_id=prop_id).select_related('id_torre')
+                            partes = []
+                            for d in domicilios:
+                                nombre = (d.nombre_domicilio or '') + (' (' + d.id_torre.nombre_torre + ')' if getattr(d, 'id_torre', None) and d.id_torre else '')
+                                if (nombre or '').strip():
+                                    partes.append(nombre.strip())
+                            apartamento = ', '.join(partes) if partes else '-'
+                        else:
+                            apartamento = '-'
                     ingresos_datos.append({'ingreso': ingreso, 'apartamento': apartamento})
                 data['ingresos_datos'] = ingresos_datos
                 data['bancos'] = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
