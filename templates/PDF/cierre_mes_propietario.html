@@ -3,10 +3,13 @@
 {% block titulo_pagina %}Movimientos del propietario - {{ datos_propietario.nombre_propietario }}{% endblock %}
 {% block titulo_informe %}MOVIMIENTOS DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
-<p style="margin-top: 10px;"><strong>Propietario:</strong> {{ datos_propietario.nombre_propietario }} &nbsp; {{ datos_propietario.tipo_dni }}-{{ datos_propietario.dni }} &nbsp; {{ datos_propietario.id_usuario.email }}</p>
-{% if datos_domicilio %}
-<p><strong>Inmuebles:</strong> {% for domicilio in datos_domicilio %}{{ domicilio.nombre_domicilio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
-{% else %}<p class="text-danger"><strong>No posee inmuebles</strong></p>{% endif %}
+<div class="encabezado-sombreado">
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Propietario:</strong> {{ datos_propietario.nombre_propietario }} &nbsp; <strong>Cédula:</strong> {{ datos_propietario.tipo_dni|default:"" }}-{{ datos_propietario.dni|default:"—" }} &nbsp; <strong>Correo:</strong> {% if datos_propietario.id_usuario %}{{ datos_propietario.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if datos_propietario.telefono_movil %}{{ datos_propietario.codigo_tlf_movil|default:"" }}{{ datos_propietario.telefono_movil }}{% elif datos_propietario.telefono_hab %}{{ datos_propietario.codigo_tlf_hab|default:"" }}{{ datos_propietario.telefono_hab }}{% else %}—{% endif %}</p>
+    {% if datos_domicilio %}
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmuebles:</strong> {% for domicilio in datos_domicilio %}{{ domicilio.nombre_domicilio }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% else %}<p style="margin: 0 0 5px 0; font-size: 11px;" class="text-danger"><strong>No posee inmuebles</strong></p>{% endif %}
+    <p style="margin: 0; font-size: 11px;"><strong>Período:</strong> {{ mes_cierre }} {{ año_cierre }}</p>
+</div>
 <p style="font-size: 11px; font-weight: bold; margin-top: 15px;">MOVIMIENTOS REALIZADOS — {{ mes_cierre }} {{ año_cierre }}</p>
 <table class="table-informe table-lista-simple">
     <thead><tr><th>Fecha</th><th>Descripción</th><th>Referencia</th><th class="num">Monto</th><th class="num">Monto en USD</th><th>Banco</th></tr></thead>

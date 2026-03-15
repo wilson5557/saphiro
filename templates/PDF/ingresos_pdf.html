@@ -3,6 +3,9 @@
 {% block titulo_pagina %}Reporte de ingresos {{ inicio }} al {{ fin }}{% endblock %}
 {% block titulo_informe %}RELACIÓN MENSUAL DE INGRESOS{% endblock %}
 {% block contenido_pdf %}
+<div class="encabezado-sombreado">
+    <p style="margin: 0; font-size: 11px;"><strong>Período:</strong> {{ inicio|date:'d/m/Y' }} — {{ fin|date:'d/m/Y' }}</p>
+</div>
 <table class="table-informe table-lista-simple" style="margin-top: 15px;">
     <thead>
         <tr>

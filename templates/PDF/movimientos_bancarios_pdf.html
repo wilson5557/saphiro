@@ -3,7 +3,10 @@
 {% block titulo_pagina %}Movimientos {{ nombre_banco }} {{ inicio }} al {{ fin }}{% endblock %}
 {% block titulo_informe %}CONSULTA DE MOVIMIENTOS BANCARIOS{% endblock %}
 {% block contenido_pdf %}
-<p style="font-size: 10px; margin-top: 10px; margin-bottom: 5px;">{{ nombre_banco }} {{ numero_cuenta }} — Desde {{ inicio }} Hasta {{ fin }}</p>
+<div class="encabezado-sombreado">
+    <p style="margin: 0; font-size: 11px;"><strong>Cuenta:</strong> {{ nombre_banco }} {{ numero_cuenta }}</p>
+    <p style="margin: 5px 0 0 0; font-size: 11px;"><strong>Período:</strong> {{ inicio|date:'d/m/Y'|default:inicio }} — {{ fin|date:'d/m/Y'|default:fin }}</p>
+</div>
 <p class="mt-3" style="font-size: 11px; font-weight: bold;">Ingresos</p>
 <table class="table-informe table-lista-simple">
     <thead><tr><th>Fecha</th><th>Referencia</th><th>Descripción</th><th class="num">Monto</th><th class="num">Monto en USD</th></tr></thead>

@@ -60,6 +60,7 @@ urlpatterns = [
     path('home/propietarios/recibos/', views.propietarios_recibos, name='propietarios_recibos'),
     path('home/propietarios/recibos/pdf/<int:id>', views.propietario_recibo_pago, name='propietario_recibo_pago'),
     path('home/propietarios/reporte-inmueble/<int:domicilio_id>/', views.reporte_inmueble_vista_previa, name='reporte_inmueble_vista_previa'),
+    path('home/propietarios/reporte-movimientos/', views.reporte_movimientos_propietario_vista_previa, name='reporte_movimientos_propietario_vista_previa'),
 
     # Vista SUPERUSUARIO (gestión de condominios)
     path('home/superuser/', views.home_superuser, name='home_superuser'),

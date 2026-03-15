@@ -3,9 +3,10 @@
 {% block titulo_pagina %}Reporte de Deudas (General){% endblock %}
 {% block titulo_informe %}REPORTE DE DEUDAS (GENERAL){% endblock %}
 {% block contenido_pdf %}
-<p style="margin-top: 10px; margin-bottom: 5px;">Fecha inicio: {{ inicio|date:'d/m/Y' }}</p>
-<p style="margin-bottom: 10px;">Fecha fin: {{ fin|date:'d/m/Y' }}</p>
-<table class="table-informe table-lista-simple">
+<div class="encabezado-sombreado">
+    <p style="margin: 0; font-size: 11px;"><strong>Período:</strong> {{ inicio|date:'d/m/Y' }} — {{ fin|date:'d/m/Y' }}</p>
+</div>
+<table class="table-informe table-lista-simple" style="margin-top: 15px;">
     <thead>
         <tr>
             <th>Propietario</th>

@@ -1187,6 +1187,79 @@ def reporte_inmueble_vista_previa(request, domicilio_id):
 
 
 @login_required
+def reporte_movimientos_propietario_vista_previa(request):
+    """Vista previa del reporte 'Movimientos del propietario' (movimientos y deudas) para el propietario logueado."""
+    user = request.user
+    if user.id_rol and str(getattr(user.id_rol, 'rol', '')) in ('0', '1'):
+        return HttpResponseRedirect(reverse('condominio_app:home_admin'))
+    propietario = Propietario.objects.filter(id_usuario_id=user.id).select_related('id_usuario').first()
+    if not propietario:
+        messages.warning(request, 'No se encontró el propietario.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+    condominio_id = user.id_condominio_id
+    if not condominio_id:
+        primer_dom = Domicilio.objects.filter(id_propietario_id=propietario.id_propietario).first()
+        if primer_dom:
+            condominio_id = primer_dom.id_condominio_id
+    if not condominio_id:
+        messages.warning(request, 'No hay condominio asociado.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+    cierre = Cierre_mes.objects.filter(id_condominio_id=condominio_id).order_by('-fecha_cierre').first()
+    if not cierre:
+        messages.warning(request, 'No hay cierre de mes disponible para mostrar el reporte.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+    ultima_tasa = Tasas.objects.last()
+    tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date())
+    cierre_anterior = Cierre_mes.objects.filter(id_cierre__lt=cierre.id_cierre, id_condominio_id=condominio_id).order_by('-fecha_cierre').first()
+    mes = ["", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
+    data = {
+        'fecha_generado': timezone.now(),
+        'tasa_bs': tasa_bs,
+        'tasa_euro': tasa_euro,
+        'mes_cierre': mes[int(cierre.fecha_cierre.strftime("%m"))],
+        'año_cierre': cierre.fecha_cierre.strftime("%Y"),
+        'datos_propietario': propietario,
+        'datos_condominio': Condominio.objects.get(id_condominio=condominio_id),
+        'datos_domicilio': Domicilio.objects.filter(id_propietario_id=propietario.id_propietario),
+    }
+    movimientos_ids = Ingresos.objects.filter(id_propietario_id=propietario.id_propietario).values_list('id_movimiento_id', flat=True)
+    if cierre_anterior:
+        data['movimientos'] = Movimientos_bancarios.objects.filter(
+            pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=condominio_id,
+            created_at__range=[cierre_anterior.fecha_cierre, cierre.fecha_cierre]
+        ).select_related('id_banco')
+    else:
+        data['movimientos'] = Movimientos_bancarios.objects.filter(
+            pk__in=movimientos_ids, estado_movimiento=0, id_banco__id_condominio_id=condominio_id,
+            created_at__lte=cierre.fecha_cierre
+        ).select_related('id_banco')
+    deudas_cierre = Deudas.objects.filter(
+        tipo_deuda="2",
+        id_domicilio__id_propietario_id=propietario.id_propietario,
+        id_domicilio__id_condominio_id=condominio_id,
+        is_active=True,
+    ).select_related('id_domicilio')
+    data['deudas'] = deudas_cierre
+    t_bs_d = Decimal(str(tasa_bs or 1))
+    t_eur_d = Decimal(str(tasa_euro or 1))
+    total_d_bs = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or 'BS').strip().upper() == 'BS')
+    total_d_usd = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or '').strip().upper() == 'USD')
+    total_d_eur = sum(Decimal(str(d.monto_deuda or 0)) for d in deudas_cierre if (getattr(d, 'tipo_moneda', None) or '').strip().upper() == 'EUR')
+    data['total_en_bs'] = (total_d_bs + total_d_usd * t_bs_d + total_d_eur * t_eur_d).quantize(Decimal('0.01'))
+    data['total_en_usd'] = (total_d_bs / t_bs_d + total_d_usd + total_d_eur * t_eur_d / t_bs_d).quantize(Decimal('0.01'))
+    data['total_en_eur'] = (total_d_bs / t_eur_d + total_d_usd * t_bs_d / t_eur_d + total_d_eur).quantize(Decimal('0.01'))
+    data['pendiente_en_bs'] = data['total_en_bs']
+    data['pendiente_en_usd'] = data['total_en_usd']
+    data['pendiente_en_eur'] = data['total_en_eur']
+    todos_bancos = Bancos.objects.filter(id_condominio_id=condominio_id)
+    nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
+    data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
+    template = get_template('PDF/cierre_mes_propietario.html')
+    html = template.render(data)
+    return HttpResponse(html, content_type='text/html; charset=utf-8')
+
+
+@login_required
 def propietarios_recibos(request):
     user = request.user
     # Si el usuario es un administrador entonces se redirige al inicio del administrador

@@ -3,11 +3,10 @@
 {% block titulo_pagina %}Recibo de Pago{% endblock %}
 {% block titulo_informe %}RECIBO DE PAGO{% endblock %}
 {% block contenido_pdf %}
-<table class="table-informe" style="margin-top: 15px;">
-    <tr><td><strong>Cliente:</strong> {{ datosMovimiento.id_propietario.nombre_propietario }}</td><td>{{ datosCondo.nombre_condominio }}</td></tr>
-    <tr><td>{% for data in datosRecibo %}{% if forloop.first %}Fecha: <strong>{{ data.fecha_creacion|date:'d/m/Y' }}</strong> Hora: <strong>{{ data.hora_creacion }}</strong>{% endif %}{% endfor %}</td><td>{{ datosCondo.direccion_condominio }}</td></tr>
-    <tr><td>ID recibo: <strong>{{ datosMovimiento.id_movimiento }}</strong></td><td>{{ datosCondo.email }}</td></tr>
-</table>
+<div class="encabezado-sombreado">
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Cliente:</strong> {% if datosMovimiento.id_propietario %}{{ datosMovimiento.id_propietario.nombre_propietario }}{% else %}—{% endif %} &nbsp; <strong>Cédula:</strong> {% if datosMovimiento.id_propietario %}{{ datosMovimiento.id_propietario.dni|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Correo:</strong> {% if datosMovimiento.id_propietario and datosMovimiento.id_propietario.id_usuario %}{{ datosMovimiento.id_propietario.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if datosMovimiento.id_propietario %}{% if datosMovimiento.id_propietario.telefono_movil %}{{ datosMovimiento.id_propietario.codigo_tlf_movil|default:"" }}{{ datosMovimiento.id_propietario.telefono_movil }}{% elif datosMovimiento.id_propietario.telefono_hab %}{{ datosMovimiento.id_propietario.codigo_tlf_hab|default:"" }}{{ datosMovimiento.id_propietario.telefono_hab }}{% else %}—{% endif %}{% else %}—{% endif %}</p>
+    <p style="margin: 0; font-size: 11px;">{% for data in datosRecibo %}{% if forloop.first %}<strong>Fecha:</strong> {{ data.fecha_creacion|date:'d/m/Y' }} &nbsp; <strong>Hora:</strong> {{ data.hora_creacion }} &nbsp; <strong>ID recibo:</strong> {{ datosMovimiento.id_movimiento }}{% endif %}{% endfor %} &nbsp; <strong>Condominio:</strong> {{ datosCondo.nombre_condominio }}</p>
+</div>
 <table class="table-informe table-lista-simple table-lista-desc-monto mt-3">
     <thead><tr><th>Descripción</th><th class="num">Monto Bs.</th><th class="num">Monto en USD</th></tr></thead>
     <tbody>{% for data in datosRecibo %}<tr><td>{{ data.descripcion_recibo }}</td><td class="num">Bs. {{ data.monto|floatformat:2|intcomma }}</td><td class="num">{% equiv_bcv data.monto "BS" tasa_bs tasa_euro as eq %}{% if eq %}{{ eq.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>

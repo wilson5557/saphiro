@@ -3,13 +3,13 @@
 {% block titulo_pagina %}Estado de Cuenta del Propietario{% endblock %}
 {% block titulo_informe %}ESTADO DE CUENTA DEL PROPIETARIO{% endblock %}
 {% block contenido_pdf %}
-<div style="margin-top: 10px; margin-bottom: 12px; padding: 10px 12px; background-color: #e8f4f8; border: 1px solid #b8d4e0;">
+<div class="encabezado-sombreado">
     {% for dom, alic in domicilios_con_alicuota %}
     <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmueble:</strong> {{ dom.nombre_domicilio }}{% if dom.id_torre %} ({{ dom.id_torre.nombre_torre }}){% endif %} &nbsp; <strong>Tipo:</strong> {{ dom.tipo_domicilio|default:"—" }} &nbsp; m²: {{ dom.size_domicilio|default:"—" }} &nbsp; <strong>Alicuota:</strong> {% if alic is not None %}{{ alic|floatformat:4 }}{% else %}—{% endif %}</p>
     {% empty %}
     <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Inmueble:</strong> —</p>
     {% endfor %}
-    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Propietario:</strong> {{ propietario.nombre_propietario }} &nbsp; <strong>Tel:</strong> {% if propietario.telefono_movil %}{{ propietario.codigo_tlf_movil|default:"" }}{{ propietario.telefono_movil }}{% elif propietario.telefono_hab %}{{ propietario.codigo_tlf_hab|default:"" }}{{ propietario.telefono_hab }}{% else %}—{% endif %}</p>
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Propietario:</strong> {{ propietario.nombre_propietario }} &nbsp; <strong>Cédula:</strong> {{ propietario.dni|default:"—" }} &nbsp; <strong>Correo:</strong> {% if propietario.id_usuario %}{{ propietario.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if propietario.telefono_movil %}{{ propietario.codigo_tlf_movil|default:"" }}{{ propietario.telefono_movil }}{% elif propietario.telefono_hab %}{{ propietario.codigo_tlf_hab|default:"" }}{{ propietario.telefono_hab }}{% else %}—{% endif %}</p>
     <p style="margin: 0; font-size: 11px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
 </div>
 <table class="table-informe table-lista-simple">
