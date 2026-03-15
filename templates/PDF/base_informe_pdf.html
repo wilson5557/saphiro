@@ -10,17 +10,19 @@
     <style>
         body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.3; color: #212529; }
         .cabecera-informe { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #000; border-bottom: 1px solid #000; }
-        .cabecera-informe td { padding: 8px 10px; vertical-align: top; border: 1px solid #000; }
+        .cabecera-informe td { padding: 4px 8px; vertical-align: top; border: 1px solid #000; }
         .separador-encabezado { height: 0; border: none; margin: 0 0 15px 0; border-top: 1px solid #000; }
         .cabecera-izq { width: 55%; text-align: left; }
         .cabecera-der { width: 45%; text-align: right; }
-        .cabecera-izq .entidad { font-weight: bold; margin-bottom: 6px; }
-        .cabecera-izq .cuentas { font-size: 10px; line-height: 1.5; }
-        .cabecera-izq .tasas-cierre { font-size: 9px; line-height: 1.3; margin-top: 4px; color: #333; }
+        .cabecera-izq .entidad { font-weight: bold; margin-bottom: 2px; line-height: 1.2; }
+        .cabecera-izq .cuentas { font-size: 10px; line-height: 1.2; }
+        .cabecera-izq .cuentas div { margin: 0; padding: 0; line-height: 1.2; }
         .cabecera-der .titulo-informe { font-weight: bold; font-size: 12px; }
         .cabecera-der .fecha-generado { font-size: 9px; font-weight: normal; }
         .cabecera-der .titulo-fecha-linea { font-weight: bold; font-size: 11px; word-wrap: break-word; max-width: 100%; }
         .cabecera-der .titulo-fecha-linea .fecha-generado { font-weight: normal; font-size: 9px; margin-left: 6px; }
+        .cabecera-der .tasas-cierre-der { font-size: 9px; font-weight: normal; margin-top: 2px; line-height: 1.2; color: #333; display: block; }
+        .cabecera-der .resumen-cuota { margin-top: 1.4em; font-size: 11px; line-height: 1.35; }
         /* Estilo foto: cabecera tabla gris, centrada, sin bordes gruesos en datos */
         .table-informe { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 11px; }
         .table-informe thead th { padding: 6px 8px; background-color: #e9ecef; color: #212529; font-weight: bold; text-align: center; text-transform: uppercase; border-bottom: 1px solid #000; border-left: none; border-right: none; border-top: none; }
@@ -58,7 +60,8 @@
         .mt-3 { margin-top: 1rem; }
         .mt-5 { margin-top: 2rem; }
         /* Encabezado: bloque de datos de inmueble/propietario/período (sin fondo) */
-        .encabezado-sombreado { margin-top: 10px; margin-bottom: 12px; padding: 10px 12px; }
+        .encabezado-sombreado { margin-top: 8px; margin-bottom: 8px; padding: 6px 12px; }
+        .encabezado-sombreado p { margin: 0 0 2px 0; line-height: 1.25; }
     </style>
     {% block extra_css_pdf %}{% endblock %}
 </head>
@@ -76,12 +79,12 @@
                 {% elif bancos %}
                 <div class="cuentas">{% for b in bancos %}<div>{{ b.nombre_banco }} {{ b.nro_cuenta }}</div>{% endfor %}</div>
                 {% endif %}
-                {% if tasa_bs or tasa_euro %}
-                <div class="tasas-cierre">Tasa de cierre ({{ fecha_generado|date:"d/m/Y" }}): 1 USD = {{ tasa_bs|default:0|floatformat:2 }} Bs &nbsp; 1 EUR = {{ tasa_euro|default:0|floatformat:2 }} Bs</div>
-                {% endif %}
             </td>
             <td class="cabecera-der">
                 <div class="titulo-fecha-linea">{% block titulo_informe %}INFORME{% endblock %}<span class="fecha-generado"> {{ fecha_generado|date:"d/m/y" }} {{ fecha_generado|time:"H:i:s" }}</span></div>
+                {% if tasa_bs or tasa_euro %}
+                <div class="tasas-cierre-der">Tasa de cierre ({{ fecha_generado|date:"d/m/Y" }}): 1 USD = {{ tasa_bs|default:0|floatformat:2 }} Bs &nbsp; 1 EUR = {{ tasa_euro|default:0|floatformat:2 }} Bs</div>
+                {% endif %}
                 {% block titulo_informe_extra %}{% endblock %}
             </td>
         </tr>

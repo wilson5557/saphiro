@@ -3,7 +3,7 @@
 {% block titulo_pagina %}Relación mensual de gastos por inmueble{% endblock %}
 {% block titulo_informe %}RELACIÓN MENSUAL DE GASTOS POR INMUEBLE{% endblock %}
 {% block titulo_informe_extra %}
-<div style="margin-top: 6px; font-size: 10px; font-weight: normal;">
+<div class="resumen-cuota" style="font-weight: normal;">
   <strong>Cuota del mes:</strong> {{ deuda_del_mes_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_del_mes_usd|floatformat:2|intcomma }} USD<br>
   <strong>Deuda anterior:</strong> {{ deuda_anterior_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_anterior_usd|floatformat:2|intcomma }} USD<br>
   <strong>Total a pagar:</strong> {{ total_a_pagar_bs|floatformat:2|intcomma }} Bs &nbsp; {{ total_a_pagar_usd|floatformat:2|intcomma }} USD
