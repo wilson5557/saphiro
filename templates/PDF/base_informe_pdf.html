@@ -48,7 +48,13 @@
         .pie-avisos { margin-top: 12px; text-align: center; font-size: 10px; line-height: 1.6; }
         .mt-3 { margin-top: 1rem; }
         .mt-5 { margin-top: 2rem; }
+        /* Lista gastos período: columna descripción más ancha, menos espacio entre filas */
+        .table-gastos-periodo thead th:first-child { width: 62%; }
+        .table-gastos-periodo thead th.num { width: 19%; }
+        .table-gastos-periodo tbody td { padding: 2px 6px; line-height: 1.2; }
+        .table-gastos-periodo .col-descripcion-gasto { width: 62%; }
     </style>
+    {% block extra_css_pdf %}{% endblock %}
 </head>
 <body>
     <table class="cabecera-informe">

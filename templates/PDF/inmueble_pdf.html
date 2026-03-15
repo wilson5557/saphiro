@@ -4,7 +4,7 @@
 {% block titulo_informe %}RELACIÓN MENSUAL DE GASTOS POR INMUEBLE{% endblock %}
 {% block titulo_informe_extra %}
 <div style="margin-top: 6px; font-size: 10px; font-weight: normal;">
-  Deuda del mes: {{ deuda_del_mes_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_del_mes_usd|floatformat:2|intcomma }} USD<br>
+  Cuota del mes: {{ deuda_del_mes_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_del_mes_usd|floatformat:2|intcomma }} USD<br>
   Deuda anterior: {{ deuda_anterior_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_anterior_usd|floatformat:2|intcomma }} USD<br>
   Total a pagar: {{ total_a_pagar_bs|floatformat:2|intcomma }} Bs &nbsp; {{ total_a_pagar_usd|floatformat:2|intcomma }} USD
 </div>
@@ -12,23 +12,24 @@
 {% block contenido_pdf %}
 <p style="margin-top: 10px; margin-bottom: 5px;"><strong>Inmueble:</strong> {{ domicilio.nombre_domicilio }}{% if domicilio.id_torre %} ({{ domicilio.id_torre.nombre_torre }}){% endif %}</p>
 <p style="margin-bottom: 5px;"><strong>Propietario:</strong> {% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</p>
+<p style="margin-bottom: 5px;"><strong>Cédula:</strong> {% if domicilio.id_propietario %}{{ domicilio.id_propietario.dni|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Correo:</strong> {% if domicilio.id_propietario and domicilio.id_propietario.id_usuario %}{{ domicilio.id_propietario.id_usuario.email|default:"—" }}{% else %}—{% endif %}</p>
 <p style="margin-bottom: 5px;">Tipo: {{ domicilio.tipo_domicilio|default:"—" }} &nbsp; m²: {{ domicilio.size_domicilio|default:"—" }} &nbsp; Alicuota: {% if alicuota_display is not None %}{{ alicuota_display|floatformat:4 }}{% else %}{{ domicilio.alicuota_domicilio|floatformat:4|default:"—" }}{% endif %}</p>
 <p style="margin-bottom: 10px;">Fecha inicio: {{ inicio|date:'d/m/Y' }} &nbsp; Fecha fin: {{ fin|date:'d/m/Y' }}</p>
 
 {% if lista_gastos_detalle %}
 <p style="margin-top: 12px; font-weight: bold; font-size: 12px;">LISTA DE GASTOS DEL PERÍODO</p>
-<table class="table-informe table-lista-simple">
+<table class="table-informe table-lista-simple table-gastos-periodo">
     <thead>
         <tr>
-            <th>Descripción</th>
-            <th class="num">Monto Bs</th>
-            <th class="num">Monto USD</th>
+            <th style="width: 62%;">Descripción</th>
+            <th class="num" style="width: 19%;">Monto Bs</th>
+            <th class="num" style="width: 19%;">Monto USD</th>
         </tr>
     </thead>
     <tbody>
         {% for item in lista_gastos_detalle %}
-        <tr>
-            <td>{{ item.descripcion }}</td>
+        <tr class="fila-gasto-item">
+            <td class="col-descripcion-gasto">{{ item.descripcion }}</td>
             <td class="num">{% equiv_a_bs item.monto item.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_usd item.monto item.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
         </tr>

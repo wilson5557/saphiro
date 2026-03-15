@@ -7504,6 +7504,9 @@ def obtener_deudas(request):
 
             deudas = Deudas.objects.filter(id_domicilio_id=request.GET.get('aptoDeuda'), is_active=True).order_by('categoria_deuda')
 
+            alic_val = alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio
+            if alic_val is not None and isinstance(alic_val, (int, float)) and float(alic_val) >= 1:
+                alic_val = round(float(alic_val) / 100, 4)
             data = {
                 'domicilio': {
                     'id': domicilio.id_domicilio,
@@ -7512,7 +7515,7 @@ def obtener_deudas(request):
                     'torre': "-",
                     'estacionamientos': domicilio.estacionamientos,
                     'size': domicilio.size_domicilio,
-                    'alicuota': alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio,
+                    'alicuota': round(float(alic_val), 4) if alic_val is not None else None,
                     'saldo_bs': domicilio.saldo,
                     'saldo_usd': domicilio.saldo_usd,
                     'saldo_eur': domicilio.saldo_eur,
@@ -7531,6 +7534,9 @@ def obtener_deudas(request):
             
             deudas = Deudas.objects.filter(id_domicilio_id=request.GET.get('aptoDeuda'), is_active=True).order_by('categoria_deuda')
 
+            alic_val = alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio
+            if alic_val is not None and isinstance(alic_val, (int, float)) and float(alic_val) >= 1:
+                alic_val = round(float(alic_val) / 100, 4)
             data = {
                 'domicilio': {
                     'id': domicilio.id_domicilio,
@@ -7539,7 +7545,7 @@ def obtener_deudas(request):
                     'torre': "-",
                     'estacionamientos': domicilio.estacionamientos,
                     'size': domicilio.size_domicilio,
-                    'alicuota': alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio,
+                    'alicuota': round(float(alic_val), 4) if alic_val is not None else None,
                     'saldo_bs': domicilio.saldo,
                     'saldo_usd': domicilio.saldo_usd,
                     'saldo_eur': domicilio.saldo_eur,
