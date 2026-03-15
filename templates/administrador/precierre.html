@@ -102,14 +102,14 @@
 
     <h3 class="text-center mt-4" style="font-size: 12px;">DEUDAS ACUMULADAS</h3>
     <table class="table table-sm table-bordered table-lista-informe mt-2" style="font-size: 11px;">
-        <thead class="thead-light"><tr><th></th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr></thead>
-        <tr><td>Por impagos de los propietarios</td><td class="text-right">{{ monto_deuda_prop|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_u %}{% if eq_d_u %}{{ eq_d_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_e %}{% if eq_d_e %}{{ eq_d_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
+        <thead class="thead-light"><tr><th>Concepto</th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr></thead>
+        <tr><td>Por deudas de propietarios</td><td class="text-right">{{ monto_deuda_prop|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_u %}{% if eq_d_u %}{{ eq_d_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_e %}{% if eq_d_e %}{{ eq_d_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
     </table>
 
     <h3 class="text-center mt-4" style="font-size: 12px;">MOVIMIENTO DE FONDOS</h3>
     <table class="table table-sm table-bordered table-lista-informe mt-2" style="font-size: 11px;">
         <thead class="thead-light">
-        <tr><th>Concepto</th><th class="text-right">BS</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr>
+        <tr><th>Concepto</th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr>
         </thead>
         <tbody>
         <tr><td>Fondo de reserva — Saldo anterior</td><td class="text-right">{{ saldo_anterior_reserva|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd saldo_anterior_reserva "BS" tasa_bs tasa_euro as e1u %}{% if e1u %}{{ e1u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur saldo_anterior_reserva "BS" tasa_bs tasa_euro as e1e %}{% if e1e %}{{ e1e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>

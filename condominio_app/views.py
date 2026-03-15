@@ -4746,23 +4746,16 @@ def admin_reportes(request):
             saldo_anterior_usd = (saldo_actual_usd - cuota_periodo_usd + pagos_usd).quantize(Decimal('0.01'))
             saldo_anterior_eur = (saldo_actual_eur - cuota_periodo_eur + pagos_eur).quantize(Decimal('0.01'))
 
-            # Movimiento de fondos (condominio): reserva y prestaciones
+            # Movimiento de fondos (condominio): mismo criterio que cierre — total acumulado = saldo anterior; saldo actual = anterior + apartado
             filtro_fondos_condo = {'id_movimiento__id_banco__id_condominio_id': condominio.id_condominio}
-            try:
-                inicio_dt_fondos = datetime.strptime(str(inicio_inm).strip(), '%Y-%m-%d').date() if isinstance(inicio_inm, str) else inicio_inm
-            except (ValueError, TypeError):
-                inicio_dt_fondos = None
-            if inicio_dt_fondos:
-                saldo_ant_reserva = Fondos.objects.filter(
-                    tipo_fondo="RESERVA", **filtro_fondos_condo,
-                    id_movimiento__fecha_movimiento__lt=inicio_dt_fondos
-                ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
-                saldo_ant_prestaciones = Fondos.objects.filter(
-                    tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
-                    id_movimiento__fecha_movimiento__lt=inicio_dt_fondos
-                ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
-            else:
-                saldo_ant_reserva = saldo_ant_prestaciones = Decimal('0')
+            fondo_reserva = Fondos.objects.filter(
+                tipo_fondo="RESERVA", **filtro_fondos_condo
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+            fondo_prestaciones = Fondos.objects.filter(
+                tipo_fondo="PRESTACIONES", **filtro_fondos_condo
+            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+            saldo_ant_reserva = Decimal(str(fondo_reserva if fondo_reserva is not None else 0))
+            saldo_ant_prestaciones = Decimal(str(fondo_prestaciones if fondo_prestaciones is not None else 0))
             ultima_tasa = Tasas.objects.last()
             tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date() if hasattr(timezone, 'now') else date.today())
             if (not tasa_bs or Decimal(str(tasa_bs)) <= 0) and ultima_tasa and getattr(ultima_tasa, 'tasa_BCV_USD', None):
@@ -5119,21 +5112,19 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         saldo_anterior_eur = (saldo_actual_eur - cuota_periodo_eur + pagos_eur).quantize(Decimal('0.01'))
 
         filtro_fondos_condo = {'id_movimiento__id_banco__id_condominio_id': condominio.id_condominio}
+        # MOVIMIENTO DE FONDOS: mismo criterio que cierre — total acumulado = saldo anterior; saldo actual = anterior + apartado
+        fondo_reserva = Fondos.objects.filter(
+            tipo_fondo="RESERVA", **filtro_fondos_condo
+        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+        fondo_prestaciones = Fondos.objects.filter(
+            tipo_fondo="PRESTACIONES", **filtro_fondos_condo
+        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total']
+        saldo_ant_reserva = Decimal(str(fondo_reserva if fondo_reserva is not None else 0))
+        saldo_ant_prestaciones = Decimal(str(fondo_prestaciones if fondo_prestaciones is not None else 0))
         try:
             inicio_dt_fondos = datetime.strptime(str(inicio_inm).strip(), '%Y-%m-%d').date() if isinstance(inicio_inm, str) else inicio_inm
         except (ValueError, TypeError):
             inicio_dt_fondos = None
-        if inicio_dt_fondos:
-            saldo_ant_reserva = Fondos.objects.filter(
-                tipo_fondo="RESERVA", **filtro_fondos_condo,
-                id_movimiento__fecha_movimiento__lt=inicio_dt_fondos
-            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
-            saldo_ant_prestaciones = Fondos.objects.filter(
-                tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
-                id_movimiento__fecha_movimiento__lt=inicio_dt_fondos
-            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
-        else:
-            saldo_ant_reserva = saldo_ant_prestaciones = Decimal('0')
         # Deuda anterior: deudas activas del inmueble con fecha anterior al inicio del período
         deuda_ant_bs = deuda_ant_usd = deuda_ant_eur = Decimal('0')
         if inicio_dt_fondos:
