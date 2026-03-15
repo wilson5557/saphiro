@@ -1138,6 +1138,55 @@ def propietario_recibo_pago(request, id):
 
 
 @login_required
+def reporte_inmueble_vista_previa(request, domicilio_id):
+    """Vista previa del reporte 'Relación mensual de gastos por inmueble' para un inmueble del propietario."""
+    user = request.user
+    if user.id_rol and str(getattr(user.id_rol, 'rol', '')) in ('0', '1'):
+        return HttpResponseRedirect(reverse('condominio_app:home_admin'))
+    propietario = Propietario.objects.filter(id_usuario_id=user.id).first()
+    if not propietario or not user.id_condominio_id:
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+    domicilio = Domicilio.objects.filter(
+        id_domicilio=domicilio_id,
+        id_propietario_id=propietario.id_propietario,
+        id_condominio_id=user.id_condominio_id,
+    ).select_related('id_propietario', 'id_torre').first()
+    if not domicilio:
+        messages.warning(request, 'Inmueble no encontrado o no le corresponde.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+    condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id).first()
+    if not condominio:
+        return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
+    cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('-fecha_cierre').first()
+    if cierre:
+        cierre_anterior = Cierre_mes.objects.filter(
+            id_cierre__lt=cierre.id_cierre,
+            id_condominio_id=user.id_condominio_id,
+        ).order_by('-fecha_cierre').first()
+        inicio_inm = cierre_anterior.fecha_cierre.strftime('%Y-%m-%d') if cierre_anterior else cierre.fecha_cierre.replace(day=1).strftime('%Y-%m-%d')
+        fin_inm = cierre.fecha_cierre.strftime('%Y-%m-%d')
+    else:
+        hoy = timezone.now().date()
+        inicio_inm = hoy.replace(day=1).strftime('%Y-%m-%d')
+        fin_inm = hoy.strftime('%Y-%m-%d')
+    data_inm = _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin_inm)
+    if not data_inm:
+        messages.warning(request, 'No se pudo generar el reporte. Intente más tarde.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:propietarios_pagos'))
+    template_path_inm = 'PDF/inmueble_pdf.html'
+    template = get_template(template_path_inm)
+    html = template.render(data_inm)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="relacion_gastos_inmueble_{}_{}_{}.pdf"'.format(
+        domicilio_id, inicio_inm, fin_inm
+    )
+    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF. <pre>' + html + '</pre>')
+    return response
+
+
+@login_required
 def propietarios_recibos(request):
     user = request.user
     # Si el usuario es un administrador entonces se redirige al inicio del administrador

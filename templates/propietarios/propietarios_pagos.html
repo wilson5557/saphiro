@@ -55,6 +55,10 @@
 								 data-parent="#accordion" style="border: 1px solid rgba(0, 0, 0, .125); width: 100%;">
 								<div class="card-body row data_domicilio" id="contenido_dom{{domicilio.id_domicilio}}">
 
+									<div class="col-sm-12 mt-2 mb-2 text-center">
+										<a href="{% url 'condominio_app:reporte_inmueble_vista_previa' domicilio.id_domicilio %}" target="_blank" class="btn btn-sm btn-option" title="Ver reporte"><i class="fa fa-eye pr-1"></i> Ver reporte</a>
+									</div>
+
 									<div class="container select_moneda mt-3">
 										<label for="moneda_pago{{domicilio.id_domicilio}}" class="col-form-label text-dark mt-1">Seleccione el tipo de moneda con el que desea pagar:</label>
 										<div class="d-flex mt-2 mb-3" style="justify-content: center;">
