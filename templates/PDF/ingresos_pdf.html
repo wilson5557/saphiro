@@ -2,18 +2,46 @@
 {% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Reporte de ingresos {{ inicio }} al {{ fin }}{% endblock %}
 {% block titulo_informe %}RELACIÓN MENSUAL DE INGRESOS{% endblock %}
+{% block extra_css_pdf %}
+<style>
+  .table-informe-ingresos { table-layout: fixed; }
+  .table-informe-ingresos th:nth-child(1), .table-informe-ingresos td:nth-child(1) { width: 9%; }
+  .table-informe-ingresos th:nth-child(2), .table-informe-ingresos td:nth-child(2) { width: 14%; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word; font-size: 10px; }
+  .table-informe-ingresos th:nth-child(3), .table-informe-ingresos td:nth-child(3) { width: 20%; word-wrap: break-word; }
+  .table-informe-ingresos th:nth-child(4), .table-informe-ingresos td:nth-child(4),
+  .table-informe-ingresos th:nth-child(5), .table-informe-ingresos td:nth-child(5),
+  .table-informe-ingresos th:nth-child(6), .table-informe-ingresos td:nth-child(6) { width: 11%; }
+  .table-informe-ingresos th:nth-child(7), .table-informe-ingresos td:nth-child(7) { width: 12%; }
+  .table-informe-ingresos th:nth-child(8), .table-informe-ingresos td:nth-child(8) { width: 8%; }
+</style>
+{% endblock %}
 {% block contenido_pdf %}
 <div class="encabezado-sombreado">
     <p style="margin: 0; font-size: 11px;"><strong>Período:</strong> {{ inicio|date:'d/m/Y' }} — {{ fin|date:'d/m/Y' }}</p>
 </div>
-<table class="table-informe table-lista-simple" style="margin-top: 15px;">
+<table class="table-informe table-lista-simple table-informe-ingresos" style="margin-top: 15px;">
     <thead>
         <tr>
             <th>Fecha</th><th>Referencia</th><th>Descripción</th><th class="num">TOTAL Bs.</th><th class="num">US$</th><th class="num">EUR</th><th>Banco</th><th>Apartamento</th>
         </tr>
     </thead>
     <tbody>
-        {% if ingresos %}
+        {% if ingresos_datos %}
+        {% for item in ingresos_datos %}
+        <tr>
+            <td>{{ item.ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
+            <td>{{ item.ingreso.id_movimiento.referencia_movimiento|default:"-" }}</td>
+            <td>{{ item.ingreso.id_movimiento.descripcion_movimiento|default:item.ingreso.id_movimiento.concepto_movimiento }}</td>
+            {% with banco=item.ingreso.id_movimiento.id_banco moneda=banco.tipo_moneda|default:"BS" monto=item.ingreso.id_movimiento.monto_movimiento %}
+            <td class="num">{% equiv_a_bs monto moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_usd monto moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
+            <td class="num">{% equiv_a_eur monto moneda tasa_bs tasa_euro as ee %}{% if ee %}{{ ee|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
+            {% endwith %}
+            <td>{% for b in bancos %}{% if b.id_banco == item.ingreso.id_movimiento.id_banco_id %}{{ b.nombre_banco }}{% endif %}{% endfor %}</td>
+            <td>{{ item.apartamento|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+        {% elif ingresos %}
         {% for ingreso in ingresos %}
         <tr>
             <td>{{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>

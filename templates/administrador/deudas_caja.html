@@ -411,7 +411,7 @@
                 var montoOrig = parseFloat(deuda.monto_deuda) || 0;
                 var moneda = (deuda.tipo_moneda || "BS").toString().toUpperCase();
                 var montoConvertido = convertirAMoneda(montoOrig, moneda, monedaSeleccionada);
-                var concepto = deuda.concepto_deuda || 'Sin concepto';
+                var concepto = (deuda.descripcion_deuda || deuda.concepto_deuda || 'Sin concepto').trim();
                 var categoria = deuda.categoria_deuda || '';
 
                 var itemHtml = '<li class="list-group-item d-flex" style="justify-content: space-between;">' +

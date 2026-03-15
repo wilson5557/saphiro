@@ -1633,7 +1633,7 @@ def admin_gastos(request):
     # Asegurar categorías por defecto en el select de gastos
     for nombre in ["General", "Administrativo", "Mantenimientos y Servicios", "Nóminas"]:
         Categoria.objects.get_or_create(nombre_categoria=nombre)
-    categorias = Categoria.objects.all().order_by('nombre_categoria')
+    categorias = Categoria.objects.all().exclude(nombre_categoria='GENERAL').order_by('nombre_categoria')
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
     if cierre:
         gastos = gastos.filter(id_movimiento__created_at__gt=cierre.fecha_cierre)
@@ -3926,6 +3926,28 @@ def admin_reportes(request):
                 data['ingresos'] = Ingresos.objects.filter(id_movimiento__fecha_movimiento__range=[inicio, fin],
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
                                                             id_movimiento__estado_movimiento=0).select_related("id_movimiento__id_banco")
+                # Para cada ingreso, texto "Apartamento": si es PAGO DE DEUDAS EN CAJA, tomar el nombre del inmueble al que se asignó cada deuda pagada (Recibos -> id_deuda -> id_domicilio)
+                ingresos_datos = []
+                for ingreso in data['ingresos']:
+                    apartamento = '-'
+                    desc_mov = getattr(ingreso.id_movimiento, 'descripcion_movimiento', '') or ''
+                    if desc_mov == 'PAGO DE DEUDAS EN CAJA':
+                        recibos = Recibos.objects.filter(id_movimiento_id=ingreso.id_movimiento_id).select_related('id_deuda__id_domicilio', 'id_deuda__id_domicilio__id_torre')
+                        seen = set()
+                        partes = []
+                        for r in recibos:
+                            if r.id_deuda and getattr(r.id_deuda, 'id_domicilio_id', None) and r.id_deuda.id_domicilio_id not in seen:
+                                seen.add(r.id_deuda.id_domicilio_id)
+                                d = r.id_deuda.id_domicilio
+                                nombre = (d.nombre_domicilio or '') + (' (' + d.id_torre.nombre_torre + ')' if getattr(d, 'id_torre', None) and d.id_torre else '')
+                                if (nombre or '').strip():
+                                    partes.append(nombre.strip())
+                        apartamento = ', '.join(partes) if partes else '-'
+                    else:
+                        # Otros ingresos: mantener lo que ya se mostraba (ej. id_propietario_id si existe)
+                        apartamento = str(ingreso.id_propietario_id) if getattr(ingreso, 'id_propietario_id', None) else '-'
+                    ingresos_datos.append({'ingreso': ingreso, 'apartamento': apartamento})
+                data['ingresos_datos'] = ingresos_datos
                 data['bancos'] = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
                 data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in data['bancos']]
