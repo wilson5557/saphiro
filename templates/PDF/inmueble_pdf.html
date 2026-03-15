@@ -60,7 +60,7 @@
     <tbody>
         {% for row in gastos_por_categoria %}
         <tr>
-            <td>{{ row.nombre }}</td>
+            <td>{{ row.nombre|upper }}</td>
             <td class="num">{{ row.total_en_bs|floatformat:2|intcomma }} Bs</td>
             <td class="num">{{ row.total_en_usd|floatformat:2|intcomma }} USD</td>
             <td class="num">{{ row.total_en_eur|floatformat:2|intcomma }} EUR</td>
@@ -95,7 +95,7 @@
             <td class="num">{% equiv_a_eur saldo_anterior_reserva "BS" tasa_bs tasa_euro as er1e %}{% if er1e %}{{ er1e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
         </tr>
         <tr>
-            <td>Fondo de reserva — Apartado del mes (10% gastos)</td>
+            <td>Fondo de reserva — Apartado del mes ({{ porcentaje_fondo_reserva|default:10|floatformat:0 }}% gastos)</td>
             <td class="num">{{ apartado_fondo_reserva|default:0|floatformat:2|intcomma }} Bs</td>
             <td class="num">{% equiv_a_usd apartado_fondo_reserva "BS" tasa_bs tasa_euro as er2u %}{% if er2u %}{{ er2u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_eur apartado_fondo_reserva "BS" tasa_bs tasa_euro as er2e %}{% if er2e %}{{ er2e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>

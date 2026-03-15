@@ -1630,10 +1630,10 @@ def admin_gastos(request):
     ).select_related("id_movimiento__id_banco")
     bancos = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
     propietarios = Domicilio.objects.filter(id_condominio_id=user.id_condominio_id).select_related('id_propietario')
-    categorias = Categoria.objects.all()
-    if not categorias.exists():
-        Categoria.objects.create(nombre_categoria="General")
-        categorias = Categoria.objects.all()
+    # Asegurar categorías por defecto en el select de gastos
+    for nombre in ["General", "Administrativo", "Mantenimientos y Servicios", "Nóminas"]:
+        Categoria.objects.get_or_create(nombre_categoria=nombre)
+    categorias = Categoria.objects.all().order_by('nombre_categoria')
     cierre = Cierre_mes.objects.filter(id_condominio_id=user.id_condominio_id).order_by('fecha_cierre').last()
     if cierre:
         gastos = gastos.filter(id_movimiento__created_at__gt=cierre.fecha_cierre)
@@ -2562,6 +2562,21 @@ def admin_fondos(request):
     tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
+        # Guardar porcentaje del fondo de reserva (formulario aparte en Fondos)
+        if request.POST.get('guardar_porcentaje'):
+            try:
+                pct_val = request.POST.get('porcentaje_fondo_reserva', '').strip()
+                pct = Decimal(pct_val) if pct_val else None
+            except Exception:
+                pct = None
+            if pct is None or pct < 1 or pct > 100:
+                messages.warning(request, 'El porcentaje del fondo de reserva debe ser un número entre 1 y 100.', extra_tags='alert-danger')
+            else:
+                condominio.porcentaje_fondo_reserva = pct
+                condominio.save(update_fields=['porcentaje_fondo_reserva'])
+                messages.success(request, 'Porcentaje del fondo de reserva guardado correctamente.', extra_tags='alert-success')
+            return HttpResponseRedirect(reverse('condominio_app:admin_fondos'))
+
         if request.POST['fecha_movimiento'] > str(date.today()):
             # Este error ocurre si la fecha escogida es mayor a la actual
             messages.warning(request,
@@ -4889,7 +4904,8 @@ def admin_reportes(request):
             pendiente_deudas_en_bs = (p_bs + p_usd * tasa_bs_d + p_eur * tasa_eur_d).quantize(Decimal('0.01'))
             pendiente_deudas_en_usd = (p_bs / tasa_bs_d + p_usd + p_eur * tasa_eur_d / tasa_bs_d).quantize(Decimal('0.01'))
             pendiente_deudas_en_eur = (p_bs / tasa_eur_d + p_usd * tasa_bs_d / tasa_eur_d + p_eur).quantize(Decimal('0.01'))
-            apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+            factor_reserva = (Decimal(str(condominio.porcentaje_fondo_reserva or 0)) / Decimal('100'))
+            apartado_reserva = (total_gastos_mes_bs * factor_reserva).quantize(Decimal('0.01'))
             saldo_actual_reserva = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
             apartado_prestaciones = Decimal('0')
             saldo_actual_prestaciones = saldo_ant_prestaciones
@@ -5273,7 +5289,8 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         deuda_anterior_usd = max(Decimal('0'), (pendiente_deudas_en_usd - cuota_en_usd).quantize(Decimal('0.01')))
         total_a_pagar_bs = pendiente_deudas_en_bs
         total_a_pagar_usd = pendiente_deudas_en_usd
-        apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+        factor_reserva = (Decimal(str(condominio.porcentaje_fondo_reserva or 0)) / Decimal('100'))
+        apartado_reserva = (total_gastos_mes_bs * factor_reserva).quantize(Decimal('0.01'))
         saldo_actual_reserva = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
         apartado_prestaciones = Decimal('0')
         saldo_actual_prestaciones = saldo_ant_prestaciones
@@ -5311,11 +5328,12 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
             'pagos_en_bs': pagos_en_bs, 'pagos_en_usd': pagos_en_usd, 'pagos_en_eur': pagos_en_eur,
             'saldo_actual_bs': saldo_actual_bs, 'saldo_actual_usd': saldo_actual_usd, 'saldo_actual_eur': saldo_actual_eur,
             'saldo_actual_en_bs': saldo_act_en_bs, 'saldo_actual_en_usd': saldo_act_en_usd, 'saldo_actual_en_eur': saldo_act_en_eur,
-            'saldo_anterior_reserva': saldo_ant_reserva, 'apartado_fondo_reserva': apartado_reserva,
-            'saldo_actual_reserva': saldo_actual_reserva, 'apartado_prestaciones': apartado_prestaciones,
-            'saldo_anterior_prestaciones': saldo_ant_prestaciones, 'saldo_actual_prestaciones': saldo_actual_prestaciones,
-            'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
-            'deuda_del_mes_bs': cuota_en_bs, 'deuda_del_mes_usd': cuota_en_usd,
+'saldo_anterior_reserva': saldo_ant_reserva, 'apartado_fondo_reserva': apartado_reserva,
+                'saldo_actual_reserva': saldo_actual_reserva, 'apartado_prestaciones': apartado_prestaciones,
+                'saldo_anterior_prestaciones': saldo_ant_prestaciones, 'saldo_actual_prestaciones': saldo_actual_prestaciones,
+                'porcentaje_fondo_reserva': condominio.porcentaje_fondo_reserva,
+                'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
+                'deuda_del_mes_bs': cuota_en_bs, 'deuda_del_mes_usd': cuota_en_usd,
             'deuda_anterior_bs': deuda_anterior_bs, 'deuda_anterior_usd': deuda_anterior_usd,
             'total_a_pagar_bs': total_a_pagar_bs, 'total_a_pagar_usd': total_a_pagar_usd,
         }
@@ -5353,6 +5371,11 @@ def admin_cierres(request):
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
     datos_condominio = condominio.first()
+    # No permitir cierre hasta que esté definido el porcentaje del fondo de reserva (1-100)
+    pct_reserva = datos_condominio.porcentaje_fondo_reserva
+    if pct_reserva is None or (isinstance(pct_reserva, (int, float, Decimal)) and (pct_reserva < 1 or pct_reserva > 100)):
+        messages.warning(request, 'Debe definir el porcentaje del fondo de reserva (1-100%) en Fondos para poder realizar el cierre de mes o semestre.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_fondos'))
     ultima_tasa = Tasas.objects.last()
     if not ultima_tasa:
         messages.warning(request, 'Configure las tasas de cambio antes de ver el cierre del mes.', extra_tags='alert-danger')
@@ -5586,12 +5609,13 @@ def admin_cierres(request):
 
         total_fondos = (fondo_reserva or 0) + (fondo_operacional or 0) + (fondo_otros or 0) + (data['fondo_prestaciones'] or 0)
 
-        # Nivel 1: Fondo de reserva (10% gastos del mes), saldos anteriores, gastos bancarios
+        # Nivel 1: Fondo de reserva (% gastos del mes configurado en Fondos), saldos anteriores, gastos bancarios
         t_g_bs = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
         t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
         t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
         total_gastos_mes_bs = Decimal(str(t_g_bs)) + Decimal(str(t_g_usd)) / Decimal(str(tasa_bs)) + Decimal(str(t_g_eur)) / Decimal(str(tasa_euro))
-        apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+        factor_reserva = (Decimal(str(datos_condominio.porcentaje_fondo_reserva or 0)) / Decimal('100'))
+        apartado_reserva = (total_gastos_mes_bs * factor_reserva).quantize(Decimal('0.01'))
         data['apartado_fondo_reserva'] = apartado_reserva
         # MOVIMIENTO DE FONDOS: Saldo anterior reserva = total acumulado reserva (fondo_reserva); Saldo actual = anterior + apartado; Prestaciones = total acumulado
         saldo_ant_reserva = Decimal(str(fondo_reserva or 0))
@@ -5933,7 +5957,8 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
     t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
     t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
     total_gastos_mes_bs = Decimal(str(t_g)) + Decimal(str(t_g_usd)) / Decimal(str(tasa_bs)) + Decimal(str(t_g_eur)) / Decimal(str(tasa_euro))
-    data['apartado_fondo_reserva'] = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+    factor_reserva = (Decimal(str(datos_condominio.porcentaje_fondo_reserva or 0)) / Decimal('100'))
+    data['apartado_fondo_reserva'] = (total_gastos_mes_bs * factor_reserva).quantize(Decimal('0.01'))
     saldo_ant_reserva = Decimal(str(fondo_reserva or 0))
     saldo_ant_prestaciones = Decimal(str(fondo_prestaciones or 0))
     data['saldo_anterior_reserva'] = saldo_ant_reserva
@@ -5993,6 +6018,11 @@ def precierre(request):
     if not datos_condominio:
         messages.warning(request, 'No hay condominio configurado.', extra_tags='alert-danger')
         return HttpResponseRedirect(reverse('condominio_app:admin_cierres'))
+
+    pct_reserva = datos_condominio.porcentaje_fondo_reserva
+    if pct_reserva is None or (isinstance(pct_reserva, (int, float, Decimal)) and (pct_reserva < 1 or pct_reserva > 100)):
+        messages.warning(request, 'Debe definir el porcentaje del fondo de reserva (1-100%) en Fondos para poder ver el precierre o realizar el cierre.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_fondos'))
 
     ultima_tasa = Tasas.objects.last()
     if not ultima_tasa:

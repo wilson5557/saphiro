@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db.models.signals import pre_save
 from django.utils.text import slugify
@@ -119,6 +120,17 @@ class Condominio(models.Model):
         null=True,
         blank=True,
         help_text="Opcional. Si se define, las alícuotas se calculan como (m² del inmueble / este total)."
+    )
+
+    # Porcentaje de gastos que se aparta para el fondo de reserva (1-100). Obligatorio para poder ejecutar cierre de mes/semestre.
+    porcentaje_fondo_reserva = models.DecimalField(
+        verbose_name="Porcentaje del fondo de reserva",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text="Porcentaje de los gastos del período que se aparta para el fondo de reserva (1-100). Debe estar definido para realizar el cierre."
     )
 
     # Banners de la pantalla de inicio del condominio (opcional; si no hay, se usan estáticos por defecto)
