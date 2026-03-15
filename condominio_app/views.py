@@ -1256,7 +1256,14 @@ def reporte_movimientos_propietario_vista_previa(request):
     data['bancos_cabecera'] = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in todos_bancos]
     template = get_template('PDF/cierre_mes_propietario.html')
     html = template.render(data)
-    return HttpResponse(html, content_type='text/html; charset=utf-8')
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="movimientos_propietario_{}_{}.pdf"'.format(
+        propietario.nombre_propietario.replace(' ', '_'), cierre.fecha_cierre.strftime("%d-%m-%Y")
+    )
+    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=link_callback)
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF. <pre>' + html + '</pre>')
+    return response
 
 
 @login_required
