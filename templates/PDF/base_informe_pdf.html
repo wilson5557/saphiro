@@ -34,6 +34,14 @@
         /* Lista simple: sin líneas entre cada elemento (como en referencia) */
         .table-informe.table-lista-simple tbody td { border-bottom: none; }
         .table-informe.table-lista-simple tbody tr:nth-child(even) { background-color: transparent; }
+        /* Estilo unificado para TODAS las listas de reportes: poco espacio entre filas, números a la derecha */
+        .table-informe.table-lista-simple tbody td { padding: 2px 6px; line-height: 1.2; }
+        .table-informe.table-lista-simple thead th.num,
+        .table-informe.table-lista-simple tbody td.num { text-align: right; }
+        /* Listas tipo Descripción | Monto Bs | Monto USD: primera columna ancha (62%), resto reparten */
+        .table-informe.table-lista-simple.table-lista-desc-monto { table-layout: fixed; width: 100%; }
+        .table-informe.table-lista-simple.table-lista-desc-monto thead th:first-child { width: 62%; text-align: left; }
+        .table-informe.table-lista-simple.table-lista-desc-monto tbody td:first-child { width: 62%; }
         .monto-usd { font-weight: bold; }
         .text-center { text-align: center !important; }
         .text-right { text-align: right !important; }
@@ -48,11 +56,6 @@
         .pie-avisos { margin-top: 12px; text-align: center; font-size: 10px; line-height: 1.6; }
         .mt-3 { margin-top: 1rem; }
         .mt-5 { margin-top: 2rem; }
-        /* Lista gastos período: columna descripción más ancha, menos espacio entre filas */
-        .table-gastos-periodo thead th:first-child { width: 62%; }
-        .table-gastos-periodo thead th.num { width: 19%; }
-        .table-gastos-periodo tbody td { padding: 2px 6px; line-height: 1.2; }
-        .table-gastos-periodo .col-descripcion-gasto { width: 62%; }
     </style>
     {% block extra_css_pdf %}{% endblock %}
 </head>

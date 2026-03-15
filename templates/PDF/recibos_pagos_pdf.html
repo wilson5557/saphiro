@@ -8,11 +8,11 @@
     <tr><td>{% for data in datosRecibo %}{% if forloop.first %}Fecha: <strong>{{ data.fecha_creacion|date:'d/m/Y' }}</strong> Hora: <strong>{{ data.hora_creacion }}</strong>{% endif %}{% endfor %}</td><td>{{ datosCondo.direccion_condominio }}</td></tr>
     <tr><td>ID recibo: <strong>{{ datosMovimiento.id_movimiento }}</strong></td><td>{{ datosCondo.email }}</td></tr>
 </table>
-<table class="table-informe table-lista-simple mt-3">
+<table class="table-informe table-lista-simple table-lista-desc-monto mt-3">
     <thead><tr><th>Descripción</th><th class="num">Monto Bs.</th><th class="num">Monto en USD</th></tr></thead>
     <tbody>{% for data in datosRecibo %}<tr><td>{{ data.descripcion_recibo }}</td><td class="num">Bs. {{ data.monto|floatformat:2|intcomma }}</td><td class="num">{% equiv_bcv data.monto "BS" tasa_bs tasa_euro as eq %}{% if eq %}{{ eq.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
 </table>
-<table class="table-informe table-lista-simple mt-3">
+<table class="table-informe table-lista-simple table-lista-desc-monto mt-3">
     <thead><tr><th>Información de Pago</th><th>Concepto</th><th class="num">Total Bs.</th><th class="num">Total USD</th></tr></thead>
     <tbody>
         <tr>

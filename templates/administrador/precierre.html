@@ -7,6 +7,13 @@
 {% block title_page %}Precierre - Vista previa del cierre{% endblock title_page %}
 
 {% block body_block %}
+<style>
+    /* Mismo estilo que listas en PDF: descripción ancha (62%), filas compactas, cabecera gris */
+    .table.table-lista-informe { table-layout: fixed; width: 100%; font-size: 11px; }
+    .table.table-lista-informe thead th:first-child { width: 62%; text-align: left; }
+    .table.table-lista-informe tbody td { padding: 2px 6px; line-height: 1.2; }
+    .table.table-lista-informe tbody td:first-child { width: 62%; }
+</style>
 <div class="col-12 mb-4">
     <div class="alert alert-info text-center py-3" role="alert">
         <strong><i class="fa fa-eye"></i> VISTA PREVIA - PRECIERRE</strong><br>
@@ -50,7 +57,7 @@
 
     {% if ingresos %}
     <h3 class="text-center mt-4" style="font-size: 12px;">INGRESOS</h3>
-    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+    <table class="table table-sm table-bordered table-lista-informe mt-2" style="font-size: 11px;">
         <thead class="thead-light">
         <tr><th>Descripción</th><th class="text-right">Monto Bs</th><th class="text-right">Monto USD</th><th class="text-right">Monto EUR</th></tr>
         </thead>
@@ -94,13 +101,13 @@
     {% endif %}
 
     <h3 class="text-center mt-4" style="font-size: 12px;">DEUDAS ACUMULADAS</h3>
-    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+    <table class="table table-sm table-bordered table-lista-informe mt-2" style="font-size: 11px;">
         <thead class="thead-light"><tr><th></th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr></thead>
         <tr><td>Por impagos de los propietarios</td><td class="text-right">{{ monto_deuda_prop|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_u %}{% if eq_d_u %}{{ eq_d_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur monto_deuda_prop "BS" tasa_bs tasa_euro as eq_d_e %}{% if eq_d_e %}{{ eq_d_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
     </table>
 
     <h3 class="text-center mt-4" style="font-size: 12px;">MOVIMIENTO DE FONDOS</h3>
-    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
+    <table class="table table-sm table-bordered table-lista-informe mt-2" style="font-size: 11px;">
         <thead class="thead-light">
         <tr><th>Concepto</th><th class="text-right">BS</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr>
         </thead>
@@ -114,19 +121,10 @@
         </tbody>
     </table>
 
-    <h3 class="text-center mt-4" style="font-size: 12px;">FONDOS (totales por tipo)</h3>
-    <table class="table table-sm table-bordered mt-2" style="font-size: 11px;">
-        <thead class="thead-light"><tr><th></th><th class="text-right">Bs</th><th class="text-right">USD</th><th class="text-right">EUR</th></tr></thead>
-        <tr><td>De reserva</td><td class="text-right">{{ fondo_reserva|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_reserva "BS" tasa_bs tasa_euro as fr_u %}{% if fr_u %}{{ fr_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_reserva "BS" tasa_bs tasa_euro as fr_e %}{% if fr_e %}{{ fr_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
-        <tr><td>Operacional</td><td class="text-right">{{ fondo_operacional|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_operacional "BS" tasa_bs tasa_euro as fo_u %}{% if fo_u %}{{ fo_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_operacional "BS" tasa_bs tasa_euro as fo_e %}{% if fo_e %}{{ fo_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
-        <tr><td>Prestaciones</td><td class="text-right">{{ fondo_prestaciones|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_prestaciones "BS" tasa_bs tasa_euro as fp_u %}{% if fp_u %}{{ fp_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_prestaciones "BS" tasa_bs tasa_euro as fp_e %}{% if fp_e %}{{ fp_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
-        <tr><td>Otros fondos</td><td class="text-right">{{ fondo_otros|default:0|floatformat:2|intcomma }} Bs</td><td class="text-right">{% equiv_a_usd fondo_otros "BS" tasa_bs tasa_euro as fot_u %}{% if fot_u %}{{ fot_u|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td><td class="text-right">{% equiv_a_eur fondo_otros "BS" tasa_bs tasa_euro as fot_e %}{% if fot_e %}{{ fot_e|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td></tr>
-    </table>
-
     <h3 class="text-center mt-4" style="font-size: 12px;">MONTOS ESTABLECIDOS Y PARÁMETROS</h3>
     <div class="row mt-2">
         <div class="col-md-6">
-            <table class="table table-sm table-bordered" style="font-size: 11px;">
+            <table class="table table-sm table-bordered table-lista-informe" style="font-size: 11px;">
                 <thead class="thead-light"><tr><th>Precios establecidos</th><th class="text-right">Bs</th><th class="text-right">USD</th></tr></thead>
                 <tbody>
                 {% for precio, tipo_precio in precios %}
@@ -136,7 +134,7 @@
             </table>
         </div>
         <div class="col-md-6">
-            <table class="table table-sm table-bordered" style="font-size: 11px;">
+            <table class="table table-sm table-bordered table-lista-informe" style="font-size: 11px;">
                 <thead class="thead-light"><tr><th colspan="2">Recargos y descuentos</th></tr></thead>
                 <tbody>
                 {% for recargo_descuento, tipo_recargo_descuento in recargos_descuentos %}

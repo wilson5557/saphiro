@@ -5519,23 +5519,12 @@ def admin_cierres(request):
         total_gastos_mes_bs = Decimal(str(t_g_bs)) + Decimal(str(t_g_usd)) / Decimal(str(tasa_bs)) + Decimal(str(t_g_eur)) / Decimal(str(tasa_euro))
         apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
         data['apartado_fondo_reserva'] = apartado_reserva
-        if cierre_mes.exists():
-            ultimo_cierre = cierre_mes.last()
-            saldo_ant_reserva = Fondos.objects.filter(
-                tipo_fondo="RESERVA", **filtro_fondos_condo,
-                id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
-            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
-            saldo_ant_prestaciones = Fondos.objects.filter(
-                tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
-                id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
-            ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
-        else:
-            saldo_ant_reserva = Decimal('0')
-            saldo_ant_prestaciones = Decimal('0')
+        # MOVIMIENTO DE FONDOS: Saldo anterior reserva = total acumulado reserva (fondo_reserva); Saldo actual = anterior + apartado; Prestaciones = total acumulado
+        saldo_ant_reserva = Decimal(str(fondo_reserva or 0))
+        saldo_ant_prestaciones = Decimal(str(data.get('fondo_prestaciones') or 0))
         data['saldo_anterior_reserva'] = saldo_ant_reserva
         data['saldo_anterior_prestaciones'] = saldo_ant_prestaciones
-        data['saldo_actual_reserva'] = (Decimal(str(saldo_ant_reserva)) + apartado_reserva).quantize(Decimal('0.01'))
-        # Apartado prestaciones es manual; saldo actual = anterior + 0 por ahora
+        data['saldo_actual_reserva'] = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
         data['apartado_prestaciones'] = Decimal('0')
         data['saldo_actual_prestaciones'] = saldo_ant_prestaciones
         if cierre_mes.exists():
@@ -5865,35 +5854,27 @@ def _build_cierre_preview_data(user, resultado_ingreso, resultado_gasto, movimie
     data['fondo_otros'] = fondo_otros
     total_fondos = fondo_reserva + fondo_operacional + fondo_prestaciones + fondo_otros
 
-    # Nivel 1: apartado reserva (10% gastos), saldos anteriores, gastos bancarios
+    # Nivel 1: MOVIMIENTO DE FONDOS — Saldo anterior reserva = total acumulado (fondo_reserva); Saldo actual = anterior + apartado; Prestaciones = total acumulado
     t_g = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0
     t_g_usd = data['t_gastos_USD']['id_movimiento__monto_movimiento__sum'] or 0
     t_g_eur = data['t_gastos_EUR']['id_movimiento__monto_movimiento__sum'] or 0
     total_gastos_mes_bs = Decimal(str(t_g)) + Decimal(str(t_g_usd)) / Decimal(str(tasa_bs)) + Decimal(str(t_g_eur)) / Decimal(str(tasa_euro))
     data['apartado_fondo_reserva'] = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
+    saldo_ant_reserva = Decimal(str(fondo_reserva or 0))
+    saldo_ant_prestaciones = Decimal(str(fondo_prestaciones or 0))
+    data['saldo_anterior_reserva'] = saldo_ant_reserva
+    data['saldo_anterior_prestaciones'] = saldo_ant_prestaciones
+    data['saldo_actual_reserva'] = (saldo_ant_reserva + data['apartado_fondo_reserva']).quantize(Decimal('0.01'))
+    data['apartado_prestaciones'] = Decimal('0')
+    data['saldo_actual_prestaciones'] = saldo_ant_prestaciones
     if ultimo_cierre:
-        saldo_ant_reserva = Fondos.objects.filter(
-            tipo_fondo="RESERVA", **filtro_fondos_condo,
-            id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
-        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
-        saldo_ant_prestaciones = Fondos.objects.filter(
-            tipo_fondo="PRESTACIONES", **filtro_fondos_condo,
-            id_movimiento__created_at__lte=ultimo_cierre.fecha_cierre
-        ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
         gastos_bancarios_bs = Gastos.objects.filter(
             tipo_gasto='GASTOS BANCARIOS',
             id_movimiento__created_at__gt=ultimo_cierre.fecha_cierre,
             id_movimiento__id_banco__id_condominio_id=user.id_condominio_id,
         ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or 0
     else:
-        saldo_ant_reserva = Decimal('0')
-        saldo_ant_prestaciones = Decimal('0')
         gastos_bancarios_bs = 0
-    data['saldo_anterior_reserva'] = saldo_ant_reserva
-    data['saldo_anterior_prestaciones'] = saldo_ant_prestaciones
-    data['saldo_actual_reserva'] = (Decimal(str(saldo_ant_reserva)) + data['apartado_fondo_reserva']).quantize(Decimal('0.01'))
-    data['apartado_prestaciones'] = Decimal('0')
-    data['saldo_actual_prestaciones'] = saldo_ant_prestaciones
     data['total_gastos_bancarios_mes'] = gastos_bancarios_bs
 
     t_g = data['t_gastos']['id_movimiento__monto_movimiento__sum'] or 0

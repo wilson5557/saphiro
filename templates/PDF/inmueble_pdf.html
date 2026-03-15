@@ -18,18 +18,18 @@
 
 {% if lista_gastos_detalle %}
 <p style="margin-top: 12px; font-weight: bold; font-size: 12px;">LISTA DE GASTOS DEL PERÍODO</p>
-<table class="table-informe table-lista-simple table-gastos-periodo">
+<table class="table-informe table-lista-simple table-lista-desc-monto">
     <thead>
         <tr>
-            <th style="width: 62%;">Descripción</th>
-            <th class="num" style="width: 19%;">Monto Bs</th>
-            <th class="num" style="width: 19%;">Monto USD</th>
+            <th>Descripción</th>
+            <th class="num">Monto Bs</th>
+            <th class="num">Monto USD</th>
         </tr>
     </thead>
     <tbody>
         {% for item in lista_gastos_detalle %}
-        <tr class="fila-gasto-item">
-            <td class="col-descripcion-gasto">{{ item.descripcion }}</td>
+        <tr>
+            <td>{{ item.descripcion }}</td>
             <td class="num">{% equiv_a_bs item.monto item.moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_usd item.monto item.moneda tasa_bs tasa_euro as eu %}{% if eu %}{{ eu|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
         </tr>
@@ -83,7 +83,7 @@
 {% endif %}
 
 <p style="margin-top: 12px; font-weight: bold; font-size: 12px;">MOVIMIENTO DE FONDOS Y APARTADOS (condominio)</p>
-<table class="table-informe table-lista-simple">
+<table class="table-informe table-lista-simple table-lista-desc-monto">
     <thead>
         <tr><th>Concepto</th><th class="num">BS</th><th class="num">USD</th><th class="num">EUR</th></tr>
     </thead>
