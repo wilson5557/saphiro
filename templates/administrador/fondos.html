@@ -30,14 +30,18 @@ class="col-lg-3 end-padding-left"
                 <div class="col-sm-2">
                     <input type="number" class="form-control text-dark" id="porcentaje_fondo_reserva" name="porcentaje_fondo_reserva"
                            min="1" max="100" step="0.01" placeholder="1-100"
-                           value="{{ conf.porcentaje_fondo_reserva|default:'' }}">
+                           value="{{ conf.porcentaje_fondo_reserva|floatformat:2|default:'' }}">
                 </div>
                 <div class="col-sm-2 text-muted small">% de los gastos (1-100)</div>
                 <div class="col-sm-2">
                     <button type="submit" class="btn btn-option btn-sm">Guardar</button>
                 </div>
             </form>
+            {% if conf.porcentaje_fondo_reserva %}
+            <p class="text-muted small mb-2">Último valor guardado: <strong>{{ conf.porcentaje_fondo_reserva|floatformat:2 }}%</strong>. Este porcentaje se usa en cierres y reportes hasta que guarde uno nuevo.</p>
+            {% else %}
             <p class="text-muted small mb-2">Este porcentaje debe estar definido para poder realizar el cierre de mes o semestre.</p>
+            {% endif %}
 
             <div class="form-group row">
                 <button class="btn-option mx-auto move-up d-none" id="HideFondos" onclick="ShowOrHide('HideListaFondos')" data-toggle="popover" data-content="Haz click aquí para agregar un fondo"><i class="bx bx-plus pr-2"></i> Agregar Fondos</button>

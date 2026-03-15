@@ -422,6 +422,12 @@ class Cierre_mes(models.Model):
     fecha_cierre = models.DateTimeField(auto_now_add=True, null=True)
     pdf_cierre = models.FileField(upload_to=upload_cierres, null=True, max_length=255)
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
+    # Porcentaje del fondo de reserva usado en este cierre; se guarda para historial y se mantiene el mismo % en el condominio hasta que se guarde uno nuevo en Fondos
+    porcentaje_fondo_reserva_usado = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        verbose_name="Porcentaje fondo reserva usado en este cierre"
+    )
 
     class Meta:
         db_table = 'cierre_mes'

@@ -5706,6 +5706,8 @@ def admin_cierres(request):
         dbb_pdf.pdf_cierre.save(response.get('Content-Disposition').split('filename="')[1].replace('"', ''),
                                 ContentFile(pdf_data))
         dbb_pdf.id_condominio = datos_condominio
+        # Guardar el % usado en este cierre; el mismo % se mantiene en el condominio hasta que se guarde uno nuevo en Fondos
+        dbb_pdf.porcentaje_fondo_reserva_usado = datos_condominio.porcentaje_fondo_reserva
         dbb_pdf.save()
 
         resultado = resultado_gasto.aggregate(Sum('id_movimiento__monto_movimiento'))
