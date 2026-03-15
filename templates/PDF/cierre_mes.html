@@ -40,7 +40,7 @@
 </table>
 
 {% if ingresos %}
-<p class="mt-5" style="font-weight: bold; font-size: 12px;">INGRESOS</p>
+<p class="mt-3" style="font-weight: bold; font-size: 12px;">INGRESOS</p>
 <table class="table-informe table-lista-simple table-lista-desc-monto">
     <thead>
         <tr>
@@ -68,12 +68,12 @@
     </tbody>
 </table>
 {% else %}
-<p class="mt-5" style="font-weight: bold;">INGRESOS</p>
+<p class="mt-3" style="font-weight: bold;">INGRESOS</p>
 <p class="text-danger"><strong>NO SE HA RECIBIDO NINGÚN INGRESO ESTE MES</strong></p>
 {% endif %}
 
 {% if gastos %}
-<p class="mt-5" style="font-weight: bold; font-size: 12px;">GASTOS</p>
+<p class="mt-3" style="font-weight: bold; font-size: 12px;">GASTOS</p>
 <table class="table-informe table-lista-simple table-lista-desc-monto">
     <thead>
         <tr>
@@ -98,16 +98,16 @@
     </tbody>
 </table>
 {% else %}
-<p class="mt-5" style="font-weight: bold;">GASTOS</p>
+<p class="mt-3" style="font-weight: bold;">GASTOS</p>
 <p class="text-danger"><strong>NO SE HA REALIZADO NINGÚN GASTO ESTE MES</strong></p>
 {% endif %}
 
-<p class="mt-5" style="font-weight: bold; font-size: 12px;">DEUDAS ACUMULADAS</p>
+<p class="mt-3" style="font-weight: bold; font-size: 12px;">DEUDAS ACUMULADAS</p>
 <table class="table-informe table-lista-simple table-lista-desc-monto">
-    <thead><tr><th></th><th class="num">Bs</th><th class="num">USD</th><th class="num">EUR</th></tr></thead>
+    <thead><tr><th>Concepto</th><th class="num">Bs</th><th class="num">USD</th><th class="num">EUR</th></tr></thead>
     <tbody>
         <tr>
-            <td>Por impagos de los propietarios</td>
+            <td>Por deudas de propietarios</td>
             <td class="num">{% if monto_deuda_prop %}{{ monto_deuda_prop|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_usd monto_deuda_prop "BS" tasa_bs tasa_euro as eq_du %}{% if eq_du %}{{ eq_du|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
             <td class="num">{% equiv_a_eur monto_deuda_prop "BS" tasa_bs tasa_euro as eq_de %}{% if eq_de %}{{ eq_de|floatformat:2|intcomma }} EUR{% else %}—{% endif %}</td>
@@ -115,7 +115,7 @@
     </tbody>
 </table>
 
-<p class="mt-5" style="font-weight: bold; font-size: 12px;">MOVIMIENTO DE FONDOS</p>
+<p class="mt-3" style="font-weight: bold; font-size: 12px;">MOVIMIENTO DE FONDOS</p>
 <table class="table-informe table-lista-simple table-lista-desc-monto">
     <thead><tr><th>Concepto</th><th class="num">Bs</th><th class="num">USD</th><th class="num">EUR</th></tr></thead>
     <tbody>
@@ -127,7 +127,7 @@
     </tbody>
 </table>
 
-<p class="mt-5" style="font-weight: bold; font-size: 12px;">MONTOS ESTABLECIDOS Y PARÁMETROS</p>
+<p class="mt-3" style="font-weight: bold; font-size: 12px;">MONTOS ESTABLECIDOS Y PARÁMETROS</p>
 <table class="table-informe" style="width: 100%;">
     <tr>
         <td style="width: 48%;">
