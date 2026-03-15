@@ -189,7 +189,7 @@
       </div>
 
       <div class="form-style-10 col-sm-12 d-none" id="FormAgregarInmueble">
-        <form method="POST">
+        <form method="POST" id="formAgregarInmuebleSubmit">
           {% csrf_token %}
           <input type="hidden" name="form_origen" value="agregar_inmueble">
           <div class="section mb-3"><span>2</span>Agregar inmueble al propietario</div>
@@ -246,7 +246,7 @@
           </div>
           <div class="inner-wrap form-row">
             <div class="form-group col-sm-12">
-              <button type="submit" class="btn btn-success w-100">Guardar propietario</button>
+              <button type="submit" class="btn btn-success w-100" id="btnGuardarInmuebles">Guardar propietario</button>
             </div>
           </div>
         </form>
@@ -255,6 +255,18 @@
   </div>
 </div>
   <!-- FIN MAESTRO DE PROPIETARIOS -->
+  <script>
+    (function() {
+      var formAgregar = document.getElementById('formAgregarInmuebleSubmit');
+      var btnGuardar = document.getElementById('btnGuardarInmuebles');
+      if (formAgregar && btnGuardar) {
+        formAgregar.addEventListener('submit', function() {
+          btnGuardar.disabled = true;
+          btnGuardar.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span> Asignando...';
+        });
+      }
+    })();
+  </script>
   <script>
     function TogglePropietarioUpdate(mode) {
       var formEdit = document.getElementById('FormEditarPropietario');

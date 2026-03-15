@@ -24,7 +24,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -2639,38 +2639,75 @@ def procesar_propietario_post(request):
                          extra_tags='alert-danger')
         return False
 
+    if Usuario.objects.filter(username=dataPropietario['dni']).exists():
+        messages.warning(request,
+                         'Este número de identificación ya está registrado como usuario en el sistema.',
+                         extra_tags='alert-danger')
+        return False
+
+    domicilio_ids_raw = request.POST.getlist('domicilio')
+    condominio_id = request.user.id_condominio_id
+    if domicilio_ids_raw:
+        try:
+            domicilio_ids = [int(x) for x in domicilio_ids_raw if str(x).isdigit()]
+        except (ValueError, TypeError):
+            domicilio_ids = []
+        domicilios_validos = Domicilio.objects.filter(
+            id_domicilio__in=domicilio_ids,
+            id_condominio_id=condominio_id,
+            id_propietario_id__isnull=True,
+        )
+        if domicilios_validos.count() != len(domicilio_ids):
+            messages.warning(request,
+                             'Uno o más inmuebles no son válidos o ya están asignados. Use solo inmuebles de su condominio.',
+                             extra_tags='alert-danger')
+            return False
+
     propietarios_form = PropietariosForm(data=dataPropietario)
-    if propietarios_form.is_valid():
-        prop = propietarios_form.save()
+    if not propietarios_form.is_valid():
+        primera_key = next(iter(propietarios_form.errors))
+        messages.warning(request,
+                         propietarios_form.errors[primera_key].as_text().replace('*', ''),
+                         extra_tags='alert-danger')
+        return False
 
-        aptos = ""
-        for i, domicilios in enumerate(request.POST.getlist('domicilio')):
-            dom_seleccionados = Domicilio.objects.get(id_domicilio=int(domicilios))
-            dom_seleccionados.id_propietario = prop
-            dom_seleccionados.save()
-            if i == 0:
-                aptos = dom_seleccionados.nombre_domicilio
-            else:
-                aptos = aptos + ', ' + dom_seleccionados.nombre_domicilio
+    try:
+        with transaction.atomic():
+            prop = propietarios_form.save()
 
-        usuario = RegistrationForm(data=dataUsuario)
-        if usuario.is_valid():
+            aptos = ""
+            if domicilio_ids_raw:
+                domicilio_ids = [int(x) for x in domicilio_ids_raw if str(x).isdigit()]
+                domicilios_a_asignar = Domicilio.objects.filter(
+                    id_domicilio__in=domicilio_ids,
+                    id_condominio_id=condominio_id,
+                    id_propietario_id__isnull=True,
+                )
+                for i, dom in enumerate(domicilios_a_asignar):
+                    dom.id_propietario = prop
+                    dom.save()
+                    aptos = aptos + (dom.nombre_domicilio if i == 0 else ', ' + dom.nombre_domicilio)
+
+            usuario = RegistrationForm(data=dataUsuario)
+            if not usuario.is_valid():
+                primera_key = next(iter(usuario.errors))
+                messages.warning(request,
+                                 usuario.errors[primera_key].as_text().replace('*', ''),
+                                 extra_tags='alert-danger')
+                return False
+
             acc = usuario.save(commit=False)
             acc.set_password(dataPropietario['dni'])
-            rol_propietario = RolModel.objects.filter(rol='4').first()
-            if not rol_propietario:
-                rol_propietario = RolModel.objects.create(rol='4')
+            rol_propietario, _ = RolModel.objects.get_or_create(rol='4', defaults={'rol': '4'})
             acc.id_rol_id = rol_propietario.id_rol
-            acc.id_condominio_id = request.user.id_condominio_id
+            acc.id_condominio_id = condominio_id
             acc.save()
 
             prop.id_usuario_id = acc.id
             prop.save()
 
             dataEmail = {'propietario': request.POST['nombre_propietario'], 'apto': aptos,
-                         'password': dataPropietario['dni'], 'usuario': dataPropietario['dni']
-                         }
-
+                         'password': dataPropietario['dni'], 'usuario': dataPropietario['dni']}
             html_content = render_to_string('mails/mail.html', dataEmail)
             email = EmailMultiAlternatives('Esparta Suites: Información de Cuenta', html_content)
             email.attach_alternative(html_content, "text/html")
@@ -2683,19 +2720,11 @@ def procesar_propietario_post(request):
                              '¡El propietario y su usuario han sido registrados de manera satisfactoria!',
                              extra_tags='alert-success')
             return True
-        else:
-            print(usuario.errors)
-            primera_key = next(iter(usuario.errors))
-            messages.warning(request,
-                             usuario.errors[primera_key].as_text().replace('*', ''),
-                             extra_tags='alert-danger')
-    else:
-        primera_key = next(iter(propietarios_form.errors))
+    except IntegrityError:
         messages.warning(request,
-                         propietarios_form.errors[primera_key].as_text().replace('*', ''),
+                         'Error al registrar (usuario o correo duplicado). Revise los datos e intente de nuevo.',
                          extra_tags='alert-danger')
-
-    return False
+        return False
 
 
 # ------------------------------ADMINISTRACION Y GESTION DE PROPIETARIOS------------------------------
@@ -2709,7 +2738,10 @@ def admin_propietarios(request):
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
     propietarios = Propietario.objects.filter(id_usuario__id_condominio_id=user.id_condominio_id)
-    domicilios = Domicilio.objects.filter(id_propietario_id__isnull=True).select_related('id_propietario').order_by('-created_at')
+    domicilios = Domicilio.objects.filter(
+        id_propietario_id__isnull=True,
+        id_condominio_id=user.id_condominio_id,
+    ).select_related('id_propietario').order_by('-created_at')
     domicilios_disponibles = len(domicilios)
 
     torres = Torre.objects.all()
@@ -2768,7 +2800,10 @@ def admin_validacion_pagos(request):
 
     condominio = Condominio.objects.filter(id_condominio=user.id_condominio_id)
     propietarios = Propietario.objects.filter(id_usuario__id_condominio_id=user.id_condominio_id)
-    domicilios = Domicilio.objects.filter(id_propietario_id__isnull=True).select_related('id_propietario').order_by('-created_at')
+    domicilios = Domicilio.objects.filter(
+        id_propietario_id__isnull=True,
+        id_condominio_id=user.id_condominio_id,
+    ).select_related('id_propietario').order_by('-created_at')
     domicilios_disponibles = len(domicilios)
     torres = Torre.objects.all()
     propietarios_form = PropietariosForm()
@@ -5578,18 +5613,16 @@ def admin_cierres(request):
 
         # Solo domicilios de este condominio
         domicilios_qs = Domicilio.objects.filter(id_condominio=datos_condominio)
-        # Total m²: si el condominio tiene superficie total definida, usarla; si no, suma de m² de domicilios
-        if getattr(datos_condominio, 'superficie_total_m2', None) is not None and datos_condominio.superficie_total_m2 > 0:
-            total_m2 = datos_condominio.superficie_total_m2
-        else:
-            total_m2 = Decimal('0')
-            for d in domicilios_qs:
-                try:
-                    val = d.size_domicilio
-                    if val is not None and str(val).strip():
-                        total_m2 += Decimal(str(val).replace(',', '.'))
-                except (TypeError, ValueError):
-                    pass
+        # Total m²: siempre suma de m² de todos los domicilios del condominio, para incluir inmuebles nuevos
+        # y que la alícuota calculada coincida con el reporte "relación mensual de gastos por inmueble"
+        total_m2 = Decimal('0')
+        for d in domicilios_qs:
+            try:
+                val = d.size_domicilio
+                if val is not None and str(val).strip():
+                    total_m2 += Decimal(str(val).replace(',', '.'))
+            except (TypeError, ValueError):
+                pass
 
         # Desactivar deudas CONDOMINIO anteriores de este condominio (no se borran; solo dejan de mostrarse en pagos)
         ids_domicilios = [dom.id_domicilio for dom in domicilios_qs]
@@ -6651,7 +6684,10 @@ def updatePropietarios(request, id):
         return HttpResponseRedirect(reverse('condominio_app:home_propietarios'))
 
     conf = Condominio.objects.get(id_condominio=user.id_condominio_id)
-    propietario = Propietario.objects.select_related('id_usuario').get(id_propietario=id)
+    propietario = Propietario.objects.select_related('id_usuario').filter(id_propietario=id).first()
+    if not propietario or not propietario.id_usuario_id or propietario.id_usuario.id_condominio_id != user.id_condominio_id:
+        messages.warning(request, 'Propietario no encontrado o no pertenece a su condominio.', extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
     propietarios_form = PropietariosForm()
     user_form = RegistrationForm()
     torres = Torre.objects.filter(id_condominio_id=user.id_condominio_id)
@@ -6690,10 +6726,28 @@ def updatePropietarios(request, id):
                                  'Debe seleccionar al menos un inmueble.',
                                  extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('condominio_app:updatePropietarios', kwargs={'id': id}))
-            Domicilio.objects.filter(id_domicilio__in=seleccionados).update(id_propietario_id=id)
-            messages.success(request,
-                             '¡Los inmuebles fueron asignados correctamente!',
-                             extra_tags='alert-success')
+            try:
+                ids = [int(x) for x in seleccionados if str(x).isdigit()]
+            except (ValueError, TypeError):
+                ids = []
+            domicilios_validos = Domicilio.objects.filter(
+                id_domicilio__in=ids,
+                id_condominio_id=user.id_condominio_id,
+                id_propietario_id__isnull=True,
+            )
+            actualizados = domicilios_validos.update(id_propietario_id=id)
+            if actualizados == 0:
+                messages.warning(request,
+                                 'Ningún inmueble pudo asignarse. Verifique que sean de su condominio y estén disponibles.',
+                                 extra_tags='alert-danger')
+            elif actualizados < len(ids):
+                messages.warning(request,
+                                 'Solo {} de {} inmuebles se asignaron. Los demás no son válidos o ya están asignados.'.format(actualizados, len(ids)),
+                                 extra_tags='alert-warning')
+            else:
+                messages.success(request,
+                                 '¡Los inmuebles fueron asignados correctamente!',
+                                 extra_tags='alert-success')
             return HttpResponseRedirect(reverse('condominio_app:updatePropietarios', kwargs={'id': id}))
 
         # Tipo de documento: debe venir del POST (V, E, P, J, G, R, O)
@@ -6725,22 +6779,28 @@ def updatePropietarios(request, id):
 
                 # Se chequea si el formulario de los propietarios es valido
                 if propietarios_form.is_valid():
-                    # Se chequea si el formulario de los usuarios es valido
-                    Propietario.objects.filter(pk=id).update(nombre_propietario=dataPropietario['nombre_propietario'],
-                                                             genero=dataPropietario['genero'], pais_residencia=dataPropietario['pais_residencia'],
-                                                             tipo_dni=dataPropietario['tipo_dni'], dni=dataPropietario['dni'],
-                                                             codigo_tlf_hab=dataPropietario['codigo_tlf_hab'],
-                                                             telefono_hab=dataPropietario['telefono_hab'],
-                                                             codigo_tlf_movil=dataPropietario['codigo_tlf_movil'],
-                                                             telefono_movil=dataPropietario['telefono_movil'])
+                    nuevo_email = (request.POST.get('email') or '').strip()
+                    if nuevo_email and Usuario.objects.filter(email=nuevo_email).exclude(pk=propietario.id_usuario_id).exists():
+                        messages.warning(request,
+                                         'El correo ya está registrado por otro usuario.',
+                                         extra_tags='alert-danger')
+                    else:
+                        # Se chequea si el formulario de los usuarios es valido
+                        Propietario.objects.filter(pk=id).update(nombre_propietario=dataPropietario['nombre_propietario'],
+                                                                 genero=dataPropietario['genero'], pais_residencia=dataPropietario['pais_residencia'],
+                                                                 tipo_dni=dataPropietario['tipo_dni'], dni=dataPropietario['dni'],
+                                                                 codigo_tlf_hab=dataPropietario['codigo_tlf_hab'],
+                                                                 telefono_hab=dataPropietario['telefono_hab'],
+                                                                 codigo_tlf_movil=dataPropietario['codigo_tlf_movil'],
+                                                                 telefono_movil=dataPropietario['telefono_movil'])
 
-                    propietario.id_usuario.email = request.POST['email']
-                    propietario.id_usuario.save()
+                        propietario.id_usuario.email = nuevo_email or propietario.id_usuario.email
+                        propietario.id_usuario.save()
 
-                    messages.success(request,
-                                     '¡El propietario ha sido actualizado de manera satisfactoria!',
-                                     extra_tags='alert-success')
-                    return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
+                        messages.success(request,
+                                         '¡El propietario ha sido actualizado de manera satisfactoria!',
+                                         extra_tags='alert-success')
+                        return HttpResponseRedirect(reverse('condominio_app:admin_propietarios'))
 
                 else:
                     primera_key = next(iter(propietarios_form.errors))
@@ -7169,7 +7229,7 @@ def domicilio_update(request):
 
 
 
-    domicilioUpdate.zise_domicilio = zise_domicilio
+    domicilioUpdate.size_domicilio = zise_domicilio
     domicilioUpdate.save()
 
     messages.success(request, '¡El domicilio fue actualizado de manera satisfactoria!',extra_tags='alert-success')
@@ -7375,27 +7435,25 @@ def obtener_bancos(request):
     return JsonResponse({'bancos': bancos, 'cantidad_bancos': len(bancos)})
 
 def _alicuota_para_display(domicilio):
-    """Devuelve la alícuota en formato decimal (0.16 para 16%): guardada o calculada por m²."""
+    """Devuelve la alícuota en formato decimal (0.16 para 16%): la definida en el inmueble o, si no, calculada por m².
+    Si no está establecida al crear/editar el inmueble, se calcula como m² del inmueble / suma(m² de todos los domicilios del condominio),
+    para que inmuebles nuevos queden incluidos en el total."""
     if domicilio.alicuota_domicilio is not None:
         a = float(domicilio.alicuota_domicilio)
         # Si viene como % (1, 16, etc.), convertir a decimal (0.01, 0.16); si ya es decimal (< 1), mantener
         return round((a / 100) if a >= 1 else a, 4)
     if not domicilio.id_condominio_id:
         return None
-    try:
-        condominio = Condominio.objects.get(id_condominio=domicilio.id_condominio_id)
-    except Condominio.DoesNotExist:
-        return None
-    total_m2 = getattr(condominio, 'superficie_total_m2', None)
-    if total_m2 is None or total_m2 <= 0:
-        total_m2 = Decimal('0')
-        for d in Domicilio.objects.filter(id_condominio_id=domicilio.id_condominio_id):
-            try:
-                val = d.size_domicilio
-                if val is not None and str(val).strip():
-                    total_m2 += Decimal(str(val).replace(',', '.'))
-            except (TypeError, ValueError):
-                pass
+    # Cálculo automático: siempre usar suma de m² de todos los domicilios del condominio,
+    # para incluir inmuebles nuevos y que la alícuota sea coherente con el resto.
+    total_m2 = Decimal('0')
+    for d in Domicilio.objects.filter(id_condominio_id=domicilio.id_condominio_id):
+        try:
+            val = d.size_domicilio
+            if val is not None and str(val).strip():
+                total_m2 += Decimal(str(val).replace(',', '.'))
+        except (TypeError, ValueError):
+            pass
     try:
         m2_dom = Decimal(str(domicilio.size_domicilio).replace(',', '.')) if domicilio.size_domicilio else Decimal('0')
     except (TypeError, ValueError):
