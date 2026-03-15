@@ -158,7 +158,7 @@ aptoBoton.forEach(function(boton) {
                                 "<div class='col-sm-6 mt-2'><strong>Piso:</strong> " + response.domicilio.piso + "</div>" +
                                 "<div class='col-sm-6 mt-2'><strong>Tamaño:</strong> " + response.domicilio.size + "</div>" +
                                 "<div class='col-sm-6 mt-2'><strong>Estacionamientos:</strong> " + response.domicilio.estacionamientos + "</div>" +
-                                "<div class='col-sm-6 mt-2'><strong>Alicuota:</strong> " + (response.domicilio.alicuota != null && response.domicilio.alicuota !== '' ? String(response.domicilio.alicuota).replace(/%/g, '') : '—') + "</div>" +
+                                "<div class='col-sm-6 mt-2'><strong>Alicuota:</strong> " + (response.domicilio.alicuota != null && response.domicilio.alicuota !== '' ? String(response.domicilio.alicuota).replace(/[\s%％]/g, '').trim() : '—') + "</div>" +
                                 "<div class='col-sm-6 mt-2'><strong>Saldo (BS):</strong> " + response.domicilio.saldo_bs + "</div>" +
                                 "<div class='col-sm-6 mt-2'><strong>Saldo (USD):</strong> " + response.domicilio.saldo_usd + "</div>" +
                                 "<div class='col-sm-6 mt-2'><strong>Saldo (EUR):</strong> " + response.domicilio.saldo_eur + "</div>" +
@@ -234,7 +234,7 @@ aptoBoton.forEach(function(boton) {
                             "<div class='col-sm-6 mt-2'><strong>Piso:</strong> " + response.domicilio.piso + "</div>" +
                             "<div class='col-sm-6 mt-2'><strong>Tamaño:</strong> " + response.domicilio.size + "</div>" +
                             "<div class='col-sm-6 mt-2'><strong>Estacionamientos:</strong> " + response.domicilio.estacionamientos + "</div>" +
-                            "<div class='col-sm-6 mt-2'><strong>Alicuota:</strong> " + (response.domicilio.alicuota != null && response.domicilio.alicuota !== '' ? String(response.domicilio.alicuota).replace(/%/g, '') : '—') + "</div>" +
+                            "<div class='col-sm-6 mt-2'><strong>Alicuota:</strong> " + (response.domicilio.alicuota != null && response.domicilio.alicuota !== '' ? String(response.domicilio.alicuota).replace(/[\s%％]/g, '').trim() : '—') + "</div>" +
                             "<div class='col-sm-6 mt-2'><strong>Saldo (BS):</strong> " + response.domicilio.saldo_bs + "</div>" +
                             "<div class='col-sm-6 mt-2'><strong>Saldo (USD):</strong> " + response.domicilio.saldo_usd + "</div>" +
                             "<div class='col-sm-6 mt-2'><strong>Saldo (EUR):</strong> " + response.domicilio.saldo_eur + "</div>" +

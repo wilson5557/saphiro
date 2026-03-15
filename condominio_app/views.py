@@ -5185,11 +5185,6 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         saldo_act_en_bs = (saldo_actual_bs + (saldo_actual_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_actual_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
         saldo_act_en_usd = ((saldo_actual_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_actual_usd + (saldo_actual_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
         saldo_act_en_eur = ((saldo_actual_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_actual_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_actual_eur).quantize(Decimal('0.01'))
-        # Deuda anterior y total a pagar (deuda del mes + deuda anterior) en BS y USD para el cuadro del reporte
-        deuda_anterior_bs = (deuda_ant_bs + (deuda_ant_usd * tasa_bs_d if tasa_bs_d else 0) + (deuda_ant_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
-        deuda_anterior_usd = ((deuda_ant_bs / tasa_bs_d if tasa_bs_d else 0) + deuda_ant_usd + (deuda_ant_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
-        total_a_pagar_bs = (cuota_en_bs + deuda_anterior_bs).quantize(Decimal('0.01'))
-        total_a_pagar_usd = (cuota_en_usd + deuda_anterior_usd).quantize(Decimal('0.01'))
         t_bs_i = Decimal(str(total_bs_inm))
         t_usd_i = Decimal(str(total_usd_inm))
         t_eur_i = Decimal(str(total_eur_inm))
@@ -5200,6 +5195,11 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         pendiente_deudas_en_bs = (p_bs + p_usd * tasa_bs_d + p_eur * tasa_eur_d).quantize(Decimal('0.01'))
         pendiente_deudas_en_usd = (p_bs / tasa_bs_d + p_usd + p_eur * tasa_eur_d / tasa_bs_d).quantize(Decimal('0.01'))
         pendiente_deudas_en_eur = (p_bs / tasa_eur_d + p_usd * tasa_bs_d / tasa_eur_d + p_eur).quantize(Decimal('0.01'))
+        # Cuadro del reporte (foto 1): Deuda anterior = pendiente - cuota del mes; Total a pagar = pendiente
+        deuda_anterior_bs = max(Decimal('0'), (pendiente_deudas_en_bs - cuota_en_bs).quantize(Decimal('0.01')))
+        deuda_anterior_usd = max(Decimal('0'), (pendiente_deudas_en_usd - cuota_en_usd).quantize(Decimal('0.01')))
+        total_a_pagar_bs = pendiente_deudas_en_bs
+        total_a_pagar_usd = pendiente_deudas_en_usd
         apartado_reserva = (total_gastos_mes_bs * Decimal('0.10')).quantize(Decimal('0.01'))
         saldo_actual_reserva = (saldo_ant_reserva + apartado_reserva).quantize(Decimal('0.01'))
         apartado_prestaciones = Decimal('0')
@@ -7505,8 +7505,15 @@ def obtener_deudas(request):
             deudas = Deudas.objects.filter(id_domicilio_id=request.GET.get('aptoDeuda'), is_active=True).order_by('categoria_deuda')
 
             alic_val = alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio
-            if alic_val is not None and isinstance(alic_val, (int, float)) and float(alic_val) >= 1:
-                alic_val = round(float(alic_val) / 100, 4)
+            if alic_val is not None:
+                if isinstance(alic_val, str):
+                    alic_val = alic_val.replace('%', '').replace('％', '').strip()
+                    try:
+                        alic_val = float(alic_val) if alic_val else None
+                    except (ValueError, TypeError):
+                        alic_val = None
+                if alic_val is not None and isinstance(alic_val, (int, float)) and float(alic_val) >= 1:
+                    alic_val = round(float(alic_val) / 100, 4)
             data = {
                 'domicilio': {
                     'id': domicilio.id_domicilio,
@@ -7535,8 +7542,15 @@ def obtener_deudas(request):
             deudas = Deudas.objects.filter(id_domicilio_id=request.GET.get('aptoDeuda'), is_active=True).order_by('categoria_deuda')
 
             alic_val = alicuota_display if alicuota_display is not None else domicilio.alicuota_domicilio
-            if alic_val is not None and isinstance(alic_val, (int, float)) and float(alic_val) >= 1:
-                alic_val = round(float(alic_val) / 100, 4)
+            if alic_val is not None:
+                if isinstance(alic_val, str):
+                    alic_val = alic_val.replace('%', '').replace('％', '').strip()
+                    try:
+                        alic_val = float(alic_val) if alic_val else None
+                    except (ValueError, TypeError):
+                        alic_val = None
+                if alic_val is not None and isinstance(alic_val, (int, float)) and float(alic_val) >= 1:
+                    alic_val = round(float(alic_val) / 100, 4)
             data = {
                 'domicilio': {
                     'id': domicilio.id_domicilio,
