@@ -5134,6 +5134,24 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
             ).aggregate(total=Sum('id_movimiento__monto_movimiento'))['total'] or Decimal('0')
         else:
             saldo_ant_reserva = saldo_ant_prestaciones = Decimal('0')
+        # Deuda anterior: deudas activas del inmueble con fecha anterior al inicio del período
+        deuda_ant_bs = deuda_ant_usd = deuda_ant_eur = Decimal('0')
+        if inicio_dt_fondos:
+            deudas_anteriores = Deudas.objects.filter(
+                id_domicilio_id=domicilio_id,
+                tipo_deuda="2",
+                is_active=True,
+                fecha_deuda__lt=inicio_dt_fondos
+            )
+            for d in deudas_anteriores:
+                m = Decimal(str(d.monto_deuda or 0))
+                mon = (d.tipo_moneda or 'BS').strip().upper()
+                if mon == 'BS':
+                    deuda_ant_bs += m
+                elif mon == 'USD':
+                    deuda_ant_usd += m
+                elif mon == 'EUR':
+                    deuda_ant_eur += m
         ultima_tasa = Tasas.objects.last()
         tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date() if hasattr(timezone, 'now') else date.today())
         if (not tasa_bs or Decimal(str(tasa_bs)) <= 0) and ultima_tasa and getattr(ultima_tasa, 'tasa_BCV_USD', None):
@@ -5167,6 +5185,11 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
         saldo_act_en_bs = (saldo_actual_bs + (saldo_actual_usd * tasa_bs_d if tasa_bs_d else 0) + (saldo_actual_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
         saldo_act_en_usd = ((saldo_actual_bs / tasa_bs_d if tasa_bs_d else 0) + saldo_actual_usd + (saldo_actual_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
         saldo_act_en_eur = ((saldo_actual_bs / tasa_eur_d if tasa_eur_d else 0) + (saldo_actual_usd * tasa_bs_d / tasa_eur_d if tasa_eur_d else 0) + saldo_actual_eur).quantize(Decimal('0.01'))
+        # Deuda anterior y total a pagar (deuda del mes + deuda anterior) en BS y USD para el cuadro del reporte
+        deuda_anterior_bs = (deuda_ant_bs + (deuda_ant_usd * tasa_bs_d if tasa_bs_d else 0) + (deuda_ant_eur * tasa_eur_d if tasa_eur_d else 0)).quantize(Decimal('0.01'))
+        deuda_anterior_usd = ((deuda_ant_bs / tasa_bs_d if tasa_bs_d else 0) + deuda_ant_usd + (deuda_ant_eur * tasa_eur_d / tasa_bs_d if tasa_bs_d else 0)).quantize(Decimal('0.01'))
+        total_a_pagar_bs = (cuota_en_bs + deuda_anterior_bs).quantize(Decimal('0.01'))
+        total_a_pagar_usd = (cuota_en_usd + deuda_anterior_usd).quantize(Decimal('0.01'))
         t_bs_i = Decimal(str(total_bs_inm))
         t_usd_i = Decimal(str(total_usd_inm))
         t_eur_i = Decimal(str(total_eur_inm))
@@ -5219,6 +5242,9 @@ def _build_data_reporte_inmueble(request, condominio, domicilio, inicio_inm, fin
             'saldo_actual_reserva': saldo_actual_reserva, 'apartado_prestaciones': apartado_prestaciones,
             'saldo_anterior_prestaciones': saldo_ant_prestaciones, 'saldo_actual_prestaciones': saldo_actual_prestaciones,
             'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
+            'deuda_del_mes_bs': cuota_en_bs, 'deuda_del_mes_usd': cuota_en_usd,
+            'deuda_anterior_bs': deuda_anterior_bs, 'deuda_anterior_usd': deuda_anterior_usd,
+            'total_a_pagar_bs': total_a_pagar_bs, 'total_a_pagar_usd': total_a_pagar_usd,
         }
         deudas_con_equiv = []
         t_bs = Decimal(str(tasa_bs or 0))

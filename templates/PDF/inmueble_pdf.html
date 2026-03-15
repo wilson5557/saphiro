@@ -3,7 +3,11 @@
 {% block titulo_pagina %}Relación mensual de gastos por inmueble{% endblock %}
 {% block titulo_informe %}RELACIÓN MENSUAL DE GASTOS POR INMUEBLE{% endblock %}
 {% block titulo_informe_extra %}
-<div style="margin-top: 6px; font-size: 10px; font-weight: normal;">Total a pagar: {{ cuota_periodo_bs|floatformat:2|intcomma }} Bs<br>{% equiv_bcv cuota_periodo_bs "BS" tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot.value|floatformat:2|intcomma }} USD{% endif %}</div>
+<div style="margin-top: 6px; font-size: 10px; font-weight: normal;">
+  Deuda del mes: {{ deuda_del_mes_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_del_mes_usd|floatformat:2|intcomma }} USD<br>
+  Deuda anterior: {{ deuda_anterior_bs|floatformat:2|intcomma }} Bs &nbsp; {{ deuda_anterior_usd|floatformat:2|intcomma }} USD<br>
+  Total a pagar: {{ total_a_pagar_bs|floatformat:2|intcomma }} Bs &nbsp; {{ total_a_pagar_usd|floatformat:2|intcomma }} USD
+</div>
 {% endblock %}
 {% block contenido_pdf %}
 <p style="margin-top: 10px; margin-bottom: 5px;"><strong>Inmueble:</strong> {{ domicilio.nombre_domicilio }}{% if domicilio.id_torre %} ({{ domicilio.id_torre.nombre_torre }}){% endif %}</p>
