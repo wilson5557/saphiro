@@ -2351,7 +2351,7 @@ def admin_deudas_caja(request):
             movimiento = Movimientos_bancarios.objects.create(
                 concepto_movimiento=(request.POST.get('descripcion_movimiento') or 'PAGO DE DEUDAS')[:255],
                 descripcion_movimiento='PAGO DE DEUDAS EN CAJA',
-                referencia_movimiento=f"CAJA-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                referencia_movimiento=f"CAJA-{timezone.now().strftime('%H%M%S')}{random.randint(10, 99)}",
                 monto_movimiento=monto_movimiento,
                 debito_movimiento=debito_acumulado,
                 credito_movimiento=credito_acumulado + monto_movimiento,
