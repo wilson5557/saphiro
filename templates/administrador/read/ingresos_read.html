@@ -46,7 +46,7 @@
               <p class="normal-font text-dark col-sm-6"><strong>Apartamento que realizó el ingreso:</strong> <span>{{prop.nombre_propietario}}</span></p>
             {% endfor %}
             {% endif %}
-            <p class="normal-font text-dark col-sm-6"><strong>Banco que recibio el ingreso:</strong> <span>{{ingresos.id_movimiento.id_banco.nombre_banco}}</span></p>
+            <p class="normal-font text-dark col-sm-6"><strong>Banco que recibio el ingreso:</strong> <span>{% if ingresos.id_movimiento.id_banco %}{{ ingresos.id_movimiento.id_banco.nombre_banco }}{% else %}—{% endif %}</span></p>
           </div>
           {% if ingresos.imagen_referencial %}
             <div class="row center-area">

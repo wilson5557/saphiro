@@ -37,7 +37,7 @@ class="col-lg-3 end-padding-left"
                 <p class="normal-font text-dark col-sm-6"><strong>Tipo de gasto:</strong>
                     <span>{{gastos.tipo_gasto}}</span></p>
                 <p class="normal-font text-dark col-sm-6"><strong>Banco al que se le hizo el debito del gasto:</strong>
-                    <span>{{gastos.id_movimiento.id_banco.nombre_banco}}</span></p>
+                    <span>{% if gastos.id_movimiento.id_banco %}{{ gastos.id_movimiento.id_banco.nombre_banco }}{% else %}—{% endif %}</span></p>
             </div>
             <div class="row pt-1">
                 <p class="normal-font text-dark col-sm-6"><strong>Fecha de registro del gasto:</strong> <span class="">{{gastos.id_movimiento.created_at|date:"l, d/m/Y"}}</span>

@@ -306,7 +306,7 @@ class="col-lg-3 end-padding-left"
                         <td class="centered-cell"> {{ fondo.tipo_fondo }}</td>
                         <td class="centered-cell"> {{ fondo.id_movimiento.descripcion_movimiento }}</td>
                         <td class="centered-cell">{{ fondo.id_movimiento.monto_movimiento|floatformat:2 }}{% if fondo.id_movimiento.tipo_moneda %} {{ fondo.id_movimiento.tipo_moneda }}{% else %} BS{% endif %}{% equiv_bcv fondo.id_movimiento.monto_movimiento fondo.id_movimiento.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %} <span class="text-success">≈ {{ equiv.value|floatformat:2 }} {{ equiv.currency }}</span>{% endif %}</td>
-                        <td class="centered-cell"> {{ fondo.id_movimiento.id_banco.nombre_banco }}</td>
+                        <td class="centered-cell">{% if fondo.id_movimiento.id_banco %}{{ fondo.id_movimiento.id_banco.nombre_banco }}{% else %}—{% endif %}</td>
                     </tr>
                     {% endfor %}
                     {% endif %}

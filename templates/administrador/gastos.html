@@ -328,7 +328,7 @@
           <tr style="font-size: 14px;">
             <td scope="row" class="d-none"> {{ gasto.id_gasto }}</td>
             <td class="centered-cell stadistics-text"> {{ gasto.id_movimiento.descripcion_movimiento }}</td>
-            <td class="centered-cell stadistics-text"> {{ gasto.id_categoria.nombre_categoria }}</td>
+            <td class="centered-cell stadistics-text">{% if gasto.id_categoria %}{{ gasto.id_categoria.nombre_categoria }}{% else %}—{% endif %}</td>
             <td class="centered-cell"> {{ gasto.tipo_gasto }}</td>
             {% language 'es' %}
             <td class="centered-cell"> {{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
