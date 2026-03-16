@@ -794,7 +794,7 @@ def noticia(request, slug):
             print("si hay otra publicacion despues de esta")
 
             next_pub = get_object_or_404(Noticia, id=next_post.id)
-        except:
+        except Exception:
             print("ya no hay más publicaciones despues de esta")
             next_pub = None
 
@@ -1947,7 +1947,7 @@ def admin_ingresos(request):
 
             try:
                 id_owner = Domicilio.objects.get(id_domicilio=request.POST['apto_ingreso'])
-            except:
+            except Exception:
                 id_owner = None
 
             monto = Decimal(request.POST['monto_movimiento'])
@@ -2615,7 +2615,7 @@ def admin_fondos(request):
 
             try:
                 id_owner = Domicilio.objects.get(id_domicilio=request.POST['apto_ingreso'])
-            except:
+            except Exception:
                 id_owner = None
 
             monto = Decimal(request.POST['monto_movimiento'])
@@ -3777,9 +3777,22 @@ def admin_reportes(request):
 
     for mes in cierre:
         ids_cierre.append(mes.id_cierre)
-        cierres.append(str(mes.pdf_cierre).split('cierres/cierre_mes')[1].replace('/', ' Realizado el ').replace('.', ':').replace('_', ' a las ').split(':pdf')[0])
+        try:
+            pdf_str = str(mes.pdf_cierre or '')
+            if pdf_str and 'cierres/cierre_mes' in pdf_str:
+                label = pdf_str.split('cierres/cierre_mes')[1].replace('/', ' Realizado el ').replace('.', ':').replace('_', ' a las ').split(':pdf')[0]
+            else:
+                raise ValueError('formato distinto o vacío')
+        except (IndexError, ValueError, AttributeError):
+            # Fallback: usar fecha del cierre (pdf_cierre None o formato antiguo/distinto)
+            f = getattr(mes, 'fecha_cierre', None)
+            if f:
+                label = 'Cierre del {}'.format(f.strftime('%d/%m/%Y') if hasattr(f, 'strftime') else f)
+            else:
+                label = 'Cierre ID {}'.format(mes.id_cierre)
+        cierres.append(label)
 
-    cierre_mensual = zip(ids_cierre, cierres)
+    cierre_mensual = list(zip(ids_cierre, cierres))
 
     ultima_tasa = Tasas.objects.all().last()
     today = timezone.now()

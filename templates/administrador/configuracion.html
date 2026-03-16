@@ -1091,7 +1091,7 @@ class="d-none"
                         <tr>
                             <td class="centered-cell"> {{ domicilio.nombre_domicilio }}</td>
                             <td class="centered-cell"> {{ domicilio.tipo_domicilio }}</td>
-                            <td class="centered-cell"> {{ domicilio.id_propietario.nombre_propietario }}</td>
+                            <td class="centered-cell">{% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</td>
                             <td>
                                 <div class="horizontal-cell">
                                     <!-- <a href="/home/administrar/domicilio/actualizar/{{ domicilio.id_domicilio }}"

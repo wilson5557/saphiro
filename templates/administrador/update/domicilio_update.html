@@ -72,10 +72,10 @@
     <div class="inner-wrap form-row" bis_skin_checked="1" style="display: block;">
     <div class="size col-sm-12">
         <label for="Nombre del propietario">Nombre del propietario</label>
-        <input type="text" id="txtNombrePropietario" name="txtNombrePropietario" value="{{domicilio.id_propietario.nombre_propietario}}" class="form-control text-dark" readonly><!--cambiar opacidad--> 
+<input type="text" id="txtNombrePropietario" name="txtNombrePropietario" value="{% if domicilio.id_propietario %}{{ domicilio.id_propietario.nombre_propietario }}{% endif %}" class="form-control text-dark" readonly><!--cambiar opacidad-->
         <br>
         <label for="C.I del propietario">C.I del propietario</label>
-        <input type="text" id="" name="" value="{{domicilio.id_propietario.dni}}" class="form-control text-dark" readonly><!--cambiar opacidad--> 
+        <input type="text" id="" name="" value="{% if domicilio.id_propietario %}{{ domicilio.id_propietario.dni }}{% endif %}" class="form-control text-dark" readonly><!--cambiar opacidad-->
         <br>
         <small class="mb-2 form-text text-center text-muted">Para modificar los campos relacionados con el propietariohaga clic aqui: <a style="color:#974608;"href="{% url 'condominio_app:admin_propietarios' %}" class="mb-2 form-text text-center text-muted"> <strong>Propietarios</strong></a></small>
         <br>

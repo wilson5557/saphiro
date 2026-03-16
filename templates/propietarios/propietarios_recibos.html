@@ -3,6 +3,7 @@
 {% load static %}
 {% load i18n %}
 {% load widget_tweaks %}
+{% load reportes_filters %}
 
 {% block title_page %}
   Esparta Suites - Propietarios
@@ -48,7 +49,7 @@
                     <tbody>
                         {% for movimiento in movimientos %}
                         <tr>
-                            <td class="centered-cell">{{movimiento.referencia_movimiento}}</td>
+                            <td class="centered-cell">{{ movimiento.referencia_movimiento|ref_display }}</td>
                             <td class="centered-cell">{{movimiento.descripcion_movimiento}}</td>
                             <td class="centered-cell">{{movimiento.monto_movimiento}}</td>
                             <td class="centered-cell">{{movimiento.banco_emisor}}</td>

@@ -4,8 +4,17 @@
 {% block titulo_informe %}RECIBO DE PAGO{% endblock %}
 {% block extra_css_pdf %}
 <style>
-  .table-lista-desc-monto th.num:nth-child(3), .table-lista-desc-monto td.num:nth-child(3) { min-width: 90px; white-space: nowrap; }
-  .table-lista-desc-monto th.num:nth-child(4), .table-lista-desc-monto td.num:nth-child(4) { min-width: 85px; white-space: nowrap; }
+  /* Tabla Información de Pago: anchos fijos para que Total Bs. y Total USD se vean completos (override base 62%) */
+  .table-informe.tabla-info-pago { table-layout: fixed; width: 100%; }
+  .table-informe.tabla-info-pago thead th:nth-child(1),
+  .table-informe.tabla-info-pago tbody td:nth-child(1) { width: 32% !important; max-width: 32%; word-wrap: break-word; }
+  .table-informe.tabla-info-pago thead th:nth-child(2),
+  .table-informe.tabla-info-pago tbody td:nth-child(2) { width: 28% !important; max-width: 28%; word-wrap: break-word; }
+  .table-informe.tabla-info-pago thead th:nth-child(3),
+  .table-informe.tabla-info-pago tbody td:nth-child(3) { width: 20% !important; text-align: right !important; white-space: nowrap; }
+  .table-informe.tabla-info-pago thead th:nth-child(4),
+  .table-informe.tabla-info-pago tbody td:nth-child(4) { width: 20% !important; text-align: right !important; white-space: nowrap; }
+  .tabla-info-pago .celda-total-bs, .tabla-info-pago .celda-total-usd { font-weight: bold; }
 </style>
 {% endblock %}
 {% block contenido_pdf %}
@@ -17,14 +26,19 @@
     <thead><tr><th>Descripción</th><th class="num">Monto Bs.</th><th class="num">Monto en USD</th></tr></thead>
     <tbody>{% for data in datosRecibo %}<tr><td>{{ data.descripcion_recibo }}</td><td class="num">Bs. {{ data.monto|floatformat:2|intcomma }}</td><td class="num">{% equiv_bcv data.monto "BS" tasa_bs tasa_euro as eq %}{% if eq %}{{ eq.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
 </table>
-<table class="table-informe table-lista-simple table-lista-desc-monto mt-3">
+<table class="table-informe table-lista-simple table-lista-desc-monto tabla-info-pago mt-3">
     <thead><tr><th>Información de Pago</th><th>Concepto</th><th class="num">Total Bs.</th><th class="num">Total USD</th></tr></thead>
     <tbody>
         <tr>
             <td>Banco: <strong>{{ datosMovimiento.banco_emisor }}</strong><br>Referencia: <strong>{{ referencia_display|default:datosMovimiento.referencia_movimiento }}</strong></td>
             <td><strong>{{ datosMovimiento.descripcion_movimiento }}</strong></td>
-            <td class="num" style="white-space: nowrap;">Bs. {{ datosMovimiento.monto_movimiento|floatformat:2|intcomma }}</td>
-            <td class="num" style="white-space: nowrap;">{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr style="background-color: #f8f9fa; font-weight: bold;">
+            <td colspan="2" style="text-align: right; padding-right: 10px;">Total:</td>
+            <td class="num celda-total-bs">Bs. {{ datosMovimiento.monto_movimiento|floatformat:2|intcomma }}</td>
+            <td class="num celda-total-usd">{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}</td>
         </tr>
     </tbody>
 </table>

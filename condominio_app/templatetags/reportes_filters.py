@@ -152,3 +152,12 @@ def format_fecha_deuda(value):
         return dt.strftime('%d/%m/%Y')
     except (ValueError, TypeError):
         return s if s else '—'
+
+
+@register.filter
+def ref_display(value):
+    """Referencia para mostrar: CAJA-YYYYMMDD... se acorta a CAJA-HHMMSS... (sin fecha)."""
+    ref = (value or '').strip()
+    if ref.startswith('CAJA-') and len(ref) >= 14:
+        return 'CAJA-' + ref[13:]
+    return ref or '—'

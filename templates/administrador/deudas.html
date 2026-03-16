@@ -218,8 +218,8 @@
                   {% for deuda in deudas_prop %}
                   {% if deuda.tipo_deuda == "2" %}
                   <tr>
-                      <td class="centered-cell"> {{ deuda.id_domicilio.id_propietario.nombre_propietario }}</td>
-                      <td class="centered-cell"> {{ deuda.id_domicilio.id_propietario.tipo_dni }}-{{ deuda.id_domicilio.id_propietario.dni }}</td>
+                      <td class="centered-cell">{% if deuda.id_domicilio and deuda.id_domicilio.id_propietario %}{{ deuda.id_domicilio.id_propietario.nombre_propietario }}{% else %}—{% endif %}</td>
+                      <td class="centered-cell">{% if deuda.id_domicilio and deuda.id_domicilio.id_propietario %}{{ deuda.id_domicilio.id_propietario.tipo_dni }}-{{ deuda.id_domicilio.id_propietario.dni }}{% else %}—{% endif %}</td>
                       <td class="centered-cell">{{ deuda.estado_label }}</td>
                       <td class="center-all">
                           <div class="horizontal-cell">
