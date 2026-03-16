@@ -4,17 +4,15 @@
 {% block titulo_informe %}RECIBO DE PAGO{% endblock %}
 {% block extra_css_pdf %}
 <style>
-  /* Tabla Información de Pago: anchos fijos para que Total Bs. y Total USD se vean completos (override base 62%) */
+  /* Tabla 1 (3 columnas): Monto Bs y Monto USD al 19% para alinear con Total Bs/Total USD de abajo */
+  .tabla-detalle-recibo thead th:nth-child(2), .tabla-detalle-recibo tbody td:nth-child(2) { width: 19%; }
+  .tabla-detalle-recibo thead th:nth-child(3), .tabla-detalle-recibo tbody td:nth-child(3) { width: 19%; }
+  /* Tabla 2: mismas columnas numéricas (19%+19%) para alinear Total Bs/Total USD con Monto Bs/Monto USD; Concepto centrado */
   .table-informe.tabla-info-pago { table-layout: fixed; width: 100%; }
-  .table-informe.tabla-info-pago thead th:nth-child(1),
-  .table-informe.tabla-info-pago tbody td:nth-child(1) { width: 32% !important; max-width: 32%; word-wrap: break-word; }
-  .table-informe.tabla-info-pago thead th:nth-child(2),
-  .table-informe.tabla-info-pago tbody td:nth-child(2) { width: 28% !important; max-width: 28%; word-wrap: break-word; }
-  .table-informe.tabla-info-pago thead th:nth-child(3),
-  .table-informe.tabla-info-pago tbody td:nth-child(3) { width: 20% !important; text-align: right !important; white-space: nowrap; }
-  .table-informe.tabla-info-pago thead th:nth-child(4),
-  .table-informe.tabla-info-pago tbody td:nth-child(4) { width: 20% !important; text-align: right !important; white-space: nowrap; }
-  .tabla-info-pago .celda-total-bs, .tabla-info-pago .celda-total-usd { font-weight: bold; }
+  .table-informe.tabla-info-pago thead th:nth-child(1), .table-informe.tabla-info-pago tbody td:nth-child(1) { width: 35%; }
+  .table-informe.tabla-info-pago thead th:nth-child(2), .table-informe.tabla-info-pago tbody td:nth-child(2) { width: 27%; text-align: center !important; }
+  .table-informe.tabla-info-pago thead th:nth-child(3), .table-informe.tabla-info-pago tbody td:nth-child(3) { width: 19%; text-align: right !important; }
+  .table-informe.tabla-info-pago thead th:nth-child(4), .table-informe.tabla-info-pago tbody td:nth-child(4) { width: 19%; text-align: right !important; }
 </style>
 {% endblock %}
 {% block contenido_pdf %}
@@ -22,7 +20,7 @@
     <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Cliente:</strong> {{ propietarios.nombre_propietario|default:"—" }} &nbsp; <strong>Cédula:</strong> {{ propietarios.dni|default:"—" }} &nbsp; <strong>Correo:</strong> {% if propietarios.id_usuario %}{{ propietarios.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if propietarios.telefono_movil %}{{ propietarios.codigo_tlf_movil|default:"" }}{{ propietarios.telefono_movil }}{% elif propietarios.telefono_hab %}{{ propietarios.codigo_tlf_hab|default:"" }}{{ propietarios.telefono_hab }}{% else %}—{% endif %}</p>
     <p style="margin: 0; font-size: 11px;">{% for data in datosRecibo %}{% if forloop.first %}<strong>Fecha:</strong> {{ data.fecha_creacion|date:'d/m/Y' }} &nbsp; <strong>Hora:</strong> {{ data.hora_creacion }} &nbsp; <strong>ID recibo:</strong> {{ datosMovimiento.id_movimiento }}{% endif %}{% endfor %} &nbsp; <strong>Condominio:</strong> {{ datosCondo.nombre_condominio }}</p>
 </div>
-<table class="table-informe table-lista-simple table-lista-desc-monto mt-3">
+<table class="table-informe table-lista-simple table-lista-desc-monto tabla-detalle-recibo mt-3">
     <thead><tr><th>Descripción</th><th class="num">Monto Bs.</th><th class="num">Monto en USD</th></tr></thead>
     <tbody>{% for data in datosRecibo %}<tr><td>{{ data.descripcion_recibo }}</td><td class="num">Bs. {{ data.monto|floatformat:2|intcomma }}</td><td class="num">{% equiv_bcv data.monto "BS" tasa_bs tasa_euro as eq %}{% if eq %}{{ eq.value|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
 </table>
