@@ -1099,7 +1099,15 @@ def propietario_recibo_pago(request, id):
     propietarios = Propietario.objects.get(id_usuario_id=user.id)
     condominio = Condominio.objects.get(id_condominio=user.id_condominio_id)
     movimientos = Movimientos_bancarios.objects.select_related('id_banco').get(id_movimiento=id)
-    recibos = Recibos.objects.filter(id_movimiento=movimientos.id_movimiento).select_related('id_movimiento')
+    recibos = Recibos.objects.filter(id_movimiento=movimientos.id_movimiento).select_related('id_movimiento', 'id_deuda__id_domicilio__id_propietario', 'id_deuda__id_domicilio__id_propietario__id_usuario')
+    # Propietario a mostrar: si hay Ingreso con propietario usarlo; si no (p. ej. Caja), del primer recibo -> deuda -> domicilio
+    ingreso = Ingresos.objects.filter(id_movimiento_id=movimientos.id_movimiento).select_related('id_propietario', 'id_propietario__id_usuario').first()
+    if ingreso and getattr(ingreso, 'id_propietario_id', None):
+        propietarios = ingreso.id_propietario
+    else:
+        primer_recibo = recibos.select_related('id_deuda__id_domicilio__id_propietario', 'id_deuda__id_domicilio__id_propietario__id_usuario').first()
+        if primer_recibo and getattr(primer_recibo, 'id_deuda', None) and getattr(primer_recibo.id_deuda, 'id_domicilio', None) and getattr(primer_recibo.id_deuda.id_domicilio, 'id_propietario', None):
+            propietarios = primer_recibo.id_deuda.id_domicilio.id_propietario
 
     # pdf_base = get_template('PDF/recibos_pagos_pdf.html')
     # html_pdf = pdf_base.render(pagos_propietarios.values()[0])
@@ -1112,11 +1120,16 @@ def propietario_recibo_pago(request, id):
     bancos_cabecera = [{'nombre_banco': b.nombre_banco, 'nro_cuenta_formateado': nro_cuenta_fmt(b.nro_cuenta)} for b in Bancos.objects.filter(id_condominio_id=condominio.id_condominio)]
     ultima_tasa = Tasas.objects.last()
     tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, timezone.now().date())
+    ref_raw = getattr(movimientos, 'referencia_movimiento', None) or ''
+    ref_display = ref_raw
+    if (ref_raw or '').strip().startswith('CAJA-') and len((ref_raw or '').strip()) >= 14:
+        ref_display = 'CAJA-' + (ref_raw or '').strip()[13:]
     html_string = render_to_string('PDF/recibos_pagos_pdf.html', {'datosRecibo': recibos, 'propietarios': propietarios,
                                                                   'datosMovimiento': movimientos, 'datosCondo': condominio,
                                                                   'datos_condominio': condominio, 'fecha_generado': timezone.now(),
                                                                   'bancos_cabecera': bancos_cabecera, 'ruta_logo': ruta_logo,
-                                                                  'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro})
+                                                                  'tasa_bs': tasa_bs, 'tasa_euro': tasa_euro,
+                                                                  'referencia_display': ref_display})
 
     # Crear un objeto HTML a partir de la cadena HTML
     # html = HTML(string=html_string, base_url=request.build_absolute_uri())  # DESACTIVADO - Windows GTK

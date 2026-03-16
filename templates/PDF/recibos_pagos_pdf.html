@@ -2,9 +2,15 @@
 {% load static %}{% load i18n %}{% load humanize %}{% load reportes_filters %}
 {% block titulo_pagina %}Recibo de Pago{% endblock %}
 {% block titulo_informe %}RECIBO DE PAGO{% endblock %}
+{% block extra_css_pdf %}
+<style>
+  .table-lista-desc-monto th.num:nth-child(3), .table-lista-desc-monto td.num:nth-child(3) { min-width: 90px; white-space: nowrap; }
+  .table-lista-desc-monto th.num:nth-child(4), .table-lista-desc-monto td.num:nth-child(4) { min-width: 85px; white-space: nowrap; }
+</style>
+{% endblock %}
 {% block contenido_pdf %}
 <div class="encabezado-sombreado">
-    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Cliente:</strong> {% if datosMovimiento.id_propietario %}{{ datosMovimiento.id_propietario.nombre_propietario }}{% else %}—{% endif %} &nbsp; <strong>Cédula:</strong> {% if datosMovimiento.id_propietario %}{{ datosMovimiento.id_propietario.dni|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Correo:</strong> {% if datosMovimiento.id_propietario and datosMovimiento.id_propietario.id_usuario %}{{ datosMovimiento.id_propietario.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if datosMovimiento.id_propietario %}{% if datosMovimiento.id_propietario.telefono_movil %}{{ datosMovimiento.id_propietario.codigo_tlf_movil|default:"" }}{{ datosMovimiento.id_propietario.telefono_movil }}{% elif datosMovimiento.id_propietario.telefono_hab %}{{ datosMovimiento.id_propietario.codigo_tlf_hab|default:"" }}{{ datosMovimiento.id_propietario.telefono_hab }}{% else %}—{% endif %}{% else %}—{% endif %}</p>
+    <p style="margin: 0 0 5px 0; font-size: 11px;"><strong>Cliente:</strong> {{ propietarios.nombre_propietario|default:"—" }} &nbsp; <strong>Cédula:</strong> {{ propietarios.dni|default:"—" }} &nbsp; <strong>Correo:</strong> {% if propietarios.id_usuario %}{{ propietarios.id_usuario.email|default:"—" }}{% else %}—{% endif %} &nbsp; <strong>Tel:</strong> {% if propietarios.telefono_movil %}{{ propietarios.codigo_tlf_movil|default:"" }}{{ propietarios.telefono_movil }}{% elif propietarios.telefono_hab %}{{ propietarios.codigo_tlf_hab|default:"" }}{{ propietarios.telefono_hab }}{% else %}—{% endif %}</p>
     <p style="margin: 0; font-size: 11px;">{% for data in datosRecibo %}{% if forloop.first %}<strong>Fecha:</strong> {{ data.fecha_creacion|date:'d/m/Y' }} &nbsp; <strong>Hora:</strong> {{ data.hora_creacion }} &nbsp; <strong>ID recibo:</strong> {{ datosMovimiento.id_movimiento }}{% endif %}{% endfor %} &nbsp; <strong>Condominio:</strong> {{ datosCondo.nombre_condominio }}</p>
 </div>
 <table class="table-informe table-lista-simple table-lista-desc-monto mt-3">
@@ -15,10 +21,10 @@
     <thead><tr><th>Información de Pago</th><th>Concepto</th><th class="num">Total Bs.</th><th class="num">Total USD</th></tr></thead>
     <tbody>
         <tr>
-            <td>Banco: <strong>{{ datosMovimiento.banco_emisor }}</strong><br>Nro. Cuenta: <strong>{{ datosMovimiento.referencia_movimiento }}</strong></td>
+            <td>Banco: <strong>{{ datosMovimiento.banco_emisor }}</strong><br>Referencia: <strong>{{ referencia_display|default:datosMovimiento.referencia_movimiento }}</strong></td>
             <td><strong>{{ datosMovimiento.descripcion_movimiento }}</strong></td>
-            <td class="num">Bs. {{ datosMovimiento.monto_movimiento|floatformat:2|intcomma }}</td>
-            <td class="num">{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}</td>
+            <td class="num" style="white-space: nowrap;">Bs. {{ datosMovimiento.monto_movimiento|floatformat:2|intcomma }}</td>
+            <td class="num" style="white-space: nowrap;">{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}</td>
         </tr>
     </tbody>
 </table>
