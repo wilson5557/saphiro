@@ -36,9 +36,10 @@
             <td></td>
         </tr>
         <tr style="background-color: #f8f9fa; font-weight: bold;">
-            <td colspan="2" style="text-align: right; padding-right: 10px;">Total:</td>
+            <td></td>
+            <td></td>
             <td class="num celda-total-bs">Bs. {{ datosMovimiento.monto_movimiento|floatformat:2|intcomma }}</td>
-            <td class="num celda-total-usd">{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}</td>
+            <td class="num celda-total-usd">{% if datosMovimiento.id_banco %}{% with moneda=datosMovimiento.id_banco.tipo_moneda|default:"BS" %}{% equiv_a_usd datosMovimiento.monto_movimiento moneda tasa_bs tasa_euro as eq_tot %}{% if eq_tot %}{{ eq_tot|floatformat:2|intcomma }} USD{% else %}—{% endif %}{% endwith %}{% else %}—{% endif %}</td>
         </tr>
     </tbody>
 </table>

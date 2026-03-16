@@ -2,6 +2,7 @@
 
 {% load static %}
 {% load i18n %}
+{% load reportes_filters %}
 
 {% block title_page %}
   Esparta Suites - Administración
@@ -30,11 +31,11 @@
           <p class="normal-font text-dark col-sm-6"><strong>Monto:</strong> <span class="text-success">{{ movimiento.monto_movimiento }}</span></p>
         </div>
         <div class="row pt-3">
-          <p class="normal-font text-dark col-sm-6"><strong>Banco receptor:</strong> <span>{{ movimiento.id_banco.nombre_banco }}</span></p>
+          <p class="normal-font text-dark col-sm-6"><strong>Banco receptor:</strong> <span>{% if movimiento.id_banco %}{{ movimiento.id_banco.nombre_banco }}{% else %}—{% endif %}</span></p>
           <p class="normal-font text-dark col-sm-6"><strong>Banco emisor:</strong> <span>{{ movimiento.banco_emisor }}</span></p>
         </div>
         <div class="row pt-3">
-          <p class="normal-font text-dark col-sm-6"><strong>Referencia:</strong> <span>{{ movimiento.referencia_movimiento }}</span></p>
+          <p class="normal-font text-dark col-sm-6"><strong>Referencia:</strong> <span>{{ movimiento.referencia_movimiento|ref_display }}</span></p>
           <p class="normal-font text-dark col-sm-6"><strong>Moneda:</strong> <span>{{ movimiento.tipo_moneda }}</span></p>
         </div>
         <div class="row pt-3">

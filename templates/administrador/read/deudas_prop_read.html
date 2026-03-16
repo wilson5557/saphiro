@@ -57,7 +57,7 @@
                   <tbody>
                   {% for deudas in deudas_prop %}
                   <tr>
-                      <td> {{ deudas.id_domicilio.nombre_domicilio }}</td>
+                      <td>{% if deudas.id_domicilio %}{{ deudas.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
                       <td> {{ deudas.descripcion_deuda|default:deudas.concepto_deuda }}</td>
                       <td> {{ deudas.tipo_deuda }}</td>
                       <td> {{ deudas.monto_deuda }}</td>

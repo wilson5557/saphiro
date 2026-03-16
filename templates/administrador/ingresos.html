@@ -346,7 +346,7 @@ class="col-lg-3 end-padding-left"
                         <td class="centered-cell stadistics-text">-</td>
                         {% endif %}
 
-                        <td class="centered-cell stadistics-text"> {{ ingreso.id_movimiento.id_banco.nombre_banco }}</td>
+                        <td class="centered-cell stadistics-text">{% if ingreso.id_movimiento.id_banco %}{{ ingreso.id_movimiento.id_banco.nombre_banco }}{% else %}—{% endif %}</td>
                         {% language 'es' %}
                         <td class="centered-cell"> {{ ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
                         {% endlanguage %}

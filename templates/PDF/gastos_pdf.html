@@ -17,7 +17,7 @@
         {% for gasto in gastos %}
         <tr>
             <td>{{ gasto.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
-            <td>{{ gasto.id_movimiento.referencia_movimiento|default:"-" }}</td>
+            <td>{{ gasto.id_movimiento.referencia_movimiento|ref_display|default:"-" }}</td>
             <td>{{ gasto.id_movimiento.descripcion_movimiento|default:gasto.id_movimiento.concepto_movimiento }}</td>
             {% with banco=gasto.id_movimiento.id_banco moneda=banco.tipo_moneda|default:"BS" monto=gasto.id_movimiento.monto_movimiento %}
             <td class="num">{% equiv_a_bs monto moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>

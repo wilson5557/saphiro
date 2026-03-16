@@ -22,7 +22,7 @@
         {% for movimiento in movimientos %}
         <tr>
             <td>{{ movimiento.fecha_movimiento|date:'d/m/Y' }}</td><td>{{ movimiento.descripcion_movimiento }}</td>
-            <td>{{ movimiento.referencia_movimiento|default:"-" }}</td>
+            <td>{{ movimiento.referencia_movimiento|ref_display|default:"-" }}</td>
             <td class="num">{{ movimiento.monto_movimiento|floatformat:2|intcomma }} {{ movimiento.id_banco.tipo_moneda|default:"BS" }}</td>
             <td class="num">{% equiv_a_usd movimiento.monto_movimiento movimiento.id_banco.tipo_moneda|default:"BS" tasa_bs tasa_euro as eq_usd %}{% if eq_usd %}{{ eq_usd|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
             <td>{{ movimiento.id_banco.nombre_banco }}</td>
@@ -43,7 +43,7 @@
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td><td>{{ deuda.descripcion_deuda|default:deuda.concepto_deuda }}</td>
             <td class="num">{{ deuda.monto_deuda|floatformat:2|intcomma }} {{ deuda.tipo_moneda }}</td>
             <td class="num">{% equiv_a_usd deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as eq_usd %}{% if eq_usd %}{{ eq_usd|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
-            <td>{{ deuda.id_domicilio.nombre_domicilio }}</td>
+            <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
         {% else %}

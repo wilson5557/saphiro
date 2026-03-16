@@ -24,7 +24,7 @@
             <td class="num">{% equiv_bcv deuda.monto_deuda deuda.tipo_moneda tasa_bs tasa_euro as equiv %}{% if equiv %}{{ equiv.value|floatformat:2|intcomma }} {{ equiv.currency }}{% else %}—{% endif %}</td>
             <td>{% if deuda.is_moroso %}Sí{% else %}No{% endif %}</td>
             <td>{{ deuda.fecha_deuda|format_fecha_deuda }}</td>
-            <td>{{ deuda.id_domicilio.nombre_domicilio }}</td>
+            <td>{% if deuda.id_domicilio %}{{ deuda.id_domicilio.nombre_domicilio }}{% else %}—{% endif %}</td>
             <td>{{ deuda.categoria_deuda|default:"—" }}</td>
             <td>{{ deuda.tipo_moneda }}</td>
         </tr>

@@ -16,7 +16,7 @@
         {% with mov=ingreso.id_movimiento moneda=mov.id_banco.tipo_moneda|default:"BS" %}
         <tr>
             <td>{{ mov.fecha_movimiento|date:'d/m/Y' }}</td>
-            <td>{{ mov.referencia_movimiento|default:"-" }}</td>
+            <td>{{ mov.referencia_movimiento|ref_display|default:"-" }}</td>
             <td>{{ mov.descripcion_movimiento|default:mov.concepto_movimiento }}</td>
             <td class="num">{{ mov.monto_movimiento|floatformat:2|intcomma }} {{ moneda }}</td>
             <td class="num">{% equiv_a_usd mov.monto_movimiento moneda tasa_bs tasa_euro as eq_usd %}{% if eq_usd %}{{ eq_usd|floatformat:2|intcomma }} USD{% else %}—{% endif %}</td>
@@ -37,7 +37,7 @@
         {% with mov=gasto.id_movimiento moneda=mov.id_banco.tipo_moneda|default:"BS" %}
         <tr>
             <td>{{ mov.fecha_movimiento|date:'d/m/Y' }}</td>
-            <td>{{ mov.referencia_movimiento|default:"-" }}</td>
+            <td>{{ mov.referencia_movimiento|ref_display|default:"-" }}</td>
             <td>{{ gasto.factura|default:"-" }}</td>
             <td>{{ mov.descripcion_movimiento|default:mov.concepto_movimiento }}</td>
             <td class="num">{{ mov.monto_movimiento|floatformat:2|intcomma }} {{ moneda }}</td>
