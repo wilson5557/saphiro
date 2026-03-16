@@ -38,7 +38,7 @@
         {% for item in ingresos_datos %}
         <tr>
             <td>{{ item.ingreso.id_movimiento.fecha_movimiento|date:'d/m/Y' }}</td>
-            <td><div style="overflow:hidden; max-width:100%; word-break:break-all; font-size:10px; line-height:1.2;">{{ item.ingreso.id_movimiento.referencia_movimiento|default:"-" }}</div></td>
+            <td><div style="overflow:hidden; max-width:100%; word-break:break-all; font-size:10px; line-height:1.2;">{{ item.referencia_display|default:"-" }}</div></td>
             <td><div style="word-wrap:break-word; word-break:break-word;">{{ item.ingreso.id_movimiento.descripcion_movimiento|default:item.ingreso.id_movimiento.concepto_movimiento }}</div></td>
             {% with banco=item.ingreso.id_movimiento.id_banco moneda=banco.tipo_moneda|default:"BS" monto=item.ingreso.id_movimiento.monto_movimiento %}
             <td class="num">{% equiv_a_bs monto moneda tasa_bs tasa_euro as eb %}{% if eb %}{{ eb|floatformat:2|intcomma }} Bs{% else %}—{% endif %}</td>

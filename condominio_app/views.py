@@ -3927,9 +3927,17 @@ def admin_reportes(request):
                                                             id_movimiento__id_banco__id_condominio_id=condominio.id_condominio,
                                                             id_movimiento__estado_movimiento=0).select_related("id_movimiento__id_banco")
                 # Para cada ingreso, texto "Apartamento": si es PAGO DE DEUDAS EN CAJA, tomar el nombre del inmueble al que se asignó cada deuda pagada (Recibos -> id_deuda -> id_domicilio)
+                # Referencia para mostrar: pagos Caja antiguos (CAJA-YYYYMMDDHHMMSS) se muestran sin fecha (CAJA-HHMMSS)
+                def _ref_display(ref):
+                    ref = (ref or '').strip()
+                    if ref.startswith('CAJA-') and len(ref) >= 14:
+                        return 'CAJA-' + ref[13:]
+                    return ref or '-'
                 ingresos_datos = []
                 for ingreso in data['ingresos']:
                     apartamento = '-'
+                    ref_raw = getattr(ingreso.id_movimiento, 'referencia_movimiento', None) or ''
+                    referencia_display = _ref_display(ref_raw)
                     desc_mov = getattr(ingreso.id_movimiento, 'descripcion_movimiento', '') or ''
                     if desc_mov == 'PAGO DE DEUDAS EN CAJA':
                         recibos = Recibos.objects.filter(id_movimiento_id=ingreso.id_movimiento_id).select_related('id_deuda__id_domicilio', 'id_deuda__id_domicilio__id_torre')
@@ -3956,7 +3964,7 @@ def admin_reportes(request):
                             apartamento = ', '.join(partes) if partes else '-'
                         else:
                             apartamento = '-'
-                    ingresos_datos.append({'ingreso': ingreso, 'apartamento': apartamento})
+                    ingresos_datos.append({'ingreso': ingreso, 'apartamento': apartamento, 'referencia_display': referencia_display})
                 data['ingresos_datos'] = ingresos_datos
                 data['bancos'] = Bancos.objects.filter(id_condominio_id=condominio.id_condominio)
                 nro_cuenta_fmt = lambda n: ' '.join((n or '')[i:i+4] for i in range(0, len(n or ''), 4)) if n else ''
@@ -4027,6 +4035,7 @@ def admin_reportes(request):
                     for item in data.get('ingresos_datos', []):
                         ingreso = item['ingreso']
                         apartamento = item.get('apartamento', '-')
+                        ref_display = item.get('referencia_display', ingreso.id_movimiento.referencia_movimiento or '')
                         moneda = 'BS'
                         for b in data['bancos']:
                             if ingreso.id_movimiento.id_banco_id == b.id_banco:
@@ -4035,7 +4044,7 @@ def admin_reportes(request):
                         _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
                         writer.writerow([
                             ingreso.id_movimiento.fecha_movimiento,
-                            ingreso.id_movimiento.referencia_movimiento or '',
+                            ref_display,
                             _desc,
                             ingreso.id_movimiento.monto_movimiento,
                             moneda,
@@ -4051,6 +4060,7 @@ def admin_reportes(request):
                     for item in data.get('ingresos_datos', []):
                         ingreso = item['ingreso']
                         apartamento = item.get('apartamento', '-')
+                        ref_display = item.get('referencia_display', ingreso.id_movimiento.referencia_movimiento or '-')
                         moneda = 'BS'
                         for b in data['bancos']:
                             if ingreso.id_movimiento.id_banco_id == b.id_banco:
@@ -4058,7 +4068,7 @@ def admin_reportes(request):
                                 break
                         _desc = (ingreso.id_movimiento.descripcion_movimiento or ingreso.id_movimiento.concepto_movimiento or '')
                         lines.append('{} | {} | {} | {} | {} | {}'.format(
-                            ingreso.id_movimiento.fecha_movimiento, ingreso.id_movimiento.referencia_movimiento or '-',
+                            ingreso.id_movimiento.fecha_movimiento, ref_display,
                             _desc, ingreso.id_movimiento.monto_movimiento, moneda, apartamento))
                     response = HttpResponse('\n'.join(lines), content_type='text/plain')
                     response['Content-Disposition'] = 'attachment; filename="reporte_ingresos_{}_{}.txt"'.format(inicio, fin)
