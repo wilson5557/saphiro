@@ -523,7 +523,7 @@ class BancosForm(forms.ModelForm):
   fecha_apertura    = forms.DateField(label="Fecha de apertura del banco", widget = forms.SelectDateWidget(attrs=({'style': 'width: 30%; display: inline-block;'})), required=True)
   tipo_dni_titular  = forms.ChoiceField(choices=TIPO_CI, widget=forms.Select(attrs={'class': 'form-control'}))
   dni_titular       = forms.CharField(label='Identificación', max_length=20, required=True)
-  email_titular     = forms.EmailField(label='Correo electrónico del titular', max_length=100)
+  email_titular     = forms.EmailField(label='Correo electrónico del titular', max_length=254)
   cod_tlf           = forms.ChoiceField(label="Código del teléfono del titular", required=False, choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
   tlf_titular       = forms.CharField(label='Teléfono del titular', max_length=20)
   tipo_moneda       = forms.CharField(label="Tipo de moneda", widget=forms.RadioSelect(choices=TIPO_MONEDA, attrs={'class': 'from-check-input tipo_moneda', 'id': 'tipo_moneda'}))
@@ -602,7 +602,7 @@ class DatosMovimientoForm(forms.ModelForm):
   nombre_titular = forms.CharField(label='Nombre del titular de la cuenta', max_length=255, required=True)
   codigo_area = forms.ChoiceField(label="Código del teléfono del titular", required=False, choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
   telefono_titular = forms.CharField(label='Teléfono del titular', max_length=20)
-  correo_titular = forms.EmailField(label='Correo electrónico del titular', max_length=100, required=False)
+  correo_titular = forms.EmailField(label='Correo electrónico del titular', max_length=254, required=False)
   tipo_dni_titular = forms.ChoiceField(choices=TIPO_CI, widget=forms.Select(attrs={'class': 'form-control'}))
   dni_titular = forms.CharField(label='Identificación', max_length=20, required=True)
 
@@ -846,7 +846,7 @@ class DeudasUpdateForm(forms.ModelForm):
 # -------------------------------------------------------------------------------------------------------------------------------------------------
 class RegistrationForm(UserCreationForm):
   username = forms.CharField(max_length=60)
-  email = forms.CharField(label="Correo electrónico", max_length=100, required=True)
+  email = forms.EmailField(label="Correo electrónico", max_length=254, required=True)
 
   def __init__(self, *args, **kwargs):
     super(UserCreationForm, self).__init__(*args, **kwargs)
@@ -925,7 +925,7 @@ class CondominioForm(forms.ModelForm):
   codigo_tlf_2          = forms.ChoiceField( label="Código de área de teléfono 2", choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}), required=False)
   tlf_2                 = forms.CharField(   label="Teléfono #2",             max_length=24,                                                        required=False)
   direccion_condominio  = forms.CharField(   label="Dirección",               max_length=255,                                                       required=True)
-  email                 = forms.CharField(   label="Correo electrónico",      max_length=100,                                                       required=True)
+  email                 = forms.EmailField( label="Correo electrónico",       max_length=254,                                                       required=True)
   saldo_edificio        = forms.DecimalField(label="Saldo del condominio (BS)",    max_digits=30, decimal_places=2, required=True)
   saldo_edificio_usd    = forms.DecimalField(label="Saldo del condominio (USD)", max_digits=30, decimal_places=2, required=True)
   saldo_edificio_eur    = forms.DecimalField(label="Saldo del condominio (EUR)", max_digits=30, decimal_places=2, required=True)

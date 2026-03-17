@@ -109,8 +109,8 @@ def check_database(request):
     """Vista para verificar la conexión a la base de datos"""
     from django.db import connection
     from django.conf import settings
-    from condominio_app.models import Usuario
-    
+    from condominio_app.models import Usuario, Condominio
+
     db_info = []
     db_info.append("<h2>Información de la Base de Datos</h2>")
     db_info.append(f"<p><strong>Engine:</strong> {settings.DATABASES['default']['ENGINE']}</p>")
@@ -118,7 +118,7 @@ def check_database(request):
     db_info.append(f"<p><strong>Host:</strong> {settings.DATABASES['default']['HOST']}</p>")
     db_info.append(f"<p><strong>User:</strong> {settings.DATABASES['default']['USER']}</p>")
     db_info.append(f"<p><strong>Port:</strong> {settings.DATABASES['default']['PORT']}</p>")
-    
+
     try:
         # Intentar conectar a la base de datos
         with connection.cursor() as cursor:
@@ -126,23 +126,36 @@ def check_database(request):
             version = cursor.fetchone()[0]
             db_info.append(f"<p style='color: green;'><strong>✅ Conexión exitosa!</strong></p>")
             db_info.append(f"<p><strong>Versión PostgreSQL:</strong> {version}</p>")
-            
-            # Verificar si hay usuarios usando el modelo
+
+            # Usuarios (tabla usuarios): correo de login de cada usuario
             user_count = Usuario.objects.count()
             db_info.append(f"<p><strong>Usuarios en la base de datos:</strong> {user_count}</p>")
-            
+
             if user_count > 0:
-                users = Usuario.objects.all()[:10]
-                db_info.append("<h3>Usuarios encontrados:</h3>")
+                users = Usuario.objects.all().order_by('id')
+                db_info.append("<h3>Usuarios (tabla usuarios)</h3>")
                 db_info.append("<table border='1' style='border-collapse: collapse; padding: 5px;'>")
                 db_info.append("<tr><th>ID</th><th>Username</th><th>Email</th><th>Rol ID</th><th>Condominio ID</th><th>is_superuser</th><th>is_active</th></tr>")
                 for user in users:
                     db_info.append(f"<tr><td>{user.id}</td><td>{user.username}</td><td>{user.email}</td><td>{user.id_rol_id}</td><td>{user.id_condominio_id}</td><td>{user.is_superuser}</td><td>{user.is_active}</td></tr>")
                 db_info.append("</table>")
-                db_info.append("<p><strong>Nota:</strong> Para probar login, usa el username exacto (puede estar en mayúsculas)</p>")
+                db_info.append("<p><strong>Nota:</strong> Para probar login, usa el username exacto (puede estar en mayúsculas). El email de esta tabla es el de la cuenta de usuario.</p>")
             else:
                 db_info.append("<p style='color: orange;'><strong>⚠️ No hay usuarios en la base de datos.</strong></p>")
                 db_info.append("<p>Necesitas crear un superusuario con: <code>python manage.py create_admin</code></p>")
+
+            # Condominios (tabla condominio): correo del edificio, no del usuario
+            cond_count = Condominio.objects.count()
+            db_info.append(f"<p><strong>Condominios en la base de datos:</strong> {cond_count}</p>")
+            if cond_count > 0:
+                condominios = Condominio.objects.all().order_by('id_condominio')
+                db_info.append("<h3>Condominios (tabla condominio — correo del edificio)</h3>")
+                db_info.append("<table border='1' style='border-collapse: collapse; padding: 5px;'>")
+                db_info.append("<tr><th>ID</th><th>Nombre</th><th>Correo del condominio</th></tr>")
+                for c in condominios:
+                    db_info.append(f"<tr><td>{c.id_condominio}</td><td>{c.nombre_condominio or '-'}</td><td>{c.email or '-'}</td></tr>")
+                db_info.append("</table>")
+                db_info.append("<p><strong>Nota:</strong> El correo que se ve en Configuración del edificio (ej. inverdata@gmail.com) está guardado aquí, no en la tabla de usuarios.</p>")
                 
     except Exception as e:
         db_info.append(f"<p style='color: red;'><strong>❌ Error al conectar:</strong> {str(e)}</p>")
@@ -6964,7 +6977,7 @@ def updatePropietarios(request, id):
                                  'Ha ocurrido un error durante la actualización. Debe proveer por lo menos un número de teléfono.',
                                  extra_tags='alert-danger')
             else:
-                propietarios_form = PropietariosForm(data=dataPropietario)
+                propietarios_form = PropietariosForm(data=dataPropietario, instance=propietario)
 
                 # Se chequea si el formulario de los propietarios es valido
                 if propietarios_form.is_valid():

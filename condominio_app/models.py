@@ -40,7 +40,7 @@ class MyAccountManager(BaseUserManager):
 
 
 class Usuario(AbstractBaseUser):
-    email = models.EmailField(verbose_name="Correo electrónico", max_length=60, unique=True)
+    email = models.EmailField(verbose_name="Correo electrónico", max_length=254, unique=True)
     username = models.CharField(verbose_name="Nombre de usuario", max_length=30, unique=True)
     date_joined = models.DateTimeField(verbose_name='Fecha de registro', auto_now_add=True)
     last_login = models.DateTimeField(verbose_name='Último inicio de sesión', auto_now=True)
@@ -112,7 +112,7 @@ class Condominio(models.Model):
     tlf_1 = models.CharField(verbose_name="Telefono 1 del condominio", max_length=255)
     codigo_tlf_2 = models.CharField(verbose_name="Codigo de área 2", max_length=15, null=True, blank=True)
     tlf_2 = models.CharField(verbose_name="Telefono 2 del condominio (opcional)", max_length=255, null=True, blank=True)
-    email = models.EmailField(verbose_name="Correo electrónico del condominio", max_length=100)
+    email = models.EmailField(verbose_name="Correo electrónico del condominio", max_length=254)
     superficie_total_m2 = models.DecimalField(
         verbose_name="Superficie total del edificio (m²)",
         max_digits=12,
@@ -183,7 +183,7 @@ class Bancos(models.Model):
     fecha_apertura = models.DateField(verbose_name="Fecha de apertura del banco", null=True)
     tipo_dni_titular = models.CharField(verbose_name="Tipo de identificación del titular", max_length=32, null=True)
     dni_titular = models.CharField(verbose_name="Número de identificación del titular", max_length=20, null=True)
-    email_titular = models.EmailField(verbose_name="Correo electrónico del titular", max_length=100)
+    email_titular = models.EmailField(verbose_name="Correo electrónico del titular", max_length=254)
     tlf_titular = models.CharField(verbose_name="Número de teléfono del titular", max_length=32)
     tipo_moneda = models.CharField(verbose_name="Tipo de moneda que maneja el banco", max_length=100)
     ultimo_debito = models.DateField(verbose_name="Último debito realizado al banco", null=True)
@@ -244,7 +244,7 @@ class Datos_transaccion(models.Model):
     nombre_banco = models.CharField(verbose_name="Nombre del banco (emisor)", max_length=255, null=True, blank=True)
     codigo_area = models.CharField(verbose_name="Codigo de área", max_length=7, null=True)
     telefono_titular = models.CharField(verbose_name="Teléfono del titular", max_length=20, null=True)
-    correo_titular = models.CharField(verbose_name="Correo del titular", max_length=30, null=True)
+    correo_titular = models.CharField(verbose_name="Correo del titular", max_length=254, null=True)
     tipo_transaccion = models.CharField(verbose_name="tipo de Transacción", max_length=10)
     dni_titular = models.CharField(verbose_name='Identificación', max_length=20, null=True)
     id_movimiento = models.ForeignKey('Movimientos_bancarios', on_delete=models.CASCADE, null=True)
@@ -502,7 +502,7 @@ class Propietario(models.Model):
     genero = models.CharField(verbose_name="Género del propietario", max_length=2, choices=TipoGenero.choices)
     pais_residencia = models.CharField(verbose_name="Pais donde reside", max_length=100, null=True)
     tipo_dni = models.CharField(verbose_name="Tipo de identificación", max_length=2, choices=TipoIdentificacion.choices, default=TipoIdentificacion.VENEZOLANO)
-    dni = models.CharField(verbose_name="Número de identificación", max_length=50)
+    dni = models.CharField(verbose_name="Número de identificación", max_length=50, unique=True)
     codigo_tlf_hab = models.CharField(verbose_name="Codigo de Área", max_length=15, null=True)
     telefono_hab = models.CharField(verbose_name="Número de teléfono de habitación", max_length=30, null=True)
     codigo_tlf_movil = models.CharField(verbose_name="Codigo de Área", max_length=15, null=True)
