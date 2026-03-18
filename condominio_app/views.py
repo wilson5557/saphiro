@@ -1687,13 +1687,6 @@ def admin_gastos(request):
     tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
-        if request.POST['fecha_movimiento'] > str(date.today()):
-            # Este error ocurre si la fecha escogida es mayor a la actual
-            messages.warning(request,
-                             'Ha ocurrido un error durante el registro. La fecha del gasto no puede ser mayor a la del día actual',
-                             extra_tags='alert-danger')
-        else:
-
             if Decimal(request.POST['monto_movimiento']) <= 0:
                 messages.warning(request,
                                  'Ha ocurrido un error durante el registro. El monto del gasto no puede ser igual o menor a 0',
@@ -1935,13 +1928,6 @@ def admin_ingresos(request):
     tasa_bs, tasa_euro = _obtener_tasas_safe(request, ultima_tasa, today)
 
     if request.method == 'POST':
-        if request.POST['fecha_movimiento'] > str(date.today()):
-            # Este error ocurre si la fecha escogida es mayor a la actual
-            messages.warning(request,
-                             'Ha ocurrido un error durante el registro. La fecha del ingreso no puede ser mayor a la del día actual',
-                             extra_tags='alert-danger')
-        else:
-
             # La fecha es menor y se continua con el registro de ingresos
             if Decimal(request.POST['monto_movimiento']) <= 0:
                 messages.warning(request,
@@ -2269,15 +2255,7 @@ def admin_deudas_caja(request):
 
     if request.method == 'POST':
         try:
-            fecha_pago = request.POST.get('fecha_movimiento', '')
-            if fecha_pago and fecha_pago > str(date.today()):
-                messages.warning(
-                    request,
-                    'La fecha del pago no puede ser mayor a la fecha actual.',
-                    extra_tags='alert-danger',
-                )
-                return HttpResponseRedirect(reverse('condominio_app:admin_deudas_caja'))
-
+            # Se permite registrar pagos con cualquier fecha; solo se valida consistencia de moneda.
             moneda_form = (request.POST.get('tipo_moneda') or request.POST.get('moneda_pago') or '').upper()
             moneda_pago = (request.POST.get('moneda_pago') or '').upper()
             if moneda_form != moneda_pago:
@@ -2603,14 +2581,9 @@ def admin_fondos(request):
                 messages.success(request, 'Porcentaje del fondo de reserva guardado correctamente.', extra_tags='alert-success')
             return HttpResponseRedirect(reverse('condominio_app:admin_fondos'))
 
-        if request.POST['fecha_movimiento'] > str(date.today()):
-            # Este error ocurre si la fecha escogida es mayor a la actual
-            messages.warning(request,
-                             'Ha ocurrido un error durante el registro. La fecha del fondo no puede ser mayor a la del día actual',
-                             extra_tags='alert-danger')
-        else:
+        # Se permite registrar fondos con cualquier fecha; solo se valida monto > 0
 
-            # La fecha es menor y se continua con el registro de ingresos
+            # Validar monto del fondo
             if Decimal(request.POST['monto_movimiento']) <= 0:
                 messages.warning(request,
                                  'Ha ocurrido un error durante el registro. El monto del fondo no puede ser igual o menor a 0',
