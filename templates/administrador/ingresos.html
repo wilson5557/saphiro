@@ -368,6 +368,10 @@ class="col-lg-3 end-padding-left"
                                 <a href="/home/administrar/ingresos/actualizar/{{ ingreso.id_ingreso }}"
                                    class="btn btn-primary btn-option-admin border text-light button-table center-all mr-1"
                                    data-toggle="popover" data-content="Editar"><i class="fa fa-pencil-square-o"></i></a>
+                                <a href="#"
+                                   class="btn btn-primary btn-option-admin border text-light button-table center-all btn-eliminar-ingreso"
+                                   data-url="/home/administrar/ingresos/eliminar/{{ ingreso.id_movimiento_id }}"
+                                   data-toggle="popover" data-content="Eliminar"><i class="fa fa-trash-o"></i></a>
                             </div>
                         </td>
                         {% endif %}
@@ -379,6 +383,27 @@ class="col-lg-3 end-padding-left"
             </div>
         </div>
     </div>
+</div>
+
+<!-- Modal confirmar eliminación de ingreso -->
+<div class="modal fade modal-confirm" id="modalEliminarIngreso" tabindex="-1" role="dialog" aria-labelledby="modalEliminarIngresoLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content modal-eliminar-gasto-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEliminarIngresoLabel">Eliminar ingreso</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        ¿Está seguro que desea eliminar este ingreso?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <a href="#" id="confirmEliminarIngreso" class="btn btn-danger">Sí, eliminar</a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -403,7 +428,7 @@ class="col-lg-3 end-padding-left"
 </script>
 
 <script>
-    $(document).ready(function() {
+        $(document).ready(function() {
         var table = $('#TablaIngresos').DataTable( {
           "processing": true,
           "order": [[4, "desc"]],
@@ -449,6 +474,17 @@ class="col-lg-3 end-padding-left"
           table.order([[4, $(this).val()]]).draw();
         });
     });
+</script>
+
+<script>
+  document.querySelectorAll('.btn-eliminar-ingreso').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      var url = btn.getAttribute('data-url');
+      document.getElementById('confirmEliminarIngreso').setAttribute('href', url);
+      $('#modalEliminarIngreso').modal('show');
+    });
+  });
 </script>
 
 <!-- FIN MAESTRO DE INGRESOS -->
