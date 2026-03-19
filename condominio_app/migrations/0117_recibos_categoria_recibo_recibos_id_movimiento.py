@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='recibos',
             name='categoria_recibo',
-            field=models.CharField(default='SOLVENTE', max_length=20, verbose_name='Categoria del recibo'),
+            field=models.CharField(default='SOLVENTE', max_length=100, verbose_name='Categoria del recibo'),
             preserve_default=False,
         ),
         migrations.AddField(

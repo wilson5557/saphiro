@@ -23,6 +23,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='datos_transaccion',
             name='telefono_titular',
-            field=models.CharField(max_length=20, null=True, verbose_name='Teléfono del titular'),
+            field=models.CharField(max_length=100, null=True, verbose_name='Teléfono del titular'),
         ),
     ]

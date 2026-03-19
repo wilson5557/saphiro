@@ -522,10 +522,10 @@ class BancosForm(forms.ModelForm):
   nombre_titular    = forms.CharField(label='Nombre del titular de la cuenta', max_length=255, required=True)
   fecha_apertura    = forms.DateField(label="Fecha de apertura del banco", widget = forms.SelectDateWidget(attrs=({'style': 'width: 30%; display: inline-block;'})), required=True)
   tipo_dni_titular  = forms.ChoiceField(choices=TIPO_CI, widget=forms.Select(attrs={'class': 'form-control'}))
-  dni_titular       = forms.CharField(label='Identificación', max_length=20, required=True)
+  dni_titular       = forms.CharField(label='Identificación', max_length=100, required=True)
   email_titular     = forms.EmailField(label='Correo electrónico del titular', max_length=254)
   cod_tlf           = forms.ChoiceField(label="Código del teléfono del titular", required=False, choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
-  tlf_titular       = forms.CharField(label='Teléfono del titular', max_length=20)
+  tlf_titular       = forms.CharField(label='Teléfono del titular', max_length=100)
   tipo_moneda       = forms.CharField(label="Tipo de moneda", widget=forms.RadioSelect(choices=TIPO_MONEDA, attrs={'class': 'from-check-input tipo_moneda', 'id': 'tipo_moneda'}))
   tipo_banco        = forms.CharField(label="Tipo de banco", widget=forms.Select(choices=TIPO_BANCO, attrs={'class': 'from-check-input', 'id': 'tipo_banco'}))
   saldo_actual      = forms.DecimalField(label="Saldo de apertura del banco", max_digits=30, decimal_places=2)
@@ -601,10 +601,10 @@ class MovimientoForm(forms.ModelForm):
 class DatosMovimientoForm(forms.ModelForm):
   nombre_titular = forms.CharField(label='Nombre del titular de la cuenta', max_length=255, required=True)
   codigo_area = forms.ChoiceField(label="Código del teléfono del titular", required=False, choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
-  telefono_titular = forms.CharField(label='Teléfono del titular', max_length=20)
+  telefono_titular = forms.CharField(label='Teléfono del titular', max_length=100)
   correo_titular = forms.EmailField(label='Correo electrónico del titular', max_length=254, required=False)
   tipo_dni_titular = forms.ChoiceField(choices=TIPO_CI, widget=forms.Select(attrs={'class': 'form-control'}))
-  dni_titular = forms.CharField(label='Identificación', max_length=20, required=True)
+  dni_titular = forms.CharField(label='Identificación', max_length=100, required=True)
 
   class Meta:
     model = Datos_transaccion
@@ -636,7 +636,7 @@ class ReservacionForm(forms.ModelForm):
   
   cedula                = forms.IntegerField(label= "Cedula del cliente")
   telefono              = forms.IntegerField(label= "Telefono del cliente")
-  Banco                 = forms.CharField(label="Banco emisor", max_length=20)
+  Banco                 = forms.CharField(label="Banco emisor", max_length=100)
   referenncia_bancaria  = forms.IntegerField(label="Referencia bancaria")
   fecha_entrada         = forms.DateField(label="Fecha de entrada")
   fecha_salida         = forms.DateField(label="Fecha de salida")
@@ -661,7 +661,7 @@ class PropietariosForm(forms.ModelForm):
   genero                = forms.ChoiceField(label="Género", choices=Propietario.TipoGenero.choices, widget=forms.Select(attrs={'class': 'form-control'}))
   pais_residencia       = forms.ChoiceField(label="Pais de residencia", choices=PAISES, widget=forms.Select(attrs={'class': 'form-control'}))
   tipo_dni              = forms.ChoiceField(label="Tipo de documento", choices=Propietario.TipoIdentificacion.choices, widget=forms.Select(attrs={'class': 'form-control'}))
-  dni                   = forms.CharField(label='Número de identificación',         max_length=20,                                                        required=True)
+  dni                   = forms.CharField(label='Número de identificación',         max_length=100,                                                        required=True)
   codigo_tlf_hab        = forms.ChoiceField(label="Código de área habitación", choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))
   telefono_hab          = forms.CharField(label="Teléfono de habitación", max_length=24, required=False)
   codigo_tlf_movil      = forms.ChoiceField(label="Código de área móvil", choices=CODIGO_AREA, widget=forms.Select(attrs={'class': 'form-control'}))

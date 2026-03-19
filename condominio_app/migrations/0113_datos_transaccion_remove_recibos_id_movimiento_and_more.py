@@ -15,9 +15,9 @@ class Migration(migrations.Migration):
             name='Datos_transaccion',
             fields=[
                 ('id_transaccion', models.AutoField(primary_key=True, serialize=False)),
-                ('nombre_titular', models.CharField(max_length=20, verbose_name='Nombre del titular')),
-                ('apellido_titular', models.CharField(max_length=20, verbose_name='Apellido del titular')),
-                ('telefono_titular', models.CharField(max_length=20, verbose_name='Teléfono del titular')),
+                ('nombre_titular', models.CharField(max_length=100, verbose_name='Nombre del titular')),
+                ('apellido_titular', models.CharField(max_length=100, verbose_name='Apellido del titular')),
+                ('telefono_titular', models.CharField(max_length=100, verbose_name='Teléfono del titular')),
                 ('correo_titular', models.CharField(max_length=255, verbose_name='Correo del titular')),
             ],
             options={

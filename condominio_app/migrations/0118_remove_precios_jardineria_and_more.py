@@ -35,6 +35,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='condominio',
             name='tipo_condominio',
-            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Tipo de unidad condominal'),
+            field=models.CharField(blank=True, max_length=100, null=True, verbose_name='Tipo de unidad condominal'),
         ),
     ]

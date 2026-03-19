@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='rol',
             name='rol',
-            field=models.CharField(choices=[('0', 'Administrador'), ('1', 'Presidente'), ('2', 'Secretario/a'), ('3', 'Junta'), ('4', 'Propietario'), ('5', 'Portero')], default='0', max_length=20, verbose_name='Tipo de rol'),
+            field=models.CharField(choices=[('0', 'Administrador'), ('1', 'Presidente'), ('2', 'Secretario/a'), ('3', 'Junta'), ('4', 'Propietario'), ('5', 'Portero')], default='0', max_length=100, verbose_name='Tipo de rol'),
         ),
     ]

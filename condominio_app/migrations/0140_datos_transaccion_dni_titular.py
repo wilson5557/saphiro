@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='datos_transaccion',
             name='dni_titular',
-            field=models.CharField(max_length=20, null=True, verbose_name='Identificación'),
+            field=models.CharField(max_length=100, null=True, verbose_name='Identificación'),
         ),
     ]

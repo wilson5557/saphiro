@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='Post_propietario',
             fields=[
                 ('id_post', models.AutoField(primary_key=True, serialize=False)),
-                ('tipo_post', models.TextField(max_length=200)),
+                ('tipo_post', models.TextField(max_length=1000)),
                 ('titulo', models.CharField(max_length=50)),
                 ('descripcion', models.TextField(max_length=5000)),
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=condominio_app.models.upload_location)),

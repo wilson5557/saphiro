@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('descripcion', models.TextField(max_length=5000, null=True)),
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=condominio_app.models.upload_location_prop)),
                 ('cod_tlf', models.CharField(max_length=50, verbose_name='Código de área habitación')),
-                ('contacto', models.CharField(max_length=20, null=True, verbose_name='Número teléfonico')),
+                ('contacto', models.CharField(max_length=100, null=True, verbose_name='Número teléfonico')),
                 ('horario_desde', models.TimeField(verbose_name='Horario para empezar a contactar')),
                 ('horario_hasta', models.TimeField(verbose_name='Horario donde finaliza el contacto')),
                 ('is_active', models.BooleanField(default=False, verbose_name='Esta activa?')),

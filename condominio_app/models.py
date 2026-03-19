@@ -83,7 +83,7 @@ class Rol(models.Model):
         PORTERO = 5, _('Portero')
 
     id_rol = models.AutoField(primary_key=True)
-    rol = models.CharField(verbose_name="Tipo de rol", max_length=20, choices=RolesUsuarios.choices, default=RolesUsuarios.ADMINISTRADOR)
+    rol = models.CharField(verbose_name="Tipo de rol", max_length=100, choices=RolesUsuarios.choices, default=RolesUsuarios.ADMINISTRADOR)
 
     class Meta:
         db_table = 'roles'
@@ -107,7 +107,7 @@ class Condominio(models.Model):
     saldo_edificio = models.DecimalField(verbose_name="Saldo actual en el condominio", max_digits=30, decimal_places=2, default=0)
     saldo_edificio_usd = models.DecimalField(verbose_name="Saldo actual en el condominio (USD)", max_digits=30, decimal_places=2, default=0)
     saldo_edificio_eur = models.DecimalField(verbose_name="Saldo actual en el condominio (EUR)", max_digits=30, decimal_places=2, default=0)
-    tipo_condominio = models.CharField(verbose_name="Tipo de unidad condominal", max_length=20, null=True, blank=True)
+    tipo_condominio = models.CharField(verbose_name="Tipo de unidad condominal", max_length=100, null=True, blank=True)
     codigo_tlf_1 = models.CharField(verbose_name="Codigo de área 1", max_length=15)
     tlf_1 = models.CharField(verbose_name="Telefono 1 del condominio", max_length=255)
     codigo_tlf_2 = models.CharField(verbose_name="Codigo de área 2", max_length=15, null=True, blank=True)
@@ -182,7 +182,7 @@ class Bancos(models.Model):
                                       null=True)
     fecha_apertura = models.DateField(verbose_name="Fecha de apertura del banco", null=True)
     tipo_dni_titular = models.CharField(verbose_name="Tipo de identificación del titular", max_length=32, null=True)
-    dni_titular = models.CharField(verbose_name="Número de identificación del titular", max_length=20, null=True)
+    dni_titular = models.CharField(verbose_name="Número de identificación del titular", max_length=100, null=True)
     email_titular = models.EmailField(verbose_name="Correo electrónico del titular", max_length=254)
     tlf_titular = models.CharField(verbose_name="Número de teléfono del titular", max_length=32)
     tipo_moneda = models.CharField(verbose_name="Tipo de moneda que maneja el banco", max_length=100)
@@ -243,10 +243,10 @@ class Datos_transaccion(models.Model):
     nombre_titular = models.CharField(verbose_name="Nombre del titular", max_length=255)
     nombre_banco = models.CharField(verbose_name="Nombre del banco (emisor)", max_length=255, null=True, blank=True)
     codigo_area = models.CharField(verbose_name="Codigo de área", max_length=7, null=True)
-    telefono_titular = models.CharField(verbose_name="Teléfono del titular", max_length=20, null=True)
+    telefono_titular = models.CharField(verbose_name="Teléfono del titular", max_length=100, null=True)
     correo_titular = models.CharField(verbose_name="Correo del titular", max_length=254, null=True)
     tipo_transaccion = models.CharField(verbose_name="tipo de Transacción", max_length=10)
-    dni_titular = models.CharField(verbose_name='Identificación', max_length=20, null=True)
+    dni_titular = models.CharField(verbose_name='Identificación', max_length=100, null=True)
     id_movimiento = models.ForeignKey('Movimientos_bancarios', on_delete=models.CASCADE, null=True)
 
     class Meta:
@@ -261,7 +261,7 @@ class Recibos(models.Model):
     monto = models.DecimalField(verbose_name="Monto recibo", max_digits=30, decimal_places=2, null=True)
     fecha_creacion = models.DateField(verbose_name="Fecha de realizacion")
     hora_creacion = models.TimeField(verbose_name="Hora de realizacion")
-    categoria_recibo = models.CharField(verbose_name="Categoria del recibo", max_length=20)
+    categoria_recibo = models.CharField(verbose_name="Categoria del recibo", max_length=100)
     id_movimiento = models.ForeignKey('Movimientos_bancarios', on_delete=models.CASCADE, null=True)
     id_deuda = models.ForeignKey('Deudas', on_delete=models.CASCADE, null=True)
 
@@ -325,7 +325,7 @@ class Reservacion(models.Model):
     apellido = models.CharField(verbose_name="Nombre del cliente", null=True)#nuevo
     cedula = models.CharField(verbose_name="cedula del cliente", null=True)
     telefono = models.CharField(verbose_name="Telefono del cliente",null=True)
-    Banco = models.CharField(verbose_name="Banco del cliente", max_length=20, null=True)
+    Banco = models.CharField(verbose_name="Banco del cliente", max_length=100, null=True)
     referenncia_bancaria = models.CharField(verbose_name="Referencia bancaria", null=True)
     Fecha_entrada = models.DateField(verbose_name="Fecha de entrada", null=True)
     Fecha_salida = models.DateField(verbose_name="Fecha de salida", null=True)
@@ -633,7 +633,7 @@ class Alquiler(models.Model):
     descripcion = models.TextField(max_length=5000, null=True, blank=False)
     imagen = models.ImageField(upload_to=upload_location_prop, null=True, blank=True, max_length=255)
     cod_tlf = models.CharField(verbose_name="Código de área habitación", max_length=50)
-    contacto = models.CharField(verbose_name="Número teléfonico", max_length=20, null=True)
+    contacto = models.CharField(verbose_name="Número teléfonico", max_length=100, null=True)
     horario_desde = models.TimeField(verbose_name="Horario para empezar a contactar")
     horario_hasta = models.TimeField(verbose_name="Horario donde finaliza el contacto")
     is_active = models.BooleanField(verbose_name="Esta activa?", default=False)

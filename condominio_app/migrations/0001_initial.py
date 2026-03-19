@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('nombre_banco', models.CharField(max_length=255, verbose_name='Nombre del Banco')),
                 ('nombre_titular', models.CharField(max_length=255, null=True, verbose_name='Nombre del titular de la cuenta bancaria')),
                 ('tipo_dni_titular', models.CharField(max_length=32, null=True, verbose_name='Tipo de identificación del titular')),
-                ('dni_titular', models.CharField(max_length=20, null=True, verbose_name='Número de identificación del titular')),
+                ('dni_titular', models.CharField(max_length=100, null=True, verbose_name='Número de identificación del titular')),
                 ('email_titular', models.EmailField(max_length=100, verbose_name='Correo electrónico del titular')),
                 ('tlf_titular', models.CharField(max_length=32, verbose_name='Número de teléfono del titular')),
                 ('tipo_moneda', models.CharField(max_length=100, verbose_name='Tipo de moneda que maneja el banco')),

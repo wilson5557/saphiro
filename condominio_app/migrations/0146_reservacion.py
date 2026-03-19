@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('id_reservacion', models.AutoField(primary_key=True, serialize=False)),
                 ('cedula', models.IntegerField(max_length=8, null=True, verbose_name='cedula del cliente')),
                 ('telefono', models.IntegerField(max_length=11, null=True, verbose_name='Telefono del cliente')),
-                ('Banco', models.CharField(max_length=20, null=True, verbose_name='Banco del cliente')),
+                ('Banco', models.CharField(max_length=100, null=True, verbose_name='Banco del cliente')),
                 ('referenncia_bancaria', models.IntegerField(max_length=15, null=True, verbose_name='Referencia bancaria')),
                 ('Fecha_entrada', models.DateField(null=True, verbose_name='Fecha de entrada')),
                 ('Fecha_salida', models.DateField(null=True, verbose_name='Fecha de salida')),
