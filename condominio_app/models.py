@@ -41,7 +41,7 @@ class MyAccountManager(BaseUserManager):
 
 class Usuario(AbstractBaseUser):
     email = models.EmailField(verbose_name="Correo electrónico", max_length=254, unique=True)
-    username = models.CharField(verbose_name="Nombre de usuario", max_length=30, unique=True)
+    username = models.CharField(verbose_name="Nombre de usuario", max_length=255, unique=True)
     date_joined = models.DateTimeField(verbose_name='Fecha de registro', auto_now_add=True)
     last_login = models.DateTimeField(verbose_name='Último inicio de sesión', auto_now=True)
     is_active = models.BooleanField(verbose_name="Esta activo?", default=True)
@@ -240,7 +240,7 @@ class Movimientos_bancarios(models.Model):
 # DATOS DE LA TRANSACCION
 class Datos_transaccion(models.Model):
     id_transaccion = models.AutoField(primary_key=True)
-    nombre_titular = models.CharField(verbose_name="Nombre del titular", max_length=30)
+    nombre_titular = models.CharField(verbose_name="Nombre del titular", max_length=255)
     nombre_banco = models.CharField(verbose_name="Nombre del banco (emisor)", max_length=255, null=True, blank=True)
     codigo_area = models.CharField(verbose_name="Codigo de área", max_length=7, null=True)
     telefono_titular = models.CharField(verbose_name="Teléfono del titular", max_length=20, null=True)
@@ -458,7 +458,7 @@ class Domicilio(models.Model):
     piso_domicilio = models.IntegerField(verbose_name="Piso del domicilio", null=True, blank=True)
     estacionamientos = models.IntegerField(verbose_name="Número de estacionamientos por domicilio", null=True, blank=True)
     tipo_domicilio = models.CharField(verbose_name="Tipo de habitación", max_length=15, null=True, blank=True)
-    size_domicilio = models.CharField(verbose_name="Tamaño de apartamento (m²)", max_length=30, null=True)
+    size_domicilio = models.CharField(verbose_name="Tamaño de apartamento (m²)", max_length=255, null=True)
     alicuota_domicilio = models.FloatField(verbose_name="Alicuota del apartamento", null=True)
     saldo = models.DecimalField(verbose_name="Saldo del propietario", max_digits=30, decimal_places=2, null=True)
     saldo_usd = models.DecimalField(verbose_name="Saldo del propietario", max_digits=30, decimal_places=2, null=True)
@@ -504,9 +504,9 @@ class Propietario(models.Model):
     tipo_dni = models.CharField(verbose_name="Tipo de identificación", max_length=2, choices=TipoIdentificacion.choices, default=TipoIdentificacion.VENEZOLANO)
     dni = models.CharField(verbose_name="Número de identificación", max_length=50, unique=True)
     codigo_tlf_hab = models.CharField(verbose_name="Codigo de Área", max_length=15, null=True)
-    telefono_hab = models.CharField(verbose_name="Número de teléfono de habitación", max_length=30, null=True)
+    telefono_hab = models.CharField(verbose_name="Número de teléfono de habitación", max_length=255, null=True)
     codigo_tlf_movil = models.CharField(verbose_name="Codigo de Área", max_length=15, null=True)
-    telefono_movil = models.CharField(verbose_name="Número de teléfono personal", max_length=30, null=True)
+    telefono_movil = models.CharField(verbose_name="Número de teléfono personal", max_length=255, null=True)
     id_usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS

@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('titulo', models.CharField(max_length=50)),
                 ('descripcion', models.TextField(max_length=5000)),
                 ('imagen', models.ImageField(blank=True, null=True, upload_to=condominio_app.models.upload_location)),
-                ('contacto', models.CharField(max_length=30, null=True, verbose_name='Número de teléfono')),
+                ('contacto', models.CharField(max_length=255, null=True, verbose_name='Número de teléfono')),
                 ('horario_desde', models.TimeField(verbose_name='Horario para empezar a contactar')),
                 ('horario_hasta', models.TimeField(verbose_name='Horario donde finaliza el contacto')),
                 ('fecha_publicacion', models.DateTimeField(auto_now_add=True, verbose_name='Fecha de publicación')),

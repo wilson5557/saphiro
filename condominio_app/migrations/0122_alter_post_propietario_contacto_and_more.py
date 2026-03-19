@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='post_propietario',
             name='contacto',
-            field=models.IntegerField(max_length=30, null=True, verbose_name='Número de teléfono'),
+            field=models.IntegerField(max_length=255, null=True, verbose_name='Número de teléfono'),
         ),
         migrations.AlterField(
             model_name='post_propietario',

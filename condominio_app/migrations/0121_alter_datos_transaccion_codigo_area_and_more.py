@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='datos_transaccion',
             name='correo_titular',
-            field=models.CharField(max_length=30, null=True, verbose_name='Correo del titular'),
+            field=models.CharField(max_length=255, null=True, verbose_name='Correo del titular'),
         ),
         migrations.AlterField(
             model_name='datos_transaccion',

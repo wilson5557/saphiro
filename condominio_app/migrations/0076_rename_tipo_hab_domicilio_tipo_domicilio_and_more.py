@@ -43,6 +43,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='domicilio',
             name='size_domicilio',
-            field=models.CharField(max_length=30, null=True, verbose_name='Tamaño de apartamento (m²)'),
+            field=models.CharField(max_length=255, null=True, verbose_name='Tamaño de apartamento (m²)'),
         ),
     ]

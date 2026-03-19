@@ -992,7 +992,7 @@ class DomicilioForm(forms.ModelForm):
     piso_domicilio = forms.IntegerField(label="Piso del inmueble", required=False)
     estacionamientos = forms.IntegerField(label="Número de estacionamientos del inmueble")
     tipo_domicilio = forms.ChoiceField( label="Tipo de inmueble", choices=TIPO_APTO, widget=forms.Select(attrs={'class': 'form-control'}))
-    size_domicilio = forms.CharField(label="Tamaño del inmueble (m²)", max_length=30)
+    size_domicilio = forms.CharField(label="Tamaño del inmueble (m²)", max_length=255)
     alicuota_domicilio = forms.FloatField(
         label="Alicuota del inmueble (opcional)",
         required=False,

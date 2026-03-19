@@ -17,6 +17,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='datos_transaccion',
             name='nombre_titular',
-            field=models.CharField(max_length=30, verbose_name='Nombre del titular'),
+            field=models.CharField(max_length=255, verbose_name='Nombre del titular'),
         ),
     ]
