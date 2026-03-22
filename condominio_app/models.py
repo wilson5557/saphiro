@@ -140,8 +140,8 @@ class Condominio(models.Model):
     banner_3 = models.ImageField(verbose_name="Banner 3 inicio", upload_to=_banner_upload_to, blank=True, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nombre_condominio
@@ -201,8 +201,8 @@ class Bancos(models.Model):
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'bancos'
@@ -226,8 +226,8 @@ class Movimientos_bancarios(models.Model):
     id_banco = models.ForeignKey('Bancos', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.referencia_movimiento
@@ -469,8 +469,8 @@ class Domicilio(models.Model):
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'domicilio'
@@ -510,8 +510,8 @@ class Propietario(models.Model):
     id_usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nombre_propietario
@@ -549,8 +549,8 @@ class Deudas(models.Model):
 
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.concepto_deuda 
@@ -569,8 +569,8 @@ class Precios(models.Model):
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "establecimiento_precios"
@@ -657,8 +657,8 @@ class Recargos_y_Descuentos(models.Model):
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "recargos_y_descuentos"
@@ -673,8 +673,8 @@ class Tasas(models.Model):
     tasa_BCV_EUR = models.DecimalField(verbose_name="Tasa del día del EURO por BCV", max_digits=30, decimal_places=2, null=True, blank=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "tasas_de_cambio"
