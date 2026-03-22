@@ -874,8 +874,8 @@ def confirmarPago(request, ids, prop):
             estado_movimiento=2,
             tipo_moneda=request.POST['moneda_pago'],
             id_banco_id=banco_receptor.id_banco,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
+            created_at=fecha_usuario,
+            updated_at=fecha_usuario,
         )
 
     # Asegurar estado pendiente para pagos normales/abonos aunque ya existiera la referencia
