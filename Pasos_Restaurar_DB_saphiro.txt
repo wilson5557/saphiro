@@ -1,0 +1,18 @@
+
+
+RESTAURACION DB 
+
+C:\Users\WorkPC\Desktop\respaldo_saphiro_2026-03-14_23-57.backup
+
+
+EN POWERSHELL
+1.
+cd C:\Users\WorkPC\Desktop\saphiro-nuevo  (-v : "C:\User\X\X... " -->  ubicacion del archivo de respaldo DB)
+2.
+& "C:\Program Files\PostgreSQL\16\bin\pg_restore.exe" -U postgres -h localhost -d saphiro --clean --if-exists -v "C:\Users\WorkPC\Desktop\respaldo_saphiro_2026-03-14_23-57.backup"
+  
+CREAR RESPALDO DB 
+
+& "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" -U postgres -h localhost -F c -f "C:\Users\WorkPC\Desktop\respaldo_saphiro_$(Get-Date -Format 'yyyy-MM-dd_HH-mm').backup" saphiro
+
+cambiar  "respaldo_saphiro_202x-xx-xx_xx-xx.backup" en el paso 1 en -v : "C:\User\X\X... " con la ubicacion y nombre de la nueva DB creada

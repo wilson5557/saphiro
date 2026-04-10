@@ -1,0 +1,20 @@
+Primero abrir linea de comandos:
+cd /d C:\Users\WorkPC\Desktop\saphiro-nuevo
+
+Luego:
+call venv\Scripts\activate.bat
+
+Luego:
+Instala dependencias:
+pip install -r requirements.txt
+
+Luego:
+escribe:
+
+python manage.py runserver
+
+Accede a:
+http://127.0.0.1:8000/
+
+Listo!!!!
+Se necesita internet.
