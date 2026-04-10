@@ -357,7 +357,7 @@ class Gastos(models.Model):
         GERENTE = 3, _('Depósito')
 
     id_gasto = models.AutoField(primary_key=True)
-    fecha = models.DateField(verbose_name="Fecha del gasto realizado", default=timezone.now) ..
+    fecha = models.DateField(verbose_name="Fecha del gasto realizado", default=timezone.now)
     imagen_referencial = models.ImageField(upload_to=img_gastos, null=True, blank=True, max_length=255)
     tipo_gasto = models.CharField(verbose_name="Tipo de gasto", max_length=100)
     factura = models.CharField(verbose_name="Número de Factura", max_length=10, null=True)
