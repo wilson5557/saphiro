@@ -470,7 +470,7 @@ class Domicilio(models.Model):
     id_condominio = models.ForeignKey('Condominio', on_delete=models.CASCADE, null=True)
 
     # TIMESTAMPS
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
